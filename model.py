@@ -1,4 +1,4 @@
-from summer2 import CompartmentalModel
+from summer2 import CompartmentalModel, Stratification
 from summer2.parameters import Parameter, DerivedOutput
 from summer2.functions import time as stf
 
@@ -6,7 +6,7 @@ import yaml
 from pathlib import Path   
 
 
-def get_tb_model(config: dict, home_path=Path.cwd()):
+def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
 
     """
     Prepare time-variant parameters and other quantities requiring pre-processsing
@@ -53,15 +53,17 @@ def get_tb_model(config: dict, home_path=Path.cwd()):
         "recovered",
     )
     model = CompartmentalModel(
-        times=(config["start_time"], config["end_time"]),
+        times=(model_config["start_time"], model_config["end_time"]),
         compartments=compartments,
         infectious_compartments=("infectious",),
     )
+
+    total_pop_size = sum([studies_dict[s]['pop_size'] for s in studies_dict])
     model.set_initial_population(
         distribution=
         {
-            "susceptible": config["population"] - config["seed"], 
-            "infectious": config["seed"],
+            "susceptible": total_pop_size - model_config["seed"], 
+            "infectious": model_config["seed"],
         },
     )
     
@@ -149,6 +151,15 @@ def get_tb_model(config: dict, home_path=Path.cwd()):
         death_rate=tx_death_func,
         source="treatment",
     )
+
+    """
+        Stratify the base model to capture the different studies
+    """
+    study_stratification = Stratification(name="study", strata=studies_dict.keys(), compartments=compartments)
+    study_stratification.set_population_split(
+        {s: studies_dict[s]['pop_size'] / total_pop_size for s in studies_dict}
+    )
+    model.stratify_with(study_stratification)
 
     """
        Request Derived Outputs
