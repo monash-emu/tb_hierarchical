@@ -163,6 +163,7 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     )
     # decouple the different strata (i.e. studies) using an identity matrix as mixing matrix
     study_stratification.set_mixing_matrix(jnp.eye(len(studies)))
+    study_stratification.set_flow_adjustments("birth", adjustments={s: studies_dict[s]['pop_size'] / total_pop_size for s in studies})
 
     # apply stratification to the model
     model.stratify_with(study_stratification)
@@ -186,23 +187,30 @@ def request_model_outputs(model:CompartmentalModel, compartments:list, studies:l
         studies (list): list of studies (required to disaggregate outputs by study)
     """
 
-    # Raw outputs
-    model.request_output_for_compartments(name="raw_ltbi_prevalence", compartments=["latent_early", "latent_late"], save_results=False,)
-    model.request_output_for_compartments(name="raw_tb_prevalence", compartments=["infectious"], save_results=False)
+    for study in studies:
+        study_filter = {"study": study}
 
-    model.request_output_for_flow(name="progression_early", flow_name="progression_early", save_results=False)
-    model.request_output_for_flow(name="progression_late", flow_name="progression_late", save_results=False)
-    model.request_aggregate_output(name="raw_tb_incidence", sources=["progression_early", "progression_late"], save_results=False)
+        ## Raw compartment size outputs
+        model.request_output_for_compartments(name=f"{study}Xraw_ltbi_prevalence", compartments=["latent_early", "latent_late"], strata=study_filter, save_results=False,)
+        model.request_output_for_compartments(name=f"{study}Xraw_tb_prevalence", compartments=["infectious"], strata=study_filter, save_results=False)
 
-    model.request_output_for_flow(name="raw_notifications", flow_name="tb_detection")
+        ## Raw flow outputs
+        # Incidence
+        model.request_output_for_flow(name=f"{study}Xprogression_early", flow_name="progression_early",source_strata=study_filter, save_results=False)
+        model.request_output_for_flow(name=f"{study}Xprogression_late", flow_name="progression_late", source_strata=study_filter, save_results=False)
+        model.request_aggregate_output(name=f"{study}Xraw_tb_incidence", sources=[f"{study}Xprogression_early", f"{study}Xprogression_late"], save_results=False)
 
-    model.request_output_for_flow(name="active_tb_death", flow_name="active_tb_death", save_results=False)
-    model.request_output_for_flow(name="tx_death", flow_name="tx_death", save_results=False)
-    model.request_aggregate_output(name="all_tb_deaths", sources=["active_tb_death", "tx_death"])
+        # Notifications
+        model.request_output_for_flow(name=f"{study}Xraw_notifications", flow_name="tb_detection", source_strata=study_filter)
 
-    # Outputs relative to population size
-    model.request_output_for_compartments(name="population", compartments=compartments)
-    model.request_function_output(name="ltbi_prop", func=DerivedOutput("raw_ltbi_prevalence") / DerivedOutput("population"))
-    model.request_function_output(name="tb_prevalence_per100k", func=1.e5 * DerivedOutput("raw_tb_prevalence") / DerivedOutput("population"))
-    model.request_function_output(name="tb_incidence_per100k", func=1.e5 * DerivedOutput("raw_tb_incidence") / DerivedOutput("population"))
-    model.request_function_output(name="tb_mortality_per100k", func=1.e5 * DerivedOutput("all_tb_deaths") / DerivedOutput("population"))
+        # TB Mortality
+        model.request_output_for_flow(name=f"{study}Xactive_tb_death", flow_name="active_tb_death", source_strata=study_filter, save_results=False)
+        model.request_output_for_flow(name=f"{study}Xtx_death", flow_name="tx_death", source_strata=study_filter, save_results=False)
+        model.request_aggregate_output(name=f"{study}Xall_tb_deaths", sources=[f"{study}Xactive_tb_death", f"{study}Xtx_death"])
+
+        ## Outputs relative to population size
+        model.request_output_for_compartments(name=f"{study}Xpopulation", compartments=compartments, strata=study_filter)
+        model.request_function_output(name=f"{study}Xltbi_prop", func=DerivedOutput(f"{study}Xraw_ltbi_prevalence") / DerivedOutput(f"{study}Xpopulation"))
+        model.request_function_output(name=f"{study}Xtb_prevalence_per100k", func=1.e5 * DerivedOutput(f"{study}Xraw_tb_prevalence") / DerivedOutput(f"{study}Xpopulation"))
+        model.request_function_output(name=f"{study}Xtb_incidence_per100k", func=1.e5 * DerivedOutput(f"{study}Xraw_tb_incidence") / DerivedOutput(f"{study}Xpopulation"))
+        model.request_function_output(name=f"{study}Xtb_mortality_per100k", func=1.e5 * DerivedOutput(f"{study}Xall_tb_deaths") / DerivedOutput(f"{study}Xpopulation"))
