@@ -156,12 +156,13 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     """
         Stratify the base model to capture the different studies
     """
-    study_stratification = Stratification(name="study", strata=studies_dict.keys(), compartments=compartments)
+    studies = list(studies_dict.keys())
+    study_stratification = Stratification(name="study", strata=studies, compartments=compartments)
     study_stratification.set_population_split(
-        {s: studies_dict[s]['pop_size'] / total_pop_size for s in studies_dict}
+        {s: studies_dict[s]['pop_size'] / total_pop_size for s in studies}
     )
     # decouple the different strata (i.e. studies) using an identity matrix as mixing matrix
-    study_stratification.set_mixing_matrix(jnp.eye(len(studies_dict)))
+    study_stratification.set_mixing_matrix(jnp.eye(len(studies)))
 
     # apply stratification to the model
     model.stratify_with(study_stratification)
@@ -169,8 +170,24 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     """
        Request Derived Outputs
     """
+    request_model_outputs(model, compartments, studies)
+
+    return model
+
+
+
+def request_model_outputs(model:CompartmentalModel, compartments:list, studies:list):
+    """
+    Define model outputs that can later be requested from model.get_derived_outputs_df()
+
+    Args:
+        model (CompartmentalModel): the 'fully-built' TB model
+        compartments (list): list of all model compartments (required to create population size output)
+        studies (list): list of studies (required to disaggregate outputs by study)
+    """
+
     # Raw outputs
-    model.request_output_for_compartments(name="raw_ltbi_prevalence", compartments=["latent_early", "latent_late"], save_results=False)
+    model.request_output_for_compartments(name="raw_ltbi_prevalence", compartments=["latent_early", "latent_late"], save_results=False,)
     model.request_output_for_compartments(name="raw_tb_prevalence", compartments=["infectious"], save_results=False)
 
     model.request_output_for_flow(name="progression_early", flow_name="progression_early", save_results=False)
@@ -189,5 +206,3 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     model.request_function_output(name="tb_prevalence_per100k", func=1.e5 * DerivedOutput("raw_tb_prevalence") / DerivedOutput("population"))
     model.request_function_output(name="tb_incidence_per100k", func=1.e5 * DerivedOutput("raw_tb_incidence") / DerivedOutput("population"))
     model.request_function_output(name="tb_mortality_per100k", func=1.e5 * DerivedOutput("all_tb_deaths") / DerivedOutput("population"))
-
-    return model
