@@ -2,6 +2,7 @@ from summer2 import CompartmentalModel, Stratification
 from summer2.parameters import Parameter, DerivedOutput
 from summer2.functions import time as stf
 
+from jax import numpy as jnp
 import yaml
 from pathlib import Path   
 
@@ -159,6 +160,10 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     study_stratification.set_population_split(
         {s: studies_dict[s]['pop_size'] / total_pop_size for s in studies_dict}
     )
+    # decouple the different strata (i.e. studies) using an identity matrix as mixing matrix
+    study_stratification.set_mixing_matrix(jnp.eye(len(studies_dict)))
+
+    # apply stratification to the model
     model.stratify_with(study_stratification)
 
     """
