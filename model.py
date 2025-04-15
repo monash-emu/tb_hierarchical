@@ -12,6 +12,8 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     """
     Prepare time-variant parameters and other quantities requiring pre-processsing
     """
+
+    # FIXME: the time-variant birth_rate and life_expectancy data are currently universal. Will be changed to study-specific. 
     tv_data_path = home_path / 'data' / 'time_variant_params.yml'
     with open(tv_data_path, 'r') as file:
         tv_data = yaml.safe_load(file)
@@ -25,6 +27,7 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     )
     all_cause_mortality_func = 1. / life_expectancy_func
     
+    # FIXME: passive detection rate should be study-specific
     detection_func = stf.get_sigmoidal_interpolation_function(
         x_pts=[1950., 2025.], y_pts=[0., Parameter('current_passive_detection_rate')], curvature=16
     )
@@ -32,12 +35,13 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     # Treatment outcomes
     # * tx recovery rate is 1/Tx duration
     # * write equations for TSR and for prop deaths among all treatment outcomes (Pi). Solve for treatment death rate (mu_Tx) and relapse rate (phi).
-
+    # FIXME: tsr should be study-specific
     tsr_func = stf.get_linear_interpolation_function(
         x_pts=tv_data['treatment_success_perc']['times'], 
         y_pts=[ts_perc / 100. for ts_perc in tv_data['treatment_success_perc']['values']]
     )
 
+    # FIXME: tx_prop_death may be study-specific
     tx_recovery_rate = 1. / Parameter("tx_duration") 
     tx_death_func = tx_recovery_rate * Parameter("tx_prop_death") / tsr_func - all_cause_mortality_func
     tx_relapse_func = (all_cause_mortality_func + tx_death_func) * (1. / Parameter("tx_prop_death") - 1.) - tx_recovery_rate
@@ -69,7 +73,7 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     )
     
     # add birth and all cause mortality
-    #FIXME! WIll need to make demographics study-specific
+    # FIXME: WIll need to make demographics study-specific
     model.add_crude_birth_flow(
         name="birth",
         birth_rate=crude_birth_rate_func,
@@ -96,6 +100,7 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
             dest="latent_early",
         )
 
+    # FIXME: Will need to make progression flows study-specific
     # latency progression
     model.add_transition_flow(
         name="stabilisation",
