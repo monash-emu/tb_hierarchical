@@ -69,6 +69,7 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     )
     
     # add birth and all cause mortality
+    #FIXME! WIll need to make demographics study-specific
     model.add_crude_birth_flow(
         name="birth",
         birth_rate=crude_birth_rate_func,
@@ -81,17 +82,16 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     )
 
     # infection and reinfection flows
-    transmission_rate = Parameter("transmission_rate")
     model.add_infection_frequency_flow(
         name="infection", 
-        contact_rate=transmission_rate,
+        contact_rate=1., # will be adjusted later by study 
         source="susceptible", 
         dest="latent_early",
     )
     for reinfection_source in ["latent_late", "recovered"]:
         model.add_infection_frequency_flow(
             name=f"reinfection_{reinfection_source}", 
-            contact_rate=transmission_rate * Parameter(f"rr_reinfection_{reinfection_source}"),
+            contact_rate=Parameter(f"rr_reinfection_{reinfection_source}"),  # will be adjusted later by study 
             source=reinfection_source, 
             dest="latent_early",
         )
@@ -153,28 +153,45 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
         source="treatment",
     )
 
-    """
-        Stratify the base model to capture the different studies
-    """
-    studies = list(studies_dict.keys())
-    study_stratification = Stratification(name="study", strata=studies, compartments=compartments)
-    study_stratification.set_population_split(
-        {s: studies_dict[s]['pop_size'] / total_pop_size for s in studies}
-    )
-    # decouple the different strata (i.e. studies) using an identity matrix as mixing matrix
-    study_stratification.set_mixing_matrix(jnp.eye(len(studies)))
-    study_stratification.set_flow_adjustments("birth", adjustments={s: studies_dict[s]['pop_size'] / total_pop_size for s in studies})
-
-    # apply stratification to the model
-    model.stratify_with(study_stratification)
+    stratify_by_study(model, compartments, studies_dict, total_pop_size)
 
     """
        Request Derived Outputs
     """
-    request_model_outputs(model, compartments, studies)
+    request_model_outputs(model, compartments, list(studies_dict.keys()))
 
     return model
 
+
+def stratify_by_study(model:CompartmentalModel, compartments:list, studies_dict: dict, total_pop_size: float):
+    """
+    Stratify the base TB model to capture the different studies.
+
+    Args:
+        model (CompartmentalModel): TB model before stratification
+        compartments (list): list of all model compartments
+        studies_dict (dict): Information about the different studies
+    """
+    studies = list(studies_dict.keys())
+    study_stratification = Stratification(name="study", strata=studies, compartments=compartments)
+    
+    # Decouple the different strata (i.e. studies) using an identity matrix as mixing matrix
+    study_stratification.set_mixing_matrix(jnp.eye(len(studies)))
+    
+    # Split initial population and births according to studies' population sizes
+    study_stratification.set_population_split(
+        {s: studies_dict[s]['pop_size'] / total_pop_size for s in studies}
+    )
+    study_stratification.set_flow_adjustments("birth", adjustments={s: studies_dict[s]['pop_size'] / total_pop_size for s in studies})
+
+    # Adjust all transmission flows by study
+    for flow_name in ["infection", "reinfection_latent_late", "reinfection_recovered"]:
+        study_stratification.set_flow_adjustments(
+            flow_name=flow_name , adjustments={s: Parameter(f"transmission_rateX{s}") for s in studies}
+        )
+
+    # apply stratification to the model
+    model.stratify_with(study_stratification)
 
 
 def request_model_outputs(model:CompartmentalModel, compartments:list, studies:list):
