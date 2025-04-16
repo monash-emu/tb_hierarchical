@@ -5,7 +5,7 @@ from summer2.functions import time as stf
 from jax import numpy as jnp
 import yaml
 from pathlib import Path   
-
+from typing import Callable
 
 def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
 
@@ -104,14 +104,14 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     # latency progression
     model.add_transition_flow(
         name="stabilisation",
-        fractional_rate=Parameter("stabilisation_rate"),
+        fractional_rate=1., # later adjusted by study   Parameter("stabilisation_rate"),
         source="latent_early",
         dest="latent_late",
     )
     for progression_type in ["early", "late"]:
         model.add_transition_flow(
             name=f"progression_{progression_type}",
-            fractional_rate=Parameter(f"activation_rate_{progression_type}"),
+            fractional_rate=1.,   # later adjusted by study   Parameter(f"activation_rate_{progression_type}"),
             source=f"latent_{progression_type}",
             dest="infectious",
         )
@@ -158,7 +158,7 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
         source="treatment",
     )
 
-    stratify_by_study(model, compartments, studies_dict, total_pop_size)
+    stratify_by_study(model, compartments, studies_dict, total_pop_size, all_cause_mortality_func)
 
     """
        Request Derived Outputs
@@ -168,7 +168,7 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     return model
 
 
-def stratify_by_study(model:CompartmentalModel, compartments:list, studies_dict: dict, total_pop_size: float):
+def stratify_by_study(model:CompartmentalModel, compartments:list, studies_dict: dict, total_pop_size: float, all_cause_mortality_func:Callable):
     """
     Stratify the base TB model to capture the different studies.
 
@@ -176,6 +176,7 @@ def stratify_by_study(model:CompartmentalModel, compartments:list, studies_dict:
         model (CompartmentalModel): TB model before stratification
         compartments (list): list of all model compartments
         studies_dict (dict): Information about the different studies
+        all_cause_mortality_func (function): time-dependent function returning the all-cause mortality rate (required to compute latency progression rates)
     """
     studies = list(studies_dict.keys())
     study_stratification = Stratification(name="study", strata=studies, compartments=compartments)
@@ -195,8 +196,53 @@ def stratify_by_study(model:CompartmentalModel, compartments:list, studies_dict:
             flow_name=flow_name , adjustments={s: Parameter(f"transmission_rateX{s}") for s in studies}
         )
 
+    # Adjust the latency progression flows
+    stratified_latency_flow_rates = get_stratified_latency_flow_rates(studies, all_cause_mortality_func)
+    for flow_name, param in zip(["progression_early", "progression_late", "stabilisation"], ["activation_rate_early", "activation_rate_late", "stabilisation_rate"]):
+        study_stratification.set_flow_adjustments(
+            flow_name=flow_name , adjustments={s: stratified_latency_flow_rates[param][s] for s in studies}
+        )
+
     # apply stratification to the model
     model.stratify_with(study_stratification)
+
+
+def get_stratified_latency_flow_rates(studies:list, all_cause_mortality_func:Callable):
+    """
+    Computes the flow rates characterising progression from latent to active TB. The flow rates are
+     - calculated using the relevant model parameters which are easier to interpret epidemiologically than the rates themselves
+     - study-specific  
+    Args:
+        studies (list): list of studies (i.e. strata names)
+        all_cause_mortality_func (function): time-dependent function returning the all-cause mortality rate (required to compute latency progression rates)
+    """
+    # Initialise an empty dictionary using model flow param names as primary keys
+    stratified_latency_flow_rates = {s: {} for s in ["activation_rate_early", "activation_rate_late", "stabilisation_rate"]}
+    
+    # Compute the rates and populate the dictionary
+    # See supplementary appendix for the equations solving details
+    # FIXME: This will be study-specific eventually
+    for study in studies:
+        # early progression rate
+        stratified_latency_flow_rates["activation_rate_early"][study] = (
+            Parameter("prop_early_activators") / Parameter("mean_duration_early_latent")
+        )
+
+        # late progression rate
+        stratified_latency_flow_rates["stabilisation_rate"][study] = (
+            (1. - Parameter("prop_early_activators")) / Parameter("mean_duration_early_latent")  - all_cause_mortality_func 
+        )
+
+        # stabilisation rate
+        stratified_latency_flow_rates["activation_rate_late"][study] = (
+            all_cause_mortality_func * (
+                Parameter("lifelong_activation_risk") - Parameter("prop_early_activators")
+                ) / (
+                    1. - all_cause_mortality_func * Parameter("mean_duration_early_latent") - Parameter("lifelong_activation_risk")
+                    )
+        )
+
+    return stratified_latency_flow_rates
 
 
 def request_model_outputs(model:CompartmentalModel, compartments:list, studies:list):
