@@ -225,20 +225,20 @@ def get_stratified_latency_flow_rates(studies:list, all_cause_mortality_func:Cal
     for study in studies:
         # early progression rate
         stratified_latency_flow_rates["activation_rate_early"][study] = (
-            Parameter("prop_early_among_activators") * Parameter("lifelong_activation_risk") / Parameter("mean_duration_early_latent")
+            Parameter(f"prop_early_among_activatorsX{study}") * Parameter(f"lifelong_activation_riskX{study}") / Parameter("mean_duration_early_latent")
         )
 
         # late progression rate
         stratified_latency_flow_rates["stabilisation_rate"][study] = (
-            (1. - Parameter("prop_early_among_activators") * Parameter("lifelong_activation_risk")) / Parameter("mean_duration_early_latent")  - all_cause_mortality_func 
+            (1. - Parameter(f"prop_early_among_activatorsX{study}") * Parameter(f"lifelong_activation_riskX{study}")) / Parameter("mean_duration_early_latent")  - all_cause_mortality_func 
         )
 
         # stabilisation rate
         stratified_latency_flow_rates["activation_rate_late"][study] = (
-            all_cause_mortality_func * Parameter("lifelong_activation_risk") * (
-                1. - Parameter("prop_early_among_activators")
+            all_cause_mortality_func * Parameter(f"lifelong_activation_riskX{study}") * (
+                1. - Parameter(f"prop_early_among_activatorsX{study}")
                 ) / (
-                    1. - all_cause_mortality_func * Parameter("mean_duration_early_latent") - Parameter("lifelong_activation_risk")
+                    1. - all_cause_mortality_func * Parameter("mean_duration_early_latent") - Parameter(f"lifelong_activation_riskX{study}")
                     )
         )
 
