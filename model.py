@@ -13,14 +13,10 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     Prepare time-variant parameters and other quantities requiring pre-processsing
     """
 
-    # FIXME: the time-variant birth_rate and life_expectancy data are currently universal. Will be changed to study-specific. 
+    # FIXME: the time-variant life_expectancy data are currently universal. Will be changed to study-specific. 
     tv_data_path = home_path / 'data' / 'time_variant_params.yml'
     with open(tv_data_path, 'r') as file:
         tv_data = yaml.safe_load(file)
-
-    crude_birth_rate_func = stf.get_linear_interpolation_function(
-        x_pts=tv_data['crude_birth_rate']['times'], y_pts=[cbr / 1000. for cbr in tv_data['crude_birth_rate']['values']]
-    )
 
     life_expectancy_func = stf.get_linear_interpolation_function(
         x_pts=tv_data['life_expectancy']['times'], y_pts=tv_data['life_expectancy']['values']
@@ -74,16 +70,17 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     
     # add birth and all cause mortality
     # FIXME: WIll need to make demographics study-specific
-    model.add_crude_birth_flow(
-        name="birth",
-        birth_rate=crude_birth_rate_func,
-        dest="susceptible"
-    )
 
-    model.add_universal_death_flows(
-        name="all_cause_mortality",
-        death_rate= all_cause_mortality_func
-    )
+    # Natural death implemented as a transition back to the susceptible compartment.
+    # Additional births incorporated after stratification to match population growth.
+    non_susceptible_comps = [c for c in compartments if c != "susceptible"]  # could find a better name for this variable...
+    for compartment in non_susceptible_comps:
+        model.add_transition_flow(
+            name=f"all_cause_mortality_from_{compartment}",
+            fractional_rate=all_cause_mortality_func, # should later be adjusted by study  
+            source=compartment,
+            dest="susceptible",
+        )
 
     # infection and reinfection flows
     model.add_infection_frequency_flow(
@@ -124,11 +121,12 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
         dest="recovered",
     )
 
-    # TB-specific death
-    model.add_death_flow(
+    # TB-specific death (again implemented as transition back to susceptible compartment)
+    model.add_transition_flow(
         name="active_tb_death",
-        death_rate=Parameter("tb_death_rate"),
+        fractional_rate=Parameter("tb_death_rate"),
         source="infectious",
+        dest="susceptible"
     )
 
     # detection of active TB
@@ -152,10 +150,11 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
         source="treatment",
         dest="infectious",
     )
-    model.add_death_flow(
+    model.add_transition_flow( # death implemented as transition back to susceptible compartment
         name="tx_death",
-        death_rate=tx_death_func,
+        fractional_rate=tx_death_func,
         source="treatment",
+        dest="susceptible"
     )
 
     stratify_by_study(model, compartments, studies_dict, total_pop_size, all_cause_mortality_func)
@@ -180,15 +179,14 @@ def stratify_by_study(model:CompartmentalModel, compartments:list, studies_dict:
     """
     studies = list(studies_dict.keys())
     study_stratification = Stratification(name="study", strata=studies, compartments=compartments)
-    
+
     # Decouple the different strata (i.e. studies) using an identity matrix as mixing matrix
     study_stratification.set_mixing_matrix(jnp.eye(len(studies)))
-    
-    # Split initial population and births according to studies' population sizes
+
+    # Split initial population according to studies' initial population sizes
     study_stratification.set_population_split(
         {s: studies_dict[s]['pop_size'] / total_pop_size for s in studies}
     )
-    study_stratification.set_flow_adjustments("birth", adjustments={s: studies_dict[s]['pop_size'] / total_pop_size for s in studies})
 
     # Adjust all transmission flows by study
     for flow_name in ["infection", "reinfection_latent_late", "reinfection_recovered"]:
@@ -206,6 +204,16 @@ def stratify_by_study(model:CompartmentalModel, compartments:list, studies_dict:
     # apply stratification to the model
     model.stratify_with(study_stratification)
 
+    """
+        Add births post-stratification for each stratum
+        For each stratum, total new births are the sum of total deaths to be replaced and population growth
+    """
+    POPULATION_GROWTH = 0.0  # placeholder for now
+
+    for study in studies:
+        model.add_importation_flow( 
+            f"extra_birthsX{study}", POPULATION_GROWTH, dest="susceptible", split_imports=True, dest_strata={"study": study}
+        )
 
 def get_stratified_latency_flow_rates(studies:list, all_cause_mortality_func:Callable):
     """
