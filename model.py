@@ -215,6 +215,7 @@ def stratify_by_study(model:CompartmentalModel, compartments:list, studies_dict:
             f"extra_birthsX{study}", POPULATION_GROWTH, dest="susceptible", split_imports=True, dest_strata={"study": study}
         )
 
+
 def get_stratified_latency_flow_rates(studies:list, all_cause_mortality_func:Callable):
     """
     Computes the flow rates characterising progression from latent to active TB. The flow rates are
