@@ -80,6 +80,9 @@ def get_priors(studies_dict: dict) -> list:
     
     # Initialise the list of priors with "universal" priors and hyper-priors
     priors = [
+
+        # esp.UniformPrior(f"current_passive_detection_rateXmajuro", [.1, 5.]),
+
         hyper_mean_lifelong,
         hyper_sd_lifelong,
         # hyper_mean_early,
@@ -92,7 +95,7 @@ def get_priors(studies_dict: dict) -> list:
             [
                 # Independent priors (not linked through hierarchical structure)
                 esp.UniformPrior(f"transmission_rateX{study}", [1., 15.]),
-                esp.UniformPrior(f"current_passive_detection_rateX{study}", [.1, 5.]),
+                esp.UniformPrior(f"current_passive_detection_rateX{study}", [.1, 1.]),
 
                 # Priors linked through the previously defined hyper-prior distributions 
                 esp.TruncNormalPrior(f"lifelong_activation_riskX{study}", hyper_mean_lifelong, hyper_sd_lifelong, [0., 1.]),
@@ -109,9 +112,11 @@ def get_targets():
     Define calibration targets
     """
     return [
-        est.NormalTarget("ltbi_propXmajuro", data=pd.Series(data=[.38], index=[2018]), stdev=esp.UniformPrior("std_ltbi", [.001, .1])),
+        est.BinomialTarget("ltbi_propXmajuro", data=pd.Series(data=[.38], index=[2018.]), sample_sizes=pd.Series(data=[19583], index=[2018.])),
+        # est.NormalTarget("ltbi_propXmajuro", data=pd.Series(data=[.38], index=[2018]), stdev=esp.UniformPrior("std_ltbi", [.001, .1])),
         est.NormalTarget("tb_prevalence_per100kXmajuro", data=pd.Series(data=[1366], index=[2018]), stdev=esp.UniformPrior("std_tb", [10., 250.])),
         est.NormalTarget("raw_notificationsXmajuro", data=pd.Series(data=[100], index=[2015]), stdev=esp.UniformPrior("std_not", [1., 25.])),
+
     ]
 
 
