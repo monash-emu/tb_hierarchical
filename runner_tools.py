@@ -26,7 +26,8 @@ DEFAULT_PARAMS = {
     'prop_early_among_activatorsXmajuro': .90,
     'prop_early_among_activatorsXstudy_2': .90,
 
-    'current_passive_detection_rate': 1.,
+    'current_passive_detection_rateXmajuro': 1.,
+    'current_passive_detection_rateXstudy_2': 1.,
 
     # Universal parameters
     'mean_duration_early_latent': .5,
@@ -79,7 +80,6 @@ def get_priors(studies_dict: dict) -> list:
     
     # Initialise the list of priors with "universal" priors and hyper-priors
     priors = [
-        esp.UniformPrior("current_passive_detection_rate", [.1, 10.]),
         hyper_mean_lifelong,
         hyper_sd_lifelong,
         # hyper_mean_early,
@@ -90,13 +90,13 @@ def get_priors(studies_dict: dict) -> list:
     for study in studies_dict:
         priors.extend(
             [
+                # Independent priors (not linked through hierarchical structure)
                 esp.UniformPrior(f"transmission_rateX{study}", [1., 15.]),
+                esp.UniformPrior(f"current_passive_detection_rateX{study}", [.1, 5.]),
 
-                # the two priors below linked through the previously defined hyper-prior distributions 
-
+                # Priors linked through the previously defined hyper-prior distributions 
                 esp.TruncNormalPrior(f"lifelong_activation_riskX{study}", hyper_mean_lifelong, hyper_sd_lifelong, [0., 1.]),
                 # esp.TruncNormalPrior(f"lifelong_activation_riskX{study}", hyper_mean_lifelong, .01, [0., 1.]),
-
 
                 # esp.TruncNormalPrior(f"prop_early_among_activatorsX{study}", hyper_mean_early, hyper_sd_early, [0., 1.]),
             ]

@@ -23,11 +23,6 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     )
     all_cause_mortality_func = 1. / life_expectancy_func
     
-    # FIXME: passive detection rate should be study-specific
-    detection_func = stf.get_sigmoidal_interpolation_function(
-        x_pts=[1950., 2025.], y_pts=[0., Parameter('current_passive_detection_rate')], curvature=16
-    )
-
     # Treatment outcomes
     # * tx recovery rate is 1/Tx duration
     # * write equations for TSR and for prop deaths among all treatment outcomes (Pi). Solve for treatment death rate (mu_Tx) and relapse rate (phi).
@@ -68,9 +63,6 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
         },
     )
     
-    # add birth and all cause mortality
-    # FIXME: WIll need to make demographics study-specific
-
     # Natural death implemented as a transition back to the susceptible compartment.
     # Additional births incorporated after stratification to match population growth.
     non_susceptible_comps = [c for c in compartments if c != "susceptible"]  # could find a better name for this variable...
@@ -108,7 +100,7 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     for progression_type in ["early", "late"]:
         model.add_transition_flow(
             name=f"progression_{progression_type}",
-            fractional_rate=1.,   # later adjusted by study   Parameter(f"activation_rate_{progression_type}"),
+            fractional_rate=1.,   # later adjusted by study
             source=f"latent_{progression_type}",
             dest="infectious",
         )
@@ -132,7 +124,7 @@ def get_tb_model(model_config: dict, studies_dict: dict, home_path=Path.cwd()):
     # detection of active TB
     model.add_transition_flow(
         name="tb_detection",
-        fractional_rate=detection_func,
+        fractional_rate=1.,  # later adjusted by study
         source="infectious",
         dest="treatment",
     )
@@ -200,6 +192,16 @@ def stratify_by_study(model:CompartmentalModel, compartments:list, studies_dict:
         study_stratification.set_flow_adjustments(
             flow_name=flow_name , adjustments={s: stratified_latency_flow_rates[param][s] for s in studies}
         )
+
+    # Adjust detection flows
+    def make_study_detection_func(study):
+        return stf.get_sigmoidal_interpolation_function(
+            x_pts=[1950., 2025.], y_pts=[0., Parameter(f"current_passive_detection_rateX{study}")], curvature=16
+        )
+
+    study_stratification.set_flow_adjustments(
+        flow_name="tb_detection" , adjustments={s: make_study_detection_func(s) for s in studies}
+    )
 
     # apply stratification to the model
     model.stratify_with(study_stratification)
