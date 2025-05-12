@@ -1,10 +1,10 @@
-from runner_tools import (
+from tbh.runner_tools import (
     get_bcm_object,
-    run_metropolis_calibration, 
+    run_metropolis_calibration,
     DEFAULT_MODEL_CONFIG,
-    DEFAULT_PARAMS    
+    DEFAULT_PARAMS,
 )
-from plotting import plot_traces
+from tbh.plotting import plot_traces
 
 import multiprocessing as mp
 import sys
@@ -14,7 +14,7 @@ from time import time, sleep
 
 ANALYSIS_NAME = "test_run"
 
-# This script is running an array job. 
+# This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
 
 if __name__ == "__main__":
@@ -42,11 +42,11 @@ if __name__ == "__main__":
         },
         "study_2": {
             "pop_size": 50000,
-        }    
+        },
     }
     bcm = get_bcm_object(DEFAULT_MODEL_CONFIG, studies_dict, DEFAULT_PARAMS)
     idata = run_metropolis_calibration(bcm, 500, 100, 4, 4)
-    
+
     n_io_retries = 3
     for attempt in range(n_io_retries):
         try:
@@ -54,6 +54,6 @@ if __name__ == "__main__":
             plot_traces(idata, 200, output_dir)
             break
         except:
-            sleep(1)  
+            sleep(1)
 
     print(f"Finished in {time() - start_time} seconds", flush=True)
