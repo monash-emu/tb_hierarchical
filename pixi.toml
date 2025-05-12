@@ -3,7 +3,7 @@ authors = ["David Shipman <dshipman@gmail.com>"]
 channels = ["conda-forge"]
 description = "Add a short description here"
 name = "tb_hierarchical"
-platforms = ["win-64"]
+platforms = ["win-64","linux-64"]
 version = "0.1.0"
 
 [tasks]
@@ -12,6 +12,7 @@ version = "0.1.0"
 python = "3.10.*"
 ipykernel = ">=6.29.5,<7"
 pymc = "==5.2.0"
+ipython = ">=8.36.0,<9"
 
 [pypi-dependencies]
 tbh = { path = "./code", editable = true}
