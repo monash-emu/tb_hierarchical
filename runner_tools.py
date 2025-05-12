@@ -9,6 +9,7 @@ from estival.wrappers import pymc as epm
 from estival.sampling import tools as esamp
 
 from model import get_tb_model
+import plotting as pl
 
 DEFAULT_MODEL_CONFIG = {
     "start_time": 1850,
@@ -38,6 +39,39 @@ DEFAULT_PARAMS = {
     'tx_duration': .5,
     'tx_prop_death': .04
 }
+
+DEFAULT_STUDIES_DICT = {
+    "majuro": {
+        "pop_size": 27797,
+    },
+    "study_2": {
+        "pop_size": 50000,
+    }    
+}
+
+DEFAULT_ANALYSIS_CONFIG = {
+    # Metropolis config
+    'chains': 4,
+    'tune': 5000,
+    'draws': 20000,
+
+    # Full runs config
+    'burn_in': 10000,
+    'full_runs_samples': 1000
+}
+
+TEST_ANALYSIS_CONFIG = {
+    # Metropolis config
+    'chains': 4,
+    'tune': 50,
+    'draws': 200,
+
+    # Full runs config
+    'burn_in': 50,
+    'full_runs_samples': 100
+}
+
+
 
 
 def model_single_run(model_config: dict, studies_dict: dict, params: dict):
@@ -177,3 +211,42 @@ def run_full_runs(bcm: BayesianCompartmentalModel, idata, burn_in: int, full_run
     unc_df = esamp.quantiles_for_results(full_runs.results, [.025, .25, .5, .75, .975])
 
     return full_runs, unc_df
+
+
+def run_full_analysis(studies_dict=DEFAULT_STUDIES_DICT, params=DEFAULT_PARAMS, model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None):
+    """
+    Run full analysis including Metropolis-sampling-based calibration, full runs, quantiles computation and plotting.
+
+    Args:
+        studies_dict (_type_, optional): _description_. Defaults to DEFAULT_STUDIES_DICT.
+        params (_type_, optional): _description_. Defaults to DEFAULT_PARAMS.
+        model_config (_type_, optional): _description_. Defaults to DEFAULT_MODEL_CONFIG.
+        analysis_config (_type_, optional): _description_. Defaults to DEFAULT_ANALYSIS_CONFIG.
+        output_folder (_type_, optional): _description_. Defaults to None.
+
+    """
+    a_c = analysis_config
+
+    bcm = get_bcm_object(model_config, studies_dict, params)
+
+    idata = run_metropolis_calibration(
+        bcm, draws=a_c['draws'], tune=a_c['tune'], cores=a_c['chains'], chains=a_c['chains']
+    )
+
+    full_runs, unc_df = run_full_runs(bcm, idata, a_c['burn_in'], a_c['full_runs_samples'])
+
+    pl.plot_traces(idata, a_c['burn_in'], output_folder)
+
+    #FIXME! Needs to save the output plot
+    pl.plot_post_prior_comparison(idata, list(bcm.priors.keys()), list(bcm.priors.values()), req_grid=[3, 4])
+
+    import matplotlib.pyplot as plt
+
+    selected_outputs = bcm.targets.keys()
+
+    for output in selected_outputs:
+        _, ax = plt.subplots()
+        pl.plot_model_fit_with_uncertainty(ax, unc_df, output, bcm, x_min=2010)
+        if output_folder:
+            plt.savefig(output_folder / f"quantiles_{output}.jpg", facecolor="white", bbox_inches='tight')
+            plt.close()
