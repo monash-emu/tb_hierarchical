@@ -9,7 +9,7 @@ from estival.wrappers import pymc as epm
 from estival.sampling import tools as esamp
 
 from .model import get_tb_model
-import plotting as pl
+import tbh.plotting as pl
 
 DEFAULT_MODEL_CONFIG = {
     "start_time": 1850,
