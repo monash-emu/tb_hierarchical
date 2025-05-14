@@ -27,7 +27,7 @@ if __name__ == "__main__":
     mp.set_start_method("spawn")  # previously "forkserver"
 
     # create parent output directory for this array_job
-    output_root_dir = Path.home() / "sh30/users/rragonnet/outputs/hierarchical"
+    output_root_dir = Path.home() / "sh30/users/rragonnet/tb_hierarchical/remote_cluster/outputs"
     array_job_id = sys.argv[1]  # common to all the tasks from this array job
     array_job_output_dir = output_root_dir / f"{array_job_id}_{ANALYSIS_NAME}"
     array_job_output_dir.mkdir(exist_ok=True)
