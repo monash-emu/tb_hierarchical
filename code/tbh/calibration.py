@@ -38,7 +38,7 @@ def get_priors(studies_dict: dict) -> list:
         priors.extend(
             [
                 # Independent priors (not linked through hierarchical structure)
-                esp.UniformPrior(f"transmission_rateX{study}", [1.0, 15.0]),
+                esp.UniformPrior(f"transmission_rateX{study}", [.01, 5.0]),
                 esp.UniformPrior(f"current_passive_detection_rateX{study}", [0.1, 1.0]),
                 # Priors linked through the previously defined hyper-prior distributions
                 esp.TruncNormalPrior(
@@ -59,21 +59,25 @@ def get_targets():
     Define calibration targets
     """
     return [
-        est.BinomialTarget(
-            "ltbi_propXmajuro",
-            data=pd.Series(data=[0.38], index=[2018.0]),
-            sample_sizes=pd.Series(data=[19583], index=[2018.0]),
+        # est.BinomialTarget(
+        #     "ltbi_propXmajuro",
+        #     data=pd.Series(data=[0.38], index=[2018.0]),
+        #     sample_sizes=pd.Series(data=[19583], index=[2018.0]),
+        # ),
+        est.NormalTarget(
+            "ltbi_propXmajuro", 
+            data=pd.Series(data=[.38], index=[2018]), 
+            stdev=.038,  # to get 95% CI within +-20% of central value   #esp.UniformPrior("std_ltbi", [.001, .1])
         ),
-        # est.NormalTarget("ltbi_propXmajuro", data=pd.Series(data=[.38], index=[2018]), stdev=esp.UniformPrior("std_ltbi", [.001, .1])),
         est.NormalTarget(
             "tb_prevalence_per100kXmajuro",
             data=pd.Series(data=[1366], index=[2018]),
-            stdev=esp.UniformPrior("std_tb", [10.0, 250.0]),
+            stdev= 136.6 # to get 95% CI within +-20% of central value   # esp.UniformPrior("std_tb", [10.0, 250.0]),
         ),
         est.NormalTarget(
             "raw_notificationsXmajuro",
             data=pd.Series(data=[100], index=[2015]),
-            stdev=esp.UniformPrior("std_not", [1.0, 25.0]),
+            stdev=10. # to get 95% CI within +-20% of central value  # esp.UniformPrior("std_not", [1.0, 25.0]),
         ),
     ]
 
