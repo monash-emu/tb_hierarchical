@@ -11,6 +11,8 @@ from estival.sampling import tools as esamp
 from .model import get_tb_model
 import tbh.plotting as pl
 
+from pathlib import Path
+
 DEFAULT_MODEL_CONFIG = {
     "start_time": 1850,
     "end_time": 2050,
@@ -259,6 +261,8 @@ def run_full_analysis(studies_dict=DEFAULT_STUDIES_DICT, params=DEFAULT_PARAMS, 
     """
     a_c = analysis_config
 
+    output_folder.mkdir(parents=True, exist_ok=True) 
+
     bcm = get_bcm_object(model_config, studies_dict, params)
 
     idata = run_metropolis_calibration(
@@ -270,7 +274,7 @@ def run_full_analysis(studies_dict=DEFAULT_STUDIES_DICT, params=DEFAULT_PARAMS, 
     pl.plot_traces(idata, a_c['burn_in'], output_folder)
 
     #FIXME! Needs to save the output plot
-    pl.plot_post_prior_comparison(idata, list(bcm.priors.keys()), list(bcm.priors.values()), req_grid=[3, 4])
+    pl.plot_post_prior_comparison(idata, list(bcm.priors.keys()), list(bcm.priors.values()), req_grid=[3, 4], output_folder_path=output_folder)
 
     import matplotlib.pyplot as plt
 

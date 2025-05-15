@@ -7,13 +7,8 @@ import numpy as np
 from estival import priors as esp
 
 
-def plot_traces(idata, burn_in, output_folder=None):
+def plot_traces(idata, burn_in, output_folder_path=None):
     az.rcParams["plot.max_subplots"] = 60 # to make sure all parameters are included in trace plots
-
-    if output_folder:
-        output_folder_path = Path(output_folder) / "mc_outputs"
-        output_folder_path.mkdir(exist_ok=True, parents=True)
-
     chain_length = idata.sample_stats.sizes['draw']
 
     # burn data
@@ -22,7 +17,7 @@ def plot_traces(idata, burn_in, output_folder=None):
     # Traces (after burn-in)
     az.plot_trace(burnt_idata, figsize=(16, 3.0 * len(idata.posterior)), compact=False);
     plt.subplots_adjust(hspace=.7)
-    if output_folder:
+    if output_folder_path:
         plt.savefig(output_folder_path / "mc_traces.jpg", facecolor="white", bbox_inches='tight')
         plt.close()
 
@@ -33,6 +28,7 @@ def plot_post_prior_comparison(
     priors: list,
     req_grid=None,
     req_size=None,
+    output_folder_path=None
 ) -> plt.figure:
     """Plot comparison of calibration posterior estimates
     for parameters against their prior distributions.
@@ -62,6 +58,11 @@ def plot_post_prior_comparison(
                 
                 ax.fill_between(x_vals, y_vals, color="k", alpha=0.2, linewidth=2)
     # ax.figure.suptitle(country, fontsize=30, y=1.0)
+
+    if output_folder_path:
+        plt.savefig(output_folder_path / "mc_posteriors.jpg", facecolor="white", bbox_inches='tight')
+        plt.close()
+        
     return ax.figure.tight_layout()
 
 
