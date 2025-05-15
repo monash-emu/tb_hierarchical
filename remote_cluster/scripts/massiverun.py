@@ -9,7 +9,6 @@ import sys
 from pathlib import Path
 from time import time, sleep
 
-
 ANALYSIS_NAME = "test_full"
 
 # This script is running an array job.
