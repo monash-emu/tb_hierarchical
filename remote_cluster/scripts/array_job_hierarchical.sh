@@ -5,6 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=4096
 #SBATCH --cpus-per-task=4
+#SBATCH --output=/sh30/users/rragonnet/tb_hierarchical/remote_cluster/scripts/logs/%j.out 
 
 # To receive an email when job completes or fails
 #SBATCH --mail-user=romain.ragonnet@monash.edu
