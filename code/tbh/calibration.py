@@ -6,6 +6,27 @@ from estival.model import BayesianCompartmentalModel
 
 from .model import get_tb_model
 
+TARGETS = {
+    "majuro": {
+        "ltbi_prop": pd.Series(data=[.38], index=[2018]),
+        "tb_prevalence_per100k": pd.Series(data=[1366], index=[2018]),
+        "raw_notifications": pd.Series(data=[100], index=[2015])
+    },
+    "vietnam": {
+        "ltbi_prop": pd.Series(data=[.45], index=[2019]),
+        "tb_prevalence_per100k": pd.Series(data=[400], index=[2017]),
+        "raw_notifications": pd.Series(data=[104000], index=[2018])
+    },
+
+    # For testing
+    "majuro_copy": {
+        "ltbi_prop": pd.Series(data=[.38], index=[2018]),
+        "tb_prevalence_per100k": pd.Series(data=[1366], index=[2018]),
+        "raw_notifications": pd.Series(data=[100], index=[2015])
+    },
+}
+
+
 
 def get_priors(studies_dict: dict) -> list:
     """
@@ -54,50 +75,22 @@ def get_priors(studies_dict: dict) -> list:
     return priors
 
 
-def get_targets():
+def get_targets(studies_dict: dict) -> list:
     """
-    Define calibration targets
+    Define calibration targets based on requested studies
+    For each target, we use a normal likelihood with a fixed 
+    standard deviation set to ensure that the 95% confidence 
+    interval covers +/-20% of the central value.
     """
+
     return [
-        # est.BinomialTarget(
-        #     "ltbi_propXmajuro",
-        #     data=pd.Series(data=[0.38], index=[2018.0]),
-        #     sample_sizes=pd.Series(data=[19583], index=[2018.0]),
-        # ),
         est.NormalTarget(
-            "ltbi_propXmajuro", 
-            data=pd.Series(data=[.38], index=[2018]), 
-            stdev=.038,  # to get 95% CI within +-20% of central value   #esp.UniformPrior("std_ltbi", [.001, .1])
-        ),
-        est.NormalTarget(
-            "tb_prevalence_per100kXmajuro",
-            data=pd.Series(data=[1366], index=[2018]),
-            stdev= 136.6 # to get 95% CI within +-20% of central value   # esp.UniformPrior("std_tb", [10.0, 250.0]),
-        ),
-        est.NormalTarget(
-            "raw_notificationsXmajuro",
-            data=pd.Series(data=[100], index=[2015]),
-            stdev=10. # to get 95% CI within +-20% of central value  # esp.UniformPrior("std_not", [1.0, 25.0]),
-        ),
-
-
-        est.NormalTarget(
-            "ltbi_propXstudy_2", 
-            data=pd.Series(data=[.45], index=[2019]), 
-            stdev=.045,  # to get 95% CI within +-20% of central value   #esp.UniformPrior("std_ltbi", [.001, .1])
-        ),
-        est.NormalTarget(
-            "tb_prevalence_per100kXstudy_2",
-            data=pd.Series(data=[400.], index=[2017]),
-            stdev= 40. # to get 95% CI within +-20% of central value   # esp.UniformPrior("std_tb", [10.0, 250.0]),
-        ),
-        est.NormalTarget(
-            "raw_notificationsXstudy_2",
-            data=pd.Series(data=[104000], index=[2018]),
-            stdev=10400. # to get 95% CI within +-20% of central value  # esp.UniformPrior("std_not", [1.0, 25.0]),
-        ),
-
-
+            f"{key}X{study}", 
+            data=data, 
+            stdev=float(data.iloc[0]) / 10.,  # 4.sd = 95%CI = 40% of central estimate
+        )
+        for study in studies_dict
+        for key, data in TARGETS[study].items()
     ]
 
 
@@ -116,7 +109,7 @@ def get_bcm_object(
 
     """
     priors = get_priors(studies_dict)
-    targets = get_targets()
+    targets = get_targets(studies_dict)
     model = get_tb_model(model_config, studies_dict)
 
     return BayesianCompartmentalModel(model, params, priors, targets)

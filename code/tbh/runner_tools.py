@@ -25,13 +25,13 @@ DEFAULT_MODEL_CONFIG = {
 DEFAULT_PARAMS = {
     # Study-specific parameters
     "transmission_rateXmajuro": 10,
-    "transmission_rateXstudy_2": 10,
+    "transmission_rateXvietnam": 10,
     "lifelong_activation_riskXmajuro": 0.15,
-    "lifelong_activation_riskXstudy_2": 0.10,
+    "lifelong_activation_riskXvietnam": 0.10,
     "prop_early_among_activatorsXmajuro": 0.90,
-    "prop_early_among_activatorsXstudy_2": 0.90,
+    "prop_early_among_activatorsXvietnam": 0.90,
     "current_passive_detection_rateXmajuro": 1.0,
-    "current_passive_detection_rateXstudy_2": 1.0,
+    "current_passive_detection_rateXvietnam": 1.0,
     # Universal parameters
     "mean_duration_early_latent": 0.5,
     "rr_reinfection_latent_late": 0.2,
@@ -46,7 +46,7 @@ DEFAULT_STUDIES_DICT = {
     "majuro": {
         "pop_size": 27797,
     },
-    "study_2": {  # vietnam like
+    "vietnam": {  # vietnam like
         "pop_size": 100.e6,
     }    
 }
