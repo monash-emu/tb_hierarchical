@@ -1,6 +1,8 @@
 import pandas as pd
 import pymc as pm
 import arviz as az
+import matplotlib.pyplot as plt
+
 
 from estival.wrappers import pymc as epm
 from estival.sampling import tools as esamp
@@ -180,18 +182,15 @@ def run_full_analysis(studies_dict=DEFAULT_STUDIES_DICT, params=DEFAULT_PARAMS, 
 
     bcm = get_bcm_object(model_config, studies_dict, params)
 
+    print(">>> Run Metropolis sampling")
     idata = run_metropolis_calibration(
         bcm, draws=a_c['draws'], tune=a_c['tune'], cores=a_c['chains'], chains=a_c['chains']
     )
-
-    full_runs, unc_df = run_full_runs(bcm, idata, a_c['burn_in'], a_c['full_runs_samples'])
-
     pl.plot_traces(idata, a_c['burn_in'], output_folder)
-
-    #FIXME! Needs to save the output plot
     pl.plot_post_prior_comparison(idata, list(bcm.priors.keys()), list(bcm.priors.values()), req_grid=[3, 4], output_folder_path=output_folder)
 
-    import matplotlib.pyplot as plt
+    print(">>> Run full runs")
+    full_runs, unc_df = run_full_runs(bcm, idata, a_c['burn_in'], a_c['full_runs_samples'])
 
     selected_outputs = bcm.targets.keys()
 

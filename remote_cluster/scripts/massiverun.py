@@ -20,6 +20,7 @@ if __name__ == "__main__":
     # Prepare output folder
     array_job_id, task_id = int(sys.argv[1]), int(sys.argv[2])
     mp.set_start_method("spawn")  # previously "forkserver"
+    print(f"Create output directory")
     output_dir = create_output_dir(array_job_id, task_id, ANALYSIS_NAME)
 
     # Specify and run analysis
@@ -33,6 +34,7 @@ if __name__ == "__main__":
         'burn_in': 100,
         'full_runs_samples': 100
     }
+    
+    print(f"Start analysis for array_job {array_job_id}, task {task_id}, {ANALYSIS_NAME}")
     run_full_analysis(analysis_config=analysis_config, output_folder=output_dir)
-
     print(f"Finished in {time() - start_time} seconds", flush=True)
