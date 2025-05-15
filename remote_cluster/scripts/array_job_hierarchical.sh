@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=fixed_sds
+#SBATCH --job-name=multi_config
 #SBATCH --account=sh30
 #SBATCH --time=02:00:00
 #SBATCH --ntasks=1

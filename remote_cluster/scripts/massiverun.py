@@ -9,10 +9,65 @@ import sys
 from pathlib import Path
 from time import time, sleep
 
-ANALYSIS_NAME = "majuro_vietnam"
+ANALYSIS_NAME = "multi_configs"
 
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
+
+studies_dict_list = [
+    {},  # empty dict as taks IDs start at 1
+    {  # task 1
+        "majuro": {
+            "pop_size": 27797,
+        },
+        "vietnam": { 
+            "pop_size": 100.e6,
+        }    
+    },
+    {  # task 2
+        "majuro": {
+            "pop_size": 27797,
+        },
+        "majuro_copy": {
+            "pop_size": 27797,
+        }    
+    },  # task 3
+        {
+        "majuro": {
+            "pop_size": 27797,
+        },
+        "vietnam_no_target": {
+            "pop_size": 100.e6,
+        }    
+    },  # task 4
+        {
+        "majuro": {
+            "pop_size": 27797,
+        },
+        "vietnam": { 
+            "pop_size": 100.e6,
+        },
+        "majuro_copy": {
+            "pop_size": 27797,
+        } 
+    },  # task 5
+        {
+        "majuro": {
+            "pop_size": 27797,
+        },
+        "vietnam": { 
+            "pop_size": 100.e6,
+        },
+        "majuro_copy": {
+            "pop_size": 27797,
+        },
+        "vietnam_no_target": {
+            "pop_size": 100.e6,
+        } 
+    },
+]
+
+
 
 if __name__ == "__main__":
     start_time = time()
@@ -27,14 +82,14 @@ if __name__ == "__main__":
     analysis_config = {
         # Metropolis config
         'chains': 4,
-        'tune': 10000,
-        'draws': 40000,
+        'tune': 50,
+        'draws': 200,
 
         # Full runs config
-        'burn_in': 20000,
-        'full_runs_samples': 1000
+        'burn_in': 100,
+        'full_runs_samples': 100
     }
 
     print(f"Start analysis for array_job {array_job_id}, task {task_id}, {ANALYSIS_NAME}")
-    run_full_analysis(analysis_config=analysis_config, output_folder=output_dir)
+    run_full_analysis(studies_dict=studies_dict_list[task_id],analysis_config=analysis_config, output_folder=output_dir)
     print(f"Finished in {time() - start_time} seconds", flush=True)

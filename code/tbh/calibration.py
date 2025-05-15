@@ -24,8 +24,8 @@ TARGETS = {
         "tb_prevalence_per100k": pd.Series(data=[1366], index=[2018]),
         "raw_notifications": pd.Series(data=[100], index=[2015])
     },
+    "vietnam_no_target": {},
 }
-
 
 
 def get_priors(studies_dict: dict) -> list:
