@@ -186,6 +186,8 @@ def run_full_analysis(studies_dict=DEFAULT_STUDIES_DICT, params=DEFAULT_PARAMS, 
     idata = run_metropolis_calibration(
         bcm, draws=a_c['draws'], tune=a_c['tune'], cores=a_c['chains'], chains=a_c['chains']
     )
+    az.to_netcdf(idata, output_folder / "idata.nc")
+
     pl.plot_traces(idata, a_c['burn_in'], output_folder)
     pl.plot_post_prior_comparison(idata, list(bcm.priors.keys()), list(bcm.priors.values()), req_grid=[3, 4], output_folder_path=output_folder)
 
