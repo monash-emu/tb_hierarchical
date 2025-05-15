@@ -1,4 +1,5 @@
 from tbh.runner_tools import (
+    create_output_dir,
     run_full_analysis,
 )
 from tbh.paths import OUTPUT_PARENT_FOLDER
@@ -17,21 +18,12 @@ ANALYSIS_NAME = "test_full"
 if __name__ == "__main__":
     start_time = time()
 
-    # Retrieve country iso3 to run
-    task_id = int(sys.argv[2])  # specific to this particular run
-    print(f"Start job #{task_id}", flush=True)
-
+    # Prepare output folder
+    array_job_id, task_id = int(sys.argv[1]), int(sys.argv[2])
     mp.set_start_method("spawn")  # previously "forkserver"
+    output_dir = create_output_dir(array_job_id, task_id, ANALYSIS_NAME)
 
-    # create parent output directory for this array_job
-    array_job_id = sys.argv[1]  # common to all the tasks from this array job
-    array_job_output_dir = OUTPUT_PARENT_FOLDER / f"{array_job_id}_{ANALYSIS_NAME}"
-    array_job_output_dir.mkdir(exist_ok=True)
-
-    # create task-specific output dir
-    output_dir = array_job_output_dir / f"task_{task_id}"
-    output_dir.mkdir(parents=True, exist_ok=True)
-
+    # Specify and run analysis
     analysis_config = {
         # Metropolis config
         'chains': 4,

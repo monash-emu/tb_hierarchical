@@ -10,6 +10,7 @@ from estival.sampling import tools as esamp
 
 from .model import get_tb_model
 import tbh.plotting as pl
+from tbh.paths import OUTPUT_PARENT_FOLDER
 
 from pathlib import Path
 
@@ -69,6 +70,12 @@ TEST_ANALYSIS_CONFIG = {
     'burn_in': 50,
     'full_runs_samples': 100
 }
+
+
+def create_output_dir(array_job_id, task_id, analysis_name):
+    output_dir = OUTPUT_PARENT_FOLDER / f"{array_job_id}_{analysis_name}" / f"task_{task_id}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
 
 
 def model_single_run(model_config: dict, studies_dict: dict, params: dict):
