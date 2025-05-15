@@ -1,8 +1,5 @@
 from tbh.runner_tools import (
-    get_bcm_object,
-    run_metropolis_calibration,
-    DEFAULT_MODEL_CONFIG,
-    DEFAULT_PARAMS,
+    run_full_analysis,
 )
 from tbh.plotting import plot_traces
 
@@ -36,24 +33,16 @@ if __name__ == "__main__":
     output_dir = array_job_output_dir / f"task_{task_id}"
     output_dir.mkdir(exist_ok=True)
 
-    studies_dict = {
-        "majuro": {
-            "pop_size": 27797,
-        },
-        "study_2": {
-            "pop_size": 50000,
-        },
-    }
-    bcm = get_bcm_object(DEFAULT_MODEL_CONFIG, studies_dict, DEFAULT_PARAMS)
-    idata = run_metropolis_calibration(bcm, 500, 100, 4, 4)
+    analysis_config = {
+        # Metropolis config
+        'chains': 4,
+        'tune': 50,
+        'draws': 200,
 
-    n_io_retries = 3
-    for attempt in range(n_io_retries):
-        try:
-            idata.to_netcdf(output_dir / "idata.nc")
-            plot_traces(idata, 200, output_dir)
-            break
-        except:
-            sleep(1)
+        # Full runs config
+        'burn_in': 100,
+        'full_runs_samples': 100
+    }
+    run_full_analysis(analysis_config=analysis_config, output_folder=output_dir)
 
     print(f"Finished in {time() - start_time} seconds", flush=True)

@@ -12,7 +12,7 @@
 #SBATCH --mail-type=END
 #SBATCH --mail-type=FAIL
 
-#SBATCH --array=1-3
+#SBATCH --array=1
 
 export PYTENSOR_FLAGS=compiledir=$HOME/.pytensor/$SLURM_JOB_ID
 
