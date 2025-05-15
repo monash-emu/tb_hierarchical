@@ -79,6 +79,25 @@ def get_targets():
             data=pd.Series(data=[100], index=[2015]),
             stdev=10. # to get 95% CI within +-20% of central value  # esp.UniformPrior("std_not", [1.0, 25.0]),
         ),
+
+
+        est.NormalTarget(
+            "ltbi_propXstudy_2", 
+            data=pd.Series(data=[.45], index=[2019]), 
+            stdev=.045,  # to get 95% CI within +-20% of central value   #esp.UniformPrior("std_ltbi", [.001, .1])
+        ),
+        est.NormalTarget(
+            "tb_prevalence_per100kXstudy_2",
+            data=pd.Series(data=[400.], index=[2017]),
+            stdev= 40. # to get 95% CI within +-20% of central value   # esp.UniformPrior("std_tb", [10.0, 250.0]),
+        ),
+        est.NormalTarget(
+            "raw_notificationsXstudy_2",
+            data=pd.Series(data=[104000], index=[2018]),
+            stdev=10400. # to get 95% CI within +-20% of central value  # esp.UniformPrior("std_not", [1.0, 25.0]),
+        ),
+
+
     ]
 
 

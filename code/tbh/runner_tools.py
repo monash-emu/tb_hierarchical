@@ -46,8 +46,8 @@ DEFAULT_STUDIES_DICT = {
     "majuro": {
         "pop_size": 27797,
     },
-    "study_2": {
-        "pop_size": 50000,
+    "study_2": {  # vietnam like
+        "pop_size": 100.e6,
     }    
 }
 

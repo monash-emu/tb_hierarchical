@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from time import time, sleep
 
-ANALYSIS_NAME = "first_full_analysis"
+ANALYSIS_NAME = "majuro_vietnam"
 
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
@@ -27,11 +27,11 @@ if __name__ == "__main__":
     analysis_config = {
         # Metropolis config
         'chains': 4,
-        'tune': 5000,
-        'draws': 20000,
+        'tune': 10000,
+        'draws': 40000,
 
         # Full runs config
-        'burn_in': 10000,
+        'burn_in': 20000,
         'full_runs_samples': 1000
     }
 
