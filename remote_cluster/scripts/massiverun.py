@@ -9,7 +9,7 @@ from pathlib import Path
 from time import time, sleep
 
 
-ANALYSIS_NAME = "test_run"
+ANALYSIS_NAME = "test_makedir"
 
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
