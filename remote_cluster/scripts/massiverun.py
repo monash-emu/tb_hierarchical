@@ -1,7 +1,7 @@
 from tbh.runner_tools import (
     run_full_analysis,
 )
-from tbh.plotting import plot_traces
+from tbh.paths import OUTPUT_PARENT_FOLDER
 
 import multiprocessing as mp
 import sys
@@ -24,14 +24,13 @@ if __name__ == "__main__":
     mp.set_start_method("spawn")  # previously "forkserver"
 
     # create parent output directory for this array_job
-    output_root_dir = Path.home() / "sh30/users/rragonnet/tb_hierarchical/remote_cluster/outputs"
     array_job_id = sys.argv[1]  # common to all the tasks from this array job
-    array_job_output_dir = output_root_dir / f"{array_job_id}_{ANALYSIS_NAME}"
+    array_job_output_dir = OUTPUT_PARENT_FOLDER / f"{array_job_id}_{ANALYSIS_NAME}"
     array_job_output_dir.mkdir(exist_ok=True)
 
     # create task-specific output dir
     output_dir = array_job_output_dir / f"task_{task_id}"
-    output_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     analysis_config = {
         # Metropolis config
