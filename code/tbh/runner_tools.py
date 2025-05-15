@@ -137,6 +137,7 @@ def run_metropolis_calibration(
             tune=tune,
             cores=cores,
             chains=chains,
+            progressbar=False,
         )
 
     return idata
