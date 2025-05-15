@@ -9,7 +9,7 @@ from pathlib import Path
 from time import time, sleep
 
 
-ANALYSIS_NAME = "test_makedir"
+ANALYSIS_NAME = "test_full"
 
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
@@ -32,16 +32,16 @@ if __name__ == "__main__":
     output_dir = array_job_output_dir / f"task_{task_id}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # analysis_config = {
-    #     # Metropolis config
-    #     'chains': 4,
-    #     'tune': 50,
-    #     'draws': 200,
+    analysis_config = {
+        # Metropolis config
+        'chains': 4,
+        'tune': 50,
+        'draws': 200,
 
-    #     # Full runs config
-    #     'burn_in': 100,
-    #     'full_runs_samples': 100
-    # }
-    # run_full_analysis(analysis_config=analysis_config, output_folder=output_dir)
+        # Full runs config
+        'burn_in': 100,
+        'full_runs_samples': 100
+    }
+    run_full_analysis(analysis_config=analysis_config, output_folder=output_dir)
 
     print(f"Finished in {time() - start_time} seconds", flush=True)
