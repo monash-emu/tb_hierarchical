@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from time import time, sleep
 
-ANALYSIS_NAME = "test_full"
+ANALYSIS_NAME = "first_full_analysis"
 
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
@@ -27,14 +27,14 @@ if __name__ == "__main__":
     analysis_config = {
         # Metropolis config
         'chains': 4,
-        'tune': 50,
-        'draws': 200,
+        'tune': 5000,
+        'draws': 20000,
 
         # Full runs config
-        'burn_in': 100,
-        'full_runs_samples': 100
+        'burn_in': 10000,
+        'full_runs_samples': 1000
     }
-    
+
     print(f"Start analysis for array_job {array_job_id}, task {task_id}, {ANALYSIS_NAME}")
     run_full_analysis(analysis_config=analysis_config, output_folder=output_dir)
     print(f"Finished in {time() - start_time} seconds", flush=True)

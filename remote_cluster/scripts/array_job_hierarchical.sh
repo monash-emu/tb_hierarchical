@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=arrayjob_test_hierarchical
+#SBATCH --job-name=arrayjob_hierarchical
 #SBATCH --account=sh30
 #SBATCH --time=00:30:00
 #SBATCH --ntasks=1
@@ -13,7 +13,7 @@
 #SBATCH --mail-type=END
 #SBATCH --mail-type=FAIL
 
-#SBATCH --array=1
+#SBATCH --array=1-3
 
 export PYTENSOR_FLAGS=compiledir=$HOME/.pytensor/$SLURM_JOB_ID
 
