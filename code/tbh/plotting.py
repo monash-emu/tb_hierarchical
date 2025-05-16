@@ -1,5 +1,7 @@
 from pathlib import Path
 import arviz as az
+from math import ceil
+
 from copy import copy
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,7 +28,7 @@ def plot_post_prior_comparison(
     idata: az.InferenceData,
     req_vars: list,
     priors: list,
-    req_grid=None,
+    n_col=4,
     req_size=None,
     output_folder_path=None
 ) -> plt.figure:
@@ -37,13 +39,14 @@ def plot_post_prior_comparison(
         idata: Calibration inference data
         req_vars: Names of the parameters to plot
         priors: Prior distributions for the parameters
-        req_grid: Dimensions of the subplot
+        n_col: Requested number of columns
         req_size: Figure size request
 
     Returns:
         The figure
     """
-    grid = req_grid if req_grid else [1, len(req_vars)]
+    n_row = ceil(len(req_vars) / n_col) 
+    grid = [n_row, n_col]
     size = req_size if req_size else None
     fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=size, hdi_prob=1.)
     for i_ax, ax in enumerate(fig.ravel()):
