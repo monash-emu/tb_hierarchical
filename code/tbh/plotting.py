@@ -4,6 +4,7 @@ from math import ceil
 
 from copy import copy
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 
 from estival import priors as esp
@@ -26,6 +27,7 @@ def plot_traces(idata, burn_in, output_folder_path=None):
 
 def plot_post_prior_comparison(
     idata: az.InferenceData,
+    burn_in: int,
     req_vars: list,
     priors: list,
     n_col=4,
@@ -48,7 +50,11 @@ def plot_post_prior_comparison(
     n_row = ceil(len(req_vars) / n_col) 
     grid = [n_row, n_col]
     size = req_size if req_size else None
-    fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=size, hdi_prob=1.)
+
+    chain_length = idata.sample_stats.sizes['draw']
+    burnt_idata = idata.sel(draw=range(burn_in, chain_length))  # Discard burn-in
+
+    fig = az.plot_density(burnt_idata, var_names=req_vars, shade=0.3, grid=grid, figsize=size, hdi_prob=1.)   
     for i_ax, ax in enumerate(fig.ravel()):
         ax_limits = ax.get_xlim()
         param = ax.title.get_text().split("\n")[0]
@@ -67,6 +73,54 @@ def plot_post_prior_comparison(
         plt.close()
         
     return ax.figure.tight_layout()
+
+
+def plot_multiple_posteriors(idata, burn_in=0, req_vars=None, output_folder_path=None):
+    """
+    Plot overlaid posterior densities of selected variables on the same axis.
+
+    Parameters:
+    -----------
+    idata : arviz.InferenceData
+        The inference data containing posterior samples.
+    burn_in : int
+        Number of initial samples to discard from the beginning of the chain.
+    req_vars : list of str
+        List of variable names to plot from the posterior.
+    output_folder_path : str or None
+        If provided, saves the plot to this folder. Otherwise, shows the plot.
+    """
+
+    if req_vars is None:
+        raise ValueError("You must specify the list of variables to plot via `req_vars`.")
+
+    posterior = idata.posterior
+    if burn_in > 0:
+        posterior = posterior.isel(draw=slice(burn_in, None))
+
+    # Set a colormap and get N distinct colors
+    cmap = cm.get_cmap("tab10", len(req_vars))
+    colors = [cmap(i) for i in range(len(req_vars))]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    for i, var in enumerate(req_vars):
+        values = posterior[var].values.flatten()
+        az.plot_kde(
+            values, ax=ax, label=var, plot_kwargs={"color": colors[i]}, bw='silverman',
+            fill_kwargs={"alpha": 0.3, "color": colors[i]}
+            )
+
+    ax.set_title("Posterior Distributions")
+    ax.legend()
+    ax.grid(True)
+    fig.tight_layout()
+
+    if output_folder_path:
+        plt.savefig(output_folder_path / "overlaid_posteriors.jpg", facecolor="white", bbox_inches='tight')
+        plt.close()
+    else:
+        plt.show()
 
 
 def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, include_legend=True, x_min=None):

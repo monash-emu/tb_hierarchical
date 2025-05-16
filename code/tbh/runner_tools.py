@@ -195,7 +195,7 @@ def run_full_analysis(params, studies_dict=DEFAULT_STUDIES_DICT, model_config=DE
     az.to_netcdf(idata, output_folder / "idata.nc")
 
     pl.plot_traces(idata, a_c['burn_in'], output_folder)
-    pl.plot_post_prior_comparison(idata, list(bcm.priors.keys()), list(bcm.priors.values()), n_col=4, output_folder_path=output_folder)
+    pl.plot_post_prior_comparison(idata, a_c['burn_in'], list(bcm.priors.keys()), list(bcm.priors.values()), n_col=4, output_folder_path=output_folder)
 
     print(">>> Run full runs")
     full_runs, unc_df = run_full_runs(bcm, idata, a_c['burn_in'], a_c['full_runs_samples'])
