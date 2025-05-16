@@ -22,26 +22,6 @@ DEFAULT_MODEL_CONFIG = {
     "seed": 100,
 }
 
-DEFAULT_PARAMS = {
-    # Study-specific parameters
-    "transmission_rateXmajuro": 10,
-    "transmission_rateXvietnam": 10,
-    "lifelong_activation_riskXmajuro": 0.15,
-    "lifelong_activation_riskXvietnam": 0.10,
-    "prop_early_among_activatorsXmajuro": 0.90,
-    "prop_early_among_activatorsXvietnam": 0.90,
-    "current_passive_detection_rateXmajuro": 1.0,
-    "current_passive_detection_rateXvietnam": 1.0,
-    # Universal parameters
-    "mean_duration_early_latent": 0.5,
-    "rr_reinfection_latent_late": 0.2,
-    "rr_reinfection_recovered": 1.0,
-    "self_recovery_rate": 0.2,
-    "tb_death_rate": 0.2,
-    "tx_duration": 0.5,
-    "tx_prop_death": 0.04,
-}
-
 DEFAULT_STUDIES_DICT = {
     "majuro": {
         "pop_size": 27797,
@@ -78,6 +58,31 @@ def create_output_dir(array_job_id, task_id, analysis_name):
     output_dir = OUTPUT_PARENT_FOLDER / f"{array_job_id}_{analysis_name}" / f"task_{task_id}"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
+
+
+def get_full_default_params(studies_dict):
+    
+    universal_params = {
+        "mean_duration_early_latent": 0.5,
+        "rr_reinfection_latent_late": 0.2,
+        "rr_reinfection_recovered": 1.0,
+        "self_recovery_rate": 0.2,
+        "tb_death_rate": 0.2,
+        "tx_duration": 0.5,
+        "tx_prop_death": 0.04,
+    }
+
+    study_specific_param_defaults = {
+        "transmission_rate": 2., 
+        "lifelong_activation_risk": .2, 
+        "prop_early_among_activators": .9, 
+        "current_passive_detection_rate": 1.
+    }
+
+    return {
+        **universal_params,
+        **{f"{stem}X{study}": val for study in studies_dict for stem, val in study_specific_param_defaults.items()}
+    }
 
 
 def model_single_run(model_config: dict, studies_dict: dict, params: dict):
@@ -165,13 +170,13 @@ def run_full_runs(
     return full_runs, unc_df
 
 
-def run_full_analysis(studies_dict=DEFAULT_STUDIES_DICT, params=DEFAULT_PARAMS, model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None):
+def run_full_analysis(params, studies_dict=DEFAULT_STUDIES_DICT, model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None):
     """
     Run full analysis including Metropolis-sampling-based calibration, full runs, quantiles computation and plotting.
 
     Args:
         studies_dict (_type_, optional): _description_. Defaults to DEFAULT_STUDIES_DICT.
-        params (_type_, optional): _description_. Defaults to DEFAULT_PARAMS.
+        params (_type_, optional): _description_.
         model_config (_type_, optional): _description_. Defaults to DEFAULT_MODEL_CONFIG.
         analysis_config (_type_, optional): _description_. Defaults to DEFAULT_ANALYSIS_CONFIG.
         output_folder (_type_, optional): _description_. Defaults to None.

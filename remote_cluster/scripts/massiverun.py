@@ -1,6 +1,7 @@
 from tbh.runner_tools import (
     create_output_dir,
     run_full_analysis,
+    get_full_default_params
 )
 from tbh.paths import OUTPUT_PARENT_FOLDER
 
@@ -82,14 +83,17 @@ if __name__ == "__main__":
     analysis_config = {
         # Metropolis config
         'chains': 4,
-        'tune': 50,
-        'draws': 200,
+        'tune': 10000,
+        'draws': 40000,
 
         # Full runs config
-        'burn_in': 100,
-        'full_runs_samples': 100
+        'burn_in': 20000,
+        'full_runs_samples': 1000
     }
 
+    studies_dict = studies_dict_list[task_id]
+    params = get_full_default_params(studies_dict)
+
     print(f"Start analysis for array_job {array_job_id}, task {task_id}, {ANALYSIS_NAME}")
-    run_full_analysis(studies_dict=studies_dict_list[task_id],analysis_config=analysis_config, output_folder=output_dir)
+    run_full_analysis(studies_dict=studies_dict, params=params, analysis_config=analysis_config, output_folder=output_dir)
     print(f"Finished in {time() - start_time} seconds", flush=True)
