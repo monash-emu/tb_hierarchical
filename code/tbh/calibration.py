@@ -12,6 +12,11 @@ TARGETS = {
         "tb_prevalence_per100k": pd.Series(data=[1366], index=[2018]),
         "raw_notifications": pd.Series(data=[100], index=[2015])
     },
+    "camau": {
+        "ltbi_prop": pd.Series(data=[.368], index=[2016]),   #FIXME: Need to check year
+        "tb_prevalence_per100k": pd.Series(data=[389], index=[2014]),
+    },
+
     "vietnam": {
         "ltbi_prop": pd.Series(data=[.45], index=[2019]),
         "tb_prevalence_per100k": pd.Series(data=[400], index=[2017]),

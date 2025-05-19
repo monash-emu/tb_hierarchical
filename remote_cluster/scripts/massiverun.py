@@ -17,16 +17,60 @@ ANALYSIS_NAME = "multi_configs"
 
 analysis_details = [
     {},  # empty dict as task IDs start at 1
-    # TASK 1
+    # TASK 1 
     {
-        "description": "This is the analysis description",
+        "description": "[Ca Mau]\n - TB prevalence",
         "studies_dict": {
-            "majuro": {
-                "pop_size": 27797,
-                "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
+            "camau": {
+                "pop_size": 1194300,
+                "included_targets": ["tb_prevalence_per100k"]
+            },
+        },
+    }, 
+    # TASK 2
+    {
+        "description": "[Ca Mau]\n - LTBI prevalence",
+        "studies_dict": {
+            "camau": {
+                "pop_size": 1194300,
+                "included_targets": ["ltbi_prop"]
+            },
+        },
+    }, 
+    # TASK 3
+    {
+        "description": "[Ca Mau]\n - TB prevalence \n - LTBI prevalence",
+        "studies_dict": {
+            "camau": {
+                "pop_size": 1194300,
+                "included_targets": ["tb_prevalence_per100k", "ltbi_prop"]
+            },
+        },
+    },     
+    # TASK 4
+    {
+        "description": "[Ca Mau, Vietnam]",
+        "studies_dict": {
+            "camau": {
+                "pop_size": 1194300,
+                "included_targets": ["tb_prevalence_per100k", "ltbi_prop"]
             },
             "vietnam": { 
                 "pop_size": 100.e6,
+                "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
+            }  
+        },
+    },
+    # TASK 5
+    {
+        "description": "[Ca Mau, Majuro]",
+        "studies_dict": {
+            "camau": {
+                "pop_size": 1194300,
+                "included_targets": ["tb_prevalence_per100k", "ltbi_prop"]
+            },
+            "majuro": { 
+                "pop_size": 27797,
                 "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
             }  
         },
