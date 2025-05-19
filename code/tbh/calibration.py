@@ -85,12 +85,12 @@ def get_targets(studies_dict: dict) -> list:
 
     return [
         est.NormalTarget(
-            f"{key}X{study}", 
+            f"{key}X{study_name}", 
             data=data, 
             stdev=float(data.iloc[0]) / 10.,  # 4.sd = 95%CI = 40% of central estimate
         )
-        for study in studies_dict
-        for key, data in TARGETS[study].items()
+        for study_name, study_details in studies_dict.items()
+        for key, data in TARGETS[study_name].items() if key in study_details["included_targets"]
     ]
 
 

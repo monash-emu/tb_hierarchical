@@ -23,9 +23,11 @@ analysis_details = [
         "studies_dict": {
             "majuro": {
                 "pop_size": 27797,
+                "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
             },
             "vietnam": { 
                 "pop_size": 100.e6,
+                "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
             }  
         },
     } 

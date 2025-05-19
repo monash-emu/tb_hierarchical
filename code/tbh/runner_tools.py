@@ -25,9 +25,11 @@ DEFAULT_MODEL_CONFIG = {
 DEFAULT_STUDIES_DICT = {
     "majuro": {
         "pop_size": 27797,
+        "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
     },
     "vietnam": {  # vietnam like
         "pop_size": 100.e6,
+        "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
     }    
 }
 
