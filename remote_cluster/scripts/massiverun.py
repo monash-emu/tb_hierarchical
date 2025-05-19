@@ -15,58 +15,77 @@ ANALYSIS_NAME = "multi_configs"
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
 
-studies_dict_list = [
-    {},  # empty dict as taks IDs start at 1
-    {  # task 1
-        "majuro": {
-            "pop_size": 27797,
+analysis_details = [
+    {},  # empty dict as task IDs start at 1
+    # TASK 1
+    {
+        "description": "This is the analysis description",
+        "studies_dict": {
+            "majuro": {
+                "pop_size": 27797,
+            },
+            "vietnam": { 
+                "pop_size": 100.e6,
+            }  
         },
-        "vietnam": { 
-            "pop_size": 100.e6,
-        }    
-    },
-    {  # task 2
-        "majuro": {
-            "pop_size": 27797,
-        },
-        "majuro_copy": {
-            "pop_size": 27797,
-        }    
-    },  # task 3
-        {
-        "majuro": {
-            "pop_size": 27797,
-        },
-        "vietnam_no_target": {
-            "pop_size": 100.e6,
-        }    
-    },  # task 4
-        {
-        "majuro": {
-            "pop_size": 27797,
-        },
-        "vietnam": { 
-            "pop_size": 100.e6,
-        },
-        "majuro_copy": {
-            "pop_size": 27797,
-        } 
-    },  # task 5
-        {
-        "majuro": {
-            "pop_size": 27797,
-        },
-        "vietnam": { 
-            "pop_size": 100.e6,
-        },
-        "majuro_copy": {
-            "pop_size": 27797,
-        },
-        "vietnam_no_target": {
-            "pop_size": 100.e6,
-        } 
-    },
+    } 
 ]
+
+
+
+# studies_dict_list = [
+#     {},  # empty dict as taks IDs start at 1
+#     {  # task 1
+#         "majuro": {
+#             "pop_size": 27797,
+#             "included_targets": [],
+#         },
+#         "vietnam": { 
+#             "pop_size": 100.e6,
+#         }    
+#     },
+#     {  # task 2
+#         "majuro": {
+#             "pop_size": 27797,
+#         },
+#         "majuro_copy": {
+#             "pop_size": 27797,
+#         }    
+#     },  # task 3
+#         {
+#         "majuro": {
+#             "pop_size": 27797,
+#         },
+#         "vietnam_no_target": {
+#             "pop_size": 100.e6,
+#         }    
+#     },  # task 4
+#         {
+#         "majuro": {
+#             "pop_size": 27797,
+#         },
+#         "vietnam": { 
+#             "pop_size": 100.e6,
+#         },
+#         "majuro_copy": {
+#             "pop_size": 27797,
+#         } 
+#     },  # task 5
+#         {
+#         "majuro": {
+#             "pop_size": 27797,
+#         },
+#         "vietnam": { 
+#             "pop_size": 100.e6,
+#         },
+#         "majuro_copy": {
+#             "pop_size": 27797,
+#         },
+#         "vietnam_no_target": {
+#             "pop_size": 100.e6,
+#         } 
+#     },
+# ]
 
 
 
@@ -78,6 +97,9 @@ if __name__ == "__main__":
     mp.set_start_method("spawn")  # previously "forkserver"
     print(f"Create output directory")
     output_dir = create_output_dir(array_job_id, task_id, ANALYSIS_NAME)
+    # Write analysis description in output folder
+    with open(output_dir / "description.txt", "w", encoding="utf-8") as f:
+        f.write(analysis_details[task_id]["description"])
 
     # Specify and run analysis
     analysis_config = {
@@ -91,7 +113,7 @@ if __name__ == "__main__":
         'full_runs_samples': 1000
     }
 
-    studies_dict = studies_dict_list[task_id]
+    studies_dict = analysis_details[task_id]["studies_dict"]
     params = get_full_default_params(studies_dict)
 
     print(f"Start analysis for array_job {array_job_id}, task {task_id}, {ANALYSIS_NAME}")
