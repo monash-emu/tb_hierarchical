@@ -23,7 +23,7 @@ analysis_details = [
         "studies_dict": {
             "camau": {
                 "pop_size": 1194300,
-                "included_targets": ["tb_prevalence_per100k"]
+                "included_targets": ["tb_prevalence_per100k", "raw_notifications"]
             },
         },
     }, 
@@ -33,7 +33,7 @@ analysis_details = [
         "studies_dict": {
             "camau": {
                 "pop_size": 1194300,
-                "included_targets": ["ltbi_prop"]
+                "included_targets": ["ltbi_prop", "raw_notifications"]
             },
         },
     }, 
@@ -43,7 +43,7 @@ analysis_details = [
         "studies_dict": {
             "camau": {
                 "pop_size": 1194300,
-                "included_targets": ["tb_prevalence_per100k", "ltbi_prop"]
+                "included_targets": ["tb_prevalence_per100k", "ltbi_prop", "raw_notifications"]
             },
         },
     },     
@@ -53,7 +53,7 @@ analysis_details = [
         "studies_dict": {
             "camau": {
                 "pop_size": 1194300,
-                "included_targets": ["tb_prevalence_per100k", "ltbi_prop"]
+                "included_targets": ["tb_prevalence_per100k", "ltbi_prop", "raw_notifications"]
             },
             "vietnam": { 
                 "pop_size": 100.e6,
@@ -67,7 +67,7 @@ analysis_details = [
         "studies_dict": {
             "camau": {
                 "pop_size": 1194300,
-                "included_targets": ["tb_prevalence_per100k", "ltbi_prop"]
+                "included_targets": ["tb_prevalence_per100k", "ltbi_prop", "raw_notifications"]
             },
             "majuro": { 
                 "pop_size": 27797,

@@ -15,6 +15,7 @@ TARGETS = {
     "camau": {
         "ltbi_prop": pd.Series(data=[.368], index=[2016]),   #FIXME: Need to check year
         "tb_prevalence_per100k": pd.Series(data=[389], index=[2014]),
+        "raw_notifications": pd.Series(data=[1040], index=[2018])  #FIXME: only took 10% of Vietnam notifications
     },
 
     "vietnam": {
