@@ -66,10 +66,10 @@ def get_full_default_params(studies_dict):
     
     universal_params = {
         "mean_duration_early_latent": 0.5,
-        "rr_reinfection_latent_late": 0.2,
+        "rr_reinfection_latent_late": 1., # higher value helps reduce fitted lifelong risk
         "rr_reinfection_recovered": 1.0,
-        "self_recovery_rate": 0.2,
-        "tb_death_rate": 0.2,
+        "self_recovery_rate": 0., # lower value helps reduce fitted lifelong risk
+        "tb_death_rate": 0.05, # lower value helps reduce fitted lifelong risk
         "tx_duration": 0.5,
         "tx_prop_death": 0.04,
     }
@@ -77,7 +77,7 @@ def get_full_default_params(studies_dict):
     study_specific_param_defaults = {
         "transmission_rate": 2., 
         "lifelong_activation_risk": .2, 
-        "prop_early_among_activators": .9, 
+        "prop_early_among_activators": .3,  # lower value helps reduce fitted lifelong risk
         "current_passive_detection_rate": 1.
     }
 
