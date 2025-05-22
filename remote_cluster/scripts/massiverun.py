@@ -15,60 +15,86 @@ ANALYSIS_NAME = "multi_configs"
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
 
+# analysis_details = [
+#     {},  # empty dict as task IDs start at 1
+#     # TASK 1 
+#     {
+#         "description": "[Ca Mau]\n - TB prevalence",
+#         "studies_dict": {
+#             "camau": {
+#                 "pop_size": 1194300,
+#                 "included_targets": ["tb_prevalence_per100k", "raw_notifications"]
+#             },
+#         },
+#     }, 
+#     # TASK 2
+#     {
+#         "description": "[Ca Mau]\n - LTBI prevalence",
+#         "studies_dict": {
+#             "camau": {
+#                 "pop_size": 1194300,
+#                 "included_targets": ["ltbi_prop", "raw_notifications"]
+#             },
+#         },
+#     }, 
+#     # TASK 3
+#     {
+#         "description": "[Ca Mau]\n - TB prevalence \n - LTBI prevalence",
+#         "studies_dict": {
+#             "camau": {
+#                 "pop_size": 1194300,
+#                 "included_targets": ["tb_prevalence_per100k", "ltbi_prop", "raw_notifications"]
+#             },
+#         },
+#     },     
+#     # TASK 4
+#     {
+#         "description": "[Ca Mau, Vietnam]",
+#         "studies_dict": {
+#             "camau": {
+#                 "pop_size": 1194300,
+#                 "included_targets": ["tb_prevalence_per100k", "ltbi_prop", "raw_notifications"]
+#             },
+#             "vietnam": { 
+#                 "pop_size": 100.e6,
+#                 "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
+#             }  
+#         },
+#     },
+#     # TASK 5
+#     {
+#         "description": "[Ca Mau, Majuro]",
+#         "studies_dict": {
+#             "camau": {
+#                 "pop_size": 1194300,
+#                 "included_targets": ["tb_prevalence_per100k", "ltbi_prop", "raw_notifications"]
+#             },
+#             "majuro": { 
+#                 "pop_size": 27797,
+#                 "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
+#             }  
+#         },
+#     } 
+# ]
+
+
+
 analysis_details = [
     {},  # empty dict as task IDs start at 1
     # TASK 1 
     {
-        "description": "[Ca Mau]\n - TB prevalence",
+        "description": "[Vietnam]",
         "studies_dict": {
-            "camau": {
-                "pop_size": 1194300,
-                "included_targets": ["tb_prevalence_per100k", "raw_notifications"]
-            },
-        },
-    }, 
-    # TASK 2
-    {
-        "description": "[Ca Mau]\n - LTBI prevalence",
-        "studies_dict": {
-            "camau": {
-                "pop_size": 1194300,
-                "included_targets": ["ltbi_prop", "raw_notifications"]
-            },
-        },
-    }, 
-    # TASK 3
-    {
-        "description": "[Ca Mau]\n - TB prevalence \n - LTBI prevalence",
-        "studies_dict": {
-            "camau": {
-                "pop_size": 1194300,
-                "included_targets": ["tb_prevalence_per100k", "ltbi_prop", "raw_notifications"]
-            },
-        },
-    },     
-    # TASK 4
-    {
-        "description": "[Ca Mau, Vietnam]",
-        "studies_dict": {
-            "camau": {
-                "pop_size": 1194300,
-                "included_targets": ["tb_prevalence_per100k", "ltbi_prop", "raw_notifications"]
-            },
             "vietnam": { 
                 "pop_size": 100.e6,
                 "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
             }  
         },
     },
-    # TASK 5
+    # TASK 2
     {
-        "description": "[Ca Mau, Majuro]",
+        "description": "[Majuro]",
         "studies_dict": {
-            "camau": {
-                "pop_size": 1194300,
-                "included_targets": ["tb_prevalence_per100k", "ltbi_prop", "raw_notifications"]
-            },
             "majuro": { 
                 "pop_size": 27797,
                 "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
@@ -76,63 +102,6 @@ analysis_details = [
         },
     } 
 ]
-
-
-
-# studies_dict_list = [
-#     {},  # empty dict as taks IDs start at 1
-#     {  # task 1
-#         "majuro": {
-#             "pop_size": 27797,
-#             "included_targets": [],
-#         },
-#         "vietnam": { 
-#             "pop_size": 100.e6,
-#         }    
-#     },
-#     {  # task 2
-#         "majuro": {
-#             "pop_size": 27797,
-#         },
-#         "majuro_copy": {
-#             "pop_size": 27797,
-#         }    
-#     },  # task 3
-#         {
-#         "majuro": {
-#             "pop_size": 27797,
-#         },
-#         "vietnam_no_target": {
-#             "pop_size": 100.e6,
-#         }    
-#     },  # task 4
-#         {
-#         "majuro": {
-#             "pop_size": 27797,
-#         },
-#         "vietnam": { 
-#             "pop_size": 100.e6,
-#         },
-#         "majuro_copy": {
-#             "pop_size": 27797,
-#         } 
-#     },  # task 5
-#         {
-#         "majuro": {
-#             "pop_size": 27797,
-#         },
-#         "vietnam": { 
-#             "pop_size": 100.e6,
-#         },
-#         "majuro_copy": {
-#             "pop_size": 27797,
-#         },
-#         "vietnam_no_target": {
-#             "pop_size": 100.e6,
-#         } 
-#     },
-# ]
-
 
 
 if __name__ == "__main__":

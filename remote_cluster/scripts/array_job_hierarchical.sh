@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=multi_config
 #SBATCH --account=sh30
-#SBATCH --time=02:00:00
+#SBATCH --time=01:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=4096
 #SBATCH --cpus-per-task=4
@@ -13,7 +13,7 @@
 #SBATCH --mail-type=END
 #SBATCH --mail-type=FAIL
 
-#SBATCH --array=1-5
+#SBATCH --array=1-2
 
 export PYTENSOR_FLAGS=compiledir=$HOME/.pytensor/$SLURM_JOB_ID
 
