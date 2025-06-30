@@ -3,7 +3,7 @@ authors = ["David Shipman <dshipman@gmail.com>"]
 channels = ["conda-forge"]
 description = "Add a short description here"
 name = "tb_hierarchical"
-platforms = ["win-64","linux-64"]
+platforms = ["win-64","linux-64","osx-arm64"]
 version = "0.1.0"
 
 [tasks]
