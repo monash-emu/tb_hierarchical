@@ -1,2 +1,3 @@
-Bayesian Hierarchical Modelling to infer TB progression parameters using LTBI and TB prevalence estimates from multiple settings.
+Generic Bayesian hierarchical framework for tuberculosis modelling.
+Modelling framework designed so it can be used for stand-alone analyses (e.g. single country) or multi-setting analyses using hierarchical parameter structure.
 WORK IN PROGRESS.
