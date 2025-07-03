@@ -17,6 +17,9 @@ __pycache__/
 *.tiff
 *.bmp
 
+# file tracking local settings on my mac
+.DS_Store
+
 # Distribution / packaging
 .Python
 build/
