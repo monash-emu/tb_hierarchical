@@ -60,7 +60,7 @@ def get_natural_tb_model(model_config):
         },
     )
 
-    # Natural mortality modelled as transition back to mtb_naive compartment
+    # All-cause non-TB mortality modelled as transition back to mtb_naive compartment
     #FIXME! will need to make sure all goes to children after age-stratification
     #FIXME!: will need to add flow from mtb_naiveXadult to mtb_naiveXchild after age-stratification
     for compartment in [c for c in COMPARTMENTS if c != "mtb_naive"]:
@@ -79,14 +79,18 @@ def get_natural_tb_model(model_config):
         dest="mtb_naive"
     )
 
+    # Transmission flows (including reinfection)
+    for susceptible_comp in ["mtb_naive", "contained", "cleared","recovered"]:
+        rel_susceptibility = Parameter(f"rel_sus_{susceptible_comp}")
+        model.add_infection_frequency_flow(
+            name=f"infection_from_{susceptible_comp}",
+            contact_rate=Parameter("raw_transmission_rate") * rel_susceptibility,  # will be adjusted later by study
+            source=susceptible_comp,
+            dest="incipient",
+        )
 
     # Early TB infection flows
-    # model.add_transition_flow(
-    #     name=,
-    #     fractional_rate=,
-    #     source=,
-    #     dest=
-    # )
+
 
     return model
 
