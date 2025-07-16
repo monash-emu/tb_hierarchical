@@ -120,7 +120,34 @@ def get_natural_tb_model(model_config):
     """
         Active TB dynamics
     """
-
+    # Clinical progression and regression flows
+    for infectious_status in ["inf", "noninf"]:
+        model.add_transition_flow(
+            name=f"clinical_progression_{infectious_status}",
+            fractional_rate=Parameter("clinical_progression_rate"),
+            source=f"subclin_{infectious_status}",
+            dest=f"clin_{infectious_status}",
+        )
+        model.add_transition_flow(
+            name=f"clinical_regression_{infectious_status}",
+            fractional_rate=Parameter("clinical_regression_rate"),
+            source=f"clin_{infectious_status}",
+            dest=f"subclin_{infectious_status}",
+        )
+    # Infectioussness onset and loss flows
+    for clinical_status in ["clin", "subclin"]:
+        model.add_transition_flow(
+            name=f"infectiousnnes_gain_{clinical_status}",
+            fractional_rate=Parameter("infectiousness_gain_rate"),
+            source=f"{clinical_status}_noninf",
+            dest=f"{clinical_status}_inf",
+        )
+        model.add_transition_flow(
+            name=f"infectiousnnes_loss_{clinical_status}",
+            fractional_rate=Parameter("infectiousness_loss_rate"),
+            source=f"{clinical_status}_inf",
+            dest=f"{clinical_status}_noninf",
+        )
 
     return model
 
