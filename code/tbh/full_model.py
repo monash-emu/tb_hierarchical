@@ -149,5 +149,22 @@ def get_natural_tb_model(model_config):
             dest=f"{clinical_status}_noninf",
         )
 
+    # TB mortality and self-recovery
+    for infectious_status in ["inf", "noninf"]:
+        # mortality only applies to clinical TB
+        model.add_transition_flow(
+            name=f"tb_mortality_{infectious_status}",
+            fractional_rate=Parameter(f"tb_mortality_rate_{infectious_status}"),
+            source=f"clin_{infectious_status}",
+            dest="mtb_naive"
+        )
+        # self-recovery only applies to subclinical TB
+        model.add_transition_flow(
+            name=f"self_recovery_{infectious_status}",
+            fractional_rate=Parameter("self_recovery_rate"),
+            source=f"subclin_{infectious_status}",
+            dest="recovered"
+        )
+
     return model
 
