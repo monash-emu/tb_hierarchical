@@ -12,7 +12,11 @@ def request_model_outputs(model: CompartmentalModel, compartments: list):
         compartments (list): list of all model compartments (required to create population size output)
         studies (list): list of studies (required to disaggregate outputs by study)
     """
-    ## Outputs relative to population size
     model.request_output_for_compartments(
         name=f"population", compartments=compartments
+    )
+
+    model.request_output_for_flow(
+        name="raw_incidence",
+        flow_name="progression",
     )

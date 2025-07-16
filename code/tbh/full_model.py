@@ -89,7 +89,37 @@ def get_natural_tb_model(model_config):
             dest="incipient",
         )
 
-    # Early TB infection flows
+    """
+         Early TB infection dynamics
+    """
+    model.add_transition_flow(
+        name="containment",
+        fractional_rate=Parameter("containment_rate"),
+        source="incipient",
+        dest="contained",
+    )
+    model.add_transition_flow(
+        name="clearance",
+        fractional_rate=Parameter("clearance_rate"),
+        source="contained",
+        dest="cleared",
+    )
+    model.add_transition_flow(
+        name="breakdown",
+        fractional_rate=Parameter("breakdown_rate"),
+        source="contained",
+        dest="incipient",
+    )    
+    model.add_transition_flow(
+        name="progression",
+        fractional_rate=Parameter("progression_rate"),
+        source="incipient",
+        dest="subclin_noninf",
+    )
+
+    """
+        Active TB dynamics
+    """
 
 
     return model
