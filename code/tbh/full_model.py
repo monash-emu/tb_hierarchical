@@ -14,14 +14,17 @@ HOME_PATH = Path(__file__).parent.parent.parent
 PLACEHOLDER_VALUE = 0.
 
 COMPARTMENTS = (
-    "mtb_naive",
+    "mtb_naive", # historically called "susceptible"
+    # Early TB infection states
     "incipient",
     "contained",
     "cleared",
+    # TB disease states
     "subclin_noninf",
     "clin_noninf",
     "subclin_inf",
     "clin_inf",
+    # Treatment and recovered
     "treatment",
     "recovered"
 )
@@ -30,9 +33,6 @@ INFECTIOUS_COMPARTMENTS = ("subclin_inf", "clin_inf")
 
 
 def get_tb_model(model_config: dict, home_path=HOME_PATH):
-    """
-    Prepare time-variant parameters and other quantities requiring pre-processsing
-    """
 
     model = get_natural_tb_model(model_config)
     
@@ -134,6 +134,7 @@ def get_natural_tb_model(model_config):
             source=f"clin_{infectious_status}",
             dest=f"subclin_{infectious_status}",
         )
+
     # Infectioussness onset and loss flows
     for clinical_status in ["clin", "subclin"]:
         model.add_transition_flow(
@@ -167,4 +168,3 @@ def get_natural_tb_model(model_config):
         )
 
     return model
-
