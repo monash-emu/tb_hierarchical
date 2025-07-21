@@ -36,7 +36,7 @@ def get_tb_model(model_config: dict, home_path=HOME_PATH):
 
     model = get_natural_tb_model(model_config)
     
-    # add_detection_and_treatment(model)
+    add_detection_and_treatment(model)
 
     # stratify by age
 
@@ -168,3 +168,38 @@ def get_natural_tb_model(model_config):
         )
 
     return model
+
+
+def add_detection_and_treatment(model: CompartmentalModel):
+
+    # Active disease detection 
+    active_comps = ["subclin_noninf", "clin_noninf", "subclin_inf", "clin_inf"]
+    for active_comp in active_comps:
+        model.add_transition_flow(
+            name=f"tb_detection_{active_comp}",
+            fractional_rate=Parameter("tb_detection_rate"),  #FIXME! will differ by active state
+            source=active_comp,
+            dest="treatment"
+        )
+
+    # TB treatment outcomes
+    model.add_transition_flow(
+        name="tx_recovery",
+        fractional_rate=Parameter("tx_recovery_rate"),
+        source="treatment",
+        dest="recovered"
+    )
+    model.add_transition_flow(
+        name="tx_relapse",
+        fractional_rate=Parameter("tx_relapse_rate"),
+        source="treatment",
+        dest="subclin_noninf"  #FIXME! may want to use different assumptions
+    
+    )
+    model.add_transition_flow(
+        name="tx_death",
+        fractional_rate=Parameter("tx_death_rate"),
+        source="treatment",
+        dest="mtb_naive"
+    )
+    

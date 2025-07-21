@@ -21,13 +21,18 @@ def request_model_outputs(model: CompartmentalModel, compartments: list):
         flow_name="progression",
     )
 
+    # Mortality
     for infectious_status in ["inf", "noninf"]:
         model.request_output_for_flow(
             name=f"tb_mortality_{infectious_status}",
             flow_name=f"tb_mortality_{infectious_status}"
         )
-  
+    model.request_output_for_flow(
+        name="tx_death",
+        flow_name="tx_death"
+    )
+
     model.request_aggregate_output(
         name="raw_tb_mortality",
-        sources=[f"tb_mortality_{infectious_status}" for infectious_status in ["inf", "noninf"]] 
+        sources=[f"tb_mortality_{infectious_status}" for infectious_status in ["inf", "noninf"]] + ["tx_death"]
     )
