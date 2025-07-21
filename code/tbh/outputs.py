@@ -3,7 +3,7 @@ from summer2 import CompartmentalModel
 from summer2.parameters import Parameter, DerivedOutput
 
 
-def request_model_outputs(model: CompartmentalModel, compartments: list):
+def request_model_outputs(model: CompartmentalModel, compartments: list, active_compartments: list):
     """
     Define model outputs that can later be requested from model.get_derived_outputs_df()
 
@@ -19,6 +19,17 @@ def request_model_outputs(model: CompartmentalModel, compartments: list):
     model.request_output_for_flow(
         name="raw_incidence",
         flow_name="progression",
+    )
+
+    # TB notifications
+    for active_comp in active_compartments:
+        model.request_output_for_flow(
+            name=f"notifications_{active_comp}",
+            flow_name=f"tb_detection_{active_comp}"
+        )
+    model.request_aggregate_output(
+        name="notifications",
+        sources=[f"notifications_{active_comp}" for active_comp in active_compartments]
     )
 
     # Mortality

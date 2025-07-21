@@ -30,6 +30,7 @@ COMPARTMENTS = (
 )
 
 INFECTIOUS_COMPARTMENTS = ("subclin_inf", "clin_inf")
+ACTIVE_COMPS = ["subclin_noninf", "clin_noninf", "subclin_inf", "clin_inf"]
 
 
 def get_tb_model(model_config: dict, home_path=HOME_PATH):
@@ -40,7 +41,7 @@ def get_tb_model(model_config: dict, home_path=HOME_PATH):
 
     # stratify by age
 
-    request_model_outputs(model, COMPARTMENTS)
+    request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS)
 
     return model
 
@@ -173,8 +174,7 @@ def get_natural_tb_model(model_config):
 def add_detection_and_treatment(model: CompartmentalModel):
 
     # Active disease detection 
-    active_comps = ["subclin_noninf", "clin_noninf", "subclin_inf", "clin_inf"]
-    for active_comp in active_comps:
+    for active_comp in ACTIVE_COMPS:
         model.add_transition_flow(
             name=f"tb_detection_{active_comp}",
             fractional_rate=Parameter("tb_detection_rate"),  #FIXME! will differ by active state
