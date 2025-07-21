@@ -1,5 +1,5 @@
-from summer2 import CompartmentalModel, Stratification
-from summer2.parameters import Parameter, DerivedOutput
+from summer2 import CompartmentalModel, AgeStratification
+from summer2.parameters import Parameter
 from summer2.functions import time as stf
 
 from tbh.outputs import request_model_outputs
@@ -39,7 +39,7 @@ def get_tb_model(model_config: dict, home_path=HOME_PATH):
     
     add_detection_and_treatment(model)
 
-    # stratify by age
+    stratify_model_by_age(model)
 
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS)
 
@@ -203,3 +203,13 @@ def add_detection_and_treatment(model: CompartmentalModel):
         dest="mtb_naive"
     )
     
+
+def stratify_model_by_age(model: CompartmentalModel):
+
+    age_stratification = AgeStratification(
+        name="age",
+        strata=[0, 15],
+        compartments=COMPARTMENTS
+    )
+
+    model.stratify_with(age_stratification)
