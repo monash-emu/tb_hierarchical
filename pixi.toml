@@ -13,6 +13,7 @@ python = "3.10.*"
 ipykernel = ">=6.29.5,<7"
 pymc = "==5.2.0"
 ipython = ">=8.36.0,<9"
+openpyxl = ">=3.1.5,<4"
 
 [pypi-dependencies]
 tbh = { path = "./code", editable = true}
