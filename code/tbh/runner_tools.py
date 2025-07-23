@@ -50,7 +50,7 @@ def get_parameters_and_priors():
     Read parameter values (for fixed parameters) and prior distribution details from xlsx file.
     
     Returns:
-        fixed_params: Dictionary with fixed parameter values 
+        params: Dictionary with parameter values
         priors: List of estival prior objects
     """
 
@@ -58,15 +58,14 @@ def get_parameters_and_priors():
     df = df.where(pd.notna(df), None)  # Replace Nas (and empty cells) with None
 
     # Fixed parameters
-    fixed_params_df = df[df['distribution'].isnull()]
-    fixed_params = dict(zip(fixed_params_df['parameter'], fixed_params_df['value']))
+    params = dict(zip(df['parameter'], df['value']))
 
     # Prior distributions
     priors = []
     priors_df = df[df['distribution'].notnull()]
     priors = [get_prior(row['parameter'], row['distribution'], row['distri_param1'], row['distri_param2']) for _, row in priors_df.iterrows()]        
 
-    return fixed_params, priors
+    return params, priors
 
 
 
@@ -74,26 +73,6 @@ def create_output_dir(array_job_id, task_id, analysis_name):
     output_dir = OUTPUT_PARENT_FOLDER / f"{array_job_id}_{analysis_name}" / f"task_{task_id}"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
-
-
-def model_single_run(model_config: dict, params: dict):
-    """
-    Run the TB model for a given parameter set
-
-    Args:
-        model_config (dict): Model run configuration
-        params (dict): The model parameters
-
-    Returns:
-        model: the run model
-        derived_outputs_df: pandas dataframe containing derived outputs
-    """
-
-    model = get_tb_model(model_config)
-    model.run(params)
-    derived_outputs_df = model.get_derived_outputs_df()
-
-    return model, derived_outputs_df
 
 
 def run_metropolis_calibration(
