@@ -9,10 +9,10 @@ from estival.sampling import tools as esamp
 from estival.model import BayesianCompartmentalModel
 
 from .model import get_tb_model
-from .calibration import get_bcm_object, get_priors, get_targets
+from .calibration import get_prior, get_targets
 
 import tbh.plotting as pl
-from tbh.paths import OUTPUT_PARENT_FOLDER
+from tbh.paths import OUTPUT_PARENT_FOLDER, DATA_FOLDER
 
 from pathlib import Path
 
@@ -20,17 +20,6 @@ DEFAULT_MODEL_CONFIG = {
     "start_time": 1850,
     "end_time": 2050,
     "seed": 100,
-}
-
-DEFAULT_STUDIES_DICT = {
-    "majuro": {
-        "pop_size": 27797,
-        "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
-    },
-    "vietnam": {  # vietnam like
-        "pop_size": 100.e6,
-        "included_targets": ["ltbi_prop", "tb_prevalence_per100k", "raw_notifications"]
-    }    
 }
 
 DEFAULT_ANALYSIS_CONFIG = {
@@ -56,44 +45,43 @@ TEST_ANALYSIS_CONFIG = {
 }
 
 
+def get_parameters_and_priors():
+    """
+    Read parameter values (for fixed parameters) and prior distribution details from xlsx file.
+    
+    Returns:
+        fixed_params: Dictionary with fixed parameter values 
+        priors: List of estival prior objects
+    """
+
+    df = pd.read_excel(DATA_FOLDER / "parameters.xlsx")
+    df = df.where(pd.notna(df), None)  # Replace Nas (and empty cells) with None
+
+    # Fixed parameters
+    fixed_params_df = df[df['distribution'].isnull()]
+    fixed_params = dict(zip(fixed_params_df['parameter'], fixed_params_df['value']))
+
+    # Prior distributions
+    priors = []
+    priors_df = df[df['distribution'].notnull()]
+    priors = [get_prior(row['parameter'], row['distribution'], row['distri_param1'], row['distri_param2']) for _, row in priors_df.iterrows()]        
+
+    return fixed_params, priors
+
+
+
 def create_output_dir(array_job_id, task_id, analysis_name):
     output_dir = OUTPUT_PARENT_FOLDER / f"{array_job_id}_{analysis_name}" / f"task_{task_id}"
     output_dir.mkdir(parents=True, exist_ok=True)
     return output_dir
 
 
-def get_full_default_params(studies_dict):
-    
-    universal_params = {
-        "mean_duration_early_latent": 0.5,
-        "rr_reinfection_latent_late": 1., # higher value helps reduce fitted lifelong risk
-        "rr_reinfection_recovered": 1.0,
-        "self_recovery_rate": 0., # lower value helps reduce fitted lifelong risk
-        "tb_death_rate": 0.05, # lower value helps reduce fitted lifelong risk
-        "tx_duration": 0.5,
-        "tx_prop_death": 0.04,
-    }
-
-    study_specific_param_defaults = {
-        "transmission_rate": 2., 
-        "lifelong_activation_risk": .2, 
-        "prop_early_among_activators": .3,  # lower value helps reduce fitted lifelong risk
-        "current_passive_detection_rate": 1.
-    }
-
-    return {
-        **universal_params,
-        **{f"{stem}X{study}": val for study in studies_dict for stem, val in study_specific_param_defaults.items()}
-    }
-
-
-def model_single_run(model_config: dict, studies_dict: dict, params: dict):
+def model_single_run(model_config: dict, params: dict):
     """
     Run the TB model for a given parameter set
 
     Args:
         model_config (dict): Model run configuration
-        studies_dict (dict): Information about different studies
         params (dict): The model parameters
 
     Returns:
@@ -101,7 +89,7 @@ def model_single_run(model_config: dict, studies_dict: dict, params: dict):
         derived_outputs_df: pandas dataframe containing derived outputs
     """
 
-    model = get_tb_model(model_config, studies_dict)
+    model = get_tb_model(model_config)
     model.run(params)
     derived_outputs_df = model.get_derived_outputs_df()
 
@@ -172,12 +160,11 @@ def run_full_runs(
     return full_runs, unc_df
 
 
-def run_full_analysis(params, studies_dict=DEFAULT_STUDIES_DICT, model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None):
+def run_full_analysis(params, model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None):
     """
     Run full analysis including Metropolis-sampling-based calibration, full runs, quantiles computation and plotting.
 
     Args:
-        studies_dict (_type_, optional): _description_. Defaults to DEFAULT_STUDIES_DICT.
         params (_type_, optional): _description_.
         model_config (_type_, optional): _description_. Defaults to DEFAULT_MODEL_CONFIG.
         analysis_config (_type_, optional): _description_. Defaults to DEFAULT_ANALYSIS_CONFIG.
@@ -188,7 +175,7 @@ def run_full_analysis(params, studies_dict=DEFAULT_STUDIES_DICT, model_config=DE
 
     output_folder.mkdir(parents=True, exist_ok=True) 
 
-    bcm = get_bcm_object(model_config, studies_dict, params)
+    bcm = None
 
     print(">>> Run Metropolis sampling")
     idata = run_metropolis_calibration(
