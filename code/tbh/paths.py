@@ -11,3 +11,4 @@ def get_git_root() -> Path:
 
 REPO_ROOT_PATH = get_git_root()
 OUTPUT_PARENT_FOLDER = REPO_ROOT_PATH / "remote_cluster" / "outputs"
+DATA_FOLDER = REPO_ROOT_PATH / "data"
