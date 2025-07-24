@@ -65,17 +65,6 @@ def get_natural_tb_model(model_config, init_pop_size):
         },
     )
 
-    # All-cause non-TB mortality modelled as transition back to mtb_naive compartment
-    #FIXME! will need to make sure all goes to children after age-stratification
-    #FIXME!: will need to add flow from mtb_naiveXadult to mtb_naiveXchild after age-stratification
-    # for compartment in [c for c in COMPARTMENTS if c != "mtb_naive"]:
-    #     model.add_transition_flow(
-    #         name=f"all_cause_mortality_from_{compartment}",
-    #         fractional_rate=PLACEHOLDER_VALUE,  #FIXME! placeholder
-    #         source=compartment,
-    #         dest="mtb_naive",
-    #     )
-
     # Transmission flows (including reinfection)
     for susceptible_comp in ["mtb_naive", "contained", "cleared","recovered"]:
         rel_susceptibility = Parameter(f"rel_sus_{susceptible_comp}")
@@ -149,14 +138,6 @@ def get_natural_tb_model(model_config, init_pop_size):
 
     # TB self-recovery
     for infectious_status in ["inf", "noninf"]:
-        # # mortality only applies to clinical TB
-        # model.add_transition_flow(
-        #     name=f"tb_mortality_{infectious_status}",
-        #     fractional_rate=Parameter(f"tb_mortality_rate_{infectious_status}"),
-        #     source=f"clin_{infectious_status}",
-        #     dest="mtb_naive"
-        # )
-        # self-recovery only applies to subclinical TB
         model.add_transition_flow(
             name=f"self_recovery_{infectious_status}",
             fractional_rate=Parameter("self_recovery_rate"),
@@ -191,15 +172,7 @@ def add_detection_and_treatment(model: CompartmentalModel):
         source="treatment",
         dest="subclin_noninf"  #FIXME! may want to use different assumptions
     
-    )
-    # deaths on treatment will be added when implementing modelled births and deaths
-    # model.add_transition_flow(
-    #     name="tx_death",
-    #     fractional_rate=Parameter("tx_death_rate"),
-    #     source="treatment",
-    #     dest="mtb_naive"
-    # )
-    
+    ) 
 
 def stratify_model_by_age(model: CompartmentalModel):
 
