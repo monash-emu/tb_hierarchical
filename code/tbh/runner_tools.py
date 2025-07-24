@@ -45,27 +45,37 @@ TEST_ANALYSIS_CONFIG = {
 }
 
 
-def get_parameters_and_priors():
+def get_parameters_and_priors(params_file_path=DATA_FOLDER / "parameters.xlsx"):
     """
     Read parameter values (for fixed parameters) and prior distribution details from xlsx file.
     
     Returns:
         params: Dictionary with parameter values
         priors: List of estival prior objects
+        tv_df: pandas Dataframe with time-variant parameters
     """
 
-    df = pd.read_excel(DATA_FOLDER / "parameters.xlsx")
+    """
+        Read constant (i.e. non-time-variant) parameters, including fixed params and priors
+    """
+    df = pd.read_excel(params_file_path, sheet_name="constant")
     df = df.where(pd.notna(df), None)  # Replace Nas (and empty cells) with None
 
     # Fixed parameters
-    params = dict(zip(df['parameter'], df['value']))
+    cst_params = dict(zip(df['parameter'], df['value']))
 
     # Prior distributions
     priors = []
     priors_df = df[df['distribution'].notnull()]
     priors = [get_prior(row['parameter'], row['distribution'], row['distri_param1'], row['distri_param2']) for _, row in priors_df.iterrows()]        
 
-    return params, priors
+    """
+        Read time-variant parameters
+    """
+    tv_df = pd.read_excel(params_file_path, sheet_name="time_variant", index_col=0)
+    tv_params = {col: tv_df[col].dropna() for col in tv_df.columns}
+
+    return cst_params, priors, tv_params
 
 
 

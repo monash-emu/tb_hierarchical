@@ -4,8 +4,8 @@ from summer2.functions import time as stf
 
 from tbh.outputs import request_model_outputs
 
+import pandas as pd
 from jax import numpy as jnp
-import yaml
 from pathlib import Path
 from typing import Callable
 
@@ -33,20 +33,24 @@ INFECTIOUS_COMPARTMENTS = ("subclin_inf", "clin_inf")
 ACTIVE_COMPS = ["subclin_noninf", "clin_noninf", "subclin_inf", "clin_inf"]
 
 
-def get_tb_model(model_config: dict, home_path=HOME_PATH):
+def get_tb_model(model_config: dict, tv_params: dict):
 
-    model = get_natural_tb_model(model_config)
+    init_pop_size = tv_params['population'].iloc[0]
+    model = get_natural_tb_model(model_config, init_pop_size)
     
     add_detection_and_treatment(model)
 
     stratify_model_by_age(model)
+
+    # add extra births, now that model has been stratified by age, to capture population growth
+    add_extra_births(model, tv_params['population'])
 
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS)
 
     return model
 
 
-def get_natural_tb_model(model_config):
+def get_natural_tb_model(model_config, init_pop_size):
 
     model = CompartmentalModel(
         times=(model_config["start_time"], model_config["end_time"]),
@@ -56,7 +60,7 @@ def get_natural_tb_model(model_config):
 
     model.set_initial_population(
         distribution={
-            "mtb_naive": Parameter("init_pop_size") - model_config["seed"],
+            "mtb_naive": init_pop_size - model_config["seed"],
             "clin_inf": model_config["seed"],
         },
     )
@@ -71,14 +75,6 @@ def get_natural_tb_model(model_config):
             source=compartment,
             dest="mtb_naive",
         )
-
-    # Excess birth to capture population growth
-    #FIXME! will need to make sure all goes to children after age-stratification
-    model.add_crude_birth_flow(
-        name="excess_birth",
-        birth_rate=PLACEHOLDER_VALUE, #FIXME! placeholder
-        dest="mtb_naive"
-    )
 
     # Transmission flows (including reinfection)
     for susceptible_comp in ["mtb_naive", "contained", "cleared","recovered"]:
@@ -208,8 +204,26 @@ def stratify_model_by_age(model: CompartmentalModel):
 
     age_stratification = AgeStratification(
         name="age",
-        strata=[0, 15],
+        strata=["0", "15"],
         compartments=COMPARTMENTS
     )
 
     model.stratify_with(age_stratification)
+
+
+def add_extra_births(model: CompartmentalModel, population_series: pd.Series):
+
+    # linear interpolation for missing years
+    full_index = pd.Index(range(population_series.index.min(), population_series.index.max() + 1))
+    full_population_series = population_series.reindex(full_index).interpolate() # reindex with full index and linear-interpolate
+    pop_entry = full_population_series.diff().dropna() # calculate delta between successive years
+
+    # add 0 growth before first data point and future growth specified by parameter, then use sigmoisal interpolation for entry rate
+    entry_rate = stf.get_sigmoidal_interpolation_function(
+        [pop_entry.index.min() - 1] + pop_entry.index.to_list() + [pop_entry.index.max() + 1], 
+        [0.] + pop_entry.to_list() + [Parameter("future_pop_growth")]
+    )
+
+    model.add_importation_flow( # Add births as additional entry rate, (split imports in case the susceptible compartments are further stratified later)
+        "births", entry_rate, dest="mtb_naive", split_imports=True, dest_strata={"age": "0"}
+    )
