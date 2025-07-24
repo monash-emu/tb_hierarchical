@@ -43,9 +43,9 @@ def get_tb_model(model_config: dict, tv_params: dict):
 
     stratify_model_by_age(model)
 
-    add_births_and_deaths(model, tv_params['population'])
+    tb_death_flows = add_births_and_deaths(model, tv_params['population'])
 
-    request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS)
+    request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, tb_death_flows)
 
     return model
 
@@ -232,27 +232,32 @@ def add_births_and_deaths(model, population_series):
                 )
     
     # Death caused by TB (Untreated), only applied to clinical TB
+    tb_death_flows = []
     for infectious_status in ["inf", "noninf"]:
         for source_age in AGE_GROUPS:  
+            flow_name = f"tb_mortality_{infectious_status}_age_{source_age}"
             model.add_transition_flow(
-                name=f"tb_mortality_{infectious_status}_age_{source_age}",
+                name=flow_name,
                 fractional_rate=Parameter(f"tb_mortality_rate_{infectious_status}"),
                 source=f"clin_{infectious_status}",
                 source_strata={"age": source_age},
                 dest="mtb_naive",
                 dest_strata={"age": AGE_GROUPS[0]}
             )
+            tb_death_flows.append(flow_name)
 
     # Death on TB treatment
     for source_age in AGE_GROUPS:  
+        flow_name = f"tx_death_age_{source_age}"
         model.add_transition_flow(
-            name=f"tx_death_age_{source_age}",
+            name=flow_name,
             fractional_rate=Parameter("tx_death_rate"),
             source="treatment",
             source_strata={"age": source_age},
             dest="mtb_naive",
             dest_strata={"age": AGE_GROUPS[0]}
         )
+        tb_death_flows.append(flow_name)
 
     """
         Will now inject extra births to capture population growth
@@ -271,3 +276,5 @@ def add_births_and_deaths(model, population_series):
     model.add_importation_flow( # Add births as additional entry rate, (split imports in case the susceptible compartments are further stratified later)
         "births", entry_rate, dest="mtb_naive", split_imports=True, dest_strata={"age": "0"}
     )
+
+    return tb_death_flows
