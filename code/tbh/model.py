@@ -32,6 +32,7 @@ COMPARTMENTS = (
 INFECTIOUS_COMPARTMENTS = ("subclin_inf", "clin_inf")
 ACTIVE_COMPS = ["subclin_noninf", "clin_noninf", "subclin_inf", "clin_inf"]
 
+AGE_GROUPS = ["0", "15"]
 
 def get_tb_model(model_config: dict, tv_params: dict):
 
@@ -42,8 +43,7 @@ def get_tb_model(model_config: dict, tv_params: dict):
 
     stratify_model_by_age(model)
 
-    # add extra births, now that model has been stratified by age, to capture population growth
-    add_extra_births(model, tv_params['population'])
+    add_births_and_deaths(model, tv_params['population'])
 
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS)
 
@@ -68,13 +68,13 @@ def get_natural_tb_model(model_config, init_pop_size):
     # All-cause non-TB mortality modelled as transition back to mtb_naive compartment
     #FIXME! will need to make sure all goes to children after age-stratification
     #FIXME!: will need to add flow from mtb_naiveXadult to mtb_naiveXchild after age-stratification
-    for compartment in [c for c in COMPARTMENTS if c != "mtb_naive"]:
-        model.add_transition_flow(
-            name=f"all_cause_mortality_from_{compartment}",
-            fractional_rate=PLACEHOLDER_VALUE,  #FIXME! placeholder
-            source=compartment,
-            dest="mtb_naive",
-        )
+    # for compartment in [c for c in COMPARTMENTS if c != "mtb_naive"]:
+    #     model.add_transition_flow(
+    #         name=f"all_cause_mortality_from_{compartment}",
+    #         fractional_rate=PLACEHOLDER_VALUE,  #FIXME! placeholder
+    #         source=compartment,
+    #         dest="mtb_naive",
+    #     )
 
     # Transmission flows (including reinfection)
     for susceptible_comp in ["mtb_naive", "contained", "cleared","recovered"]:
@@ -147,15 +147,15 @@ def get_natural_tb_model(model_config, init_pop_size):
             dest=f"{clinical_status}_noninf",
         )
 
-    # TB mortality and self-recovery
+    # TB self-recovery
     for infectious_status in ["inf", "noninf"]:
-        # mortality only applies to clinical TB
-        model.add_transition_flow(
-            name=f"tb_mortality_{infectious_status}",
-            fractional_rate=Parameter(f"tb_mortality_rate_{infectious_status}"),
-            source=f"clin_{infectious_status}",
-            dest="mtb_naive"
-        )
+        # # mortality only applies to clinical TB
+        # model.add_transition_flow(
+        #     name=f"tb_mortality_{infectious_status}",
+        #     fractional_rate=Parameter(f"tb_mortality_rate_{infectious_status}"),
+        #     source=f"clin_{infectious_status}",
+        #     dest="mtb_naive"
+        # )
         # self-recovery only applies to subclinical TB
         model.add_transition_flow(
             name=f"self_recovery_{infectious_status}",
@@ -192,27 +192,71 @@ def add_detection_and_treatment(model: CompartmentalModel):
         dest="subclin_noninf"  #FIXME! may want to use different assumptions
     
     )
-    model.add_transition_flow(
-        name="tx_death",
-        fractional_rate=Parameter("tx_death_rate"),
-        source="treatment",
-        dest="mtb_naive"
-    )
+    # deaths on treatment will be added when implementing modelled births and deaths
+    # model.add_transition_flow(
+    #     name="tx_death",
+    #     fractional_rate=Parameter("tx_death_rate"),
+    #     source="treatment",
+    #     dest="mtb_naive"
+    # )
     
 
 def stratify_model_by_age(model: CompartmentalModel):
 
     age_stratification = AgeStratification(
         name="age",
-        strata=["0", "15"],
+        strata=AGE_GROUPS,
         compartments=COMPARTMENTS
     )
 
     model.stratify_with(age_stratification)
 
 
-def add_extra_births(model: CompartmentalModel, population_series: pd.Series):
+def add_births_and_deaths(model, population_series):
 
+    """
+        All deaths are modelled as transitions back to mtb_naive compartment, stratum age_0
+        If used alone, this approach would maintain constant population size, but extra births will be injected next.
+    """
+    # All cause (non-TB) mortality
+    for compartment in COMPARTMENTS:
+        for i_age, source_age in enumerate(AGE_GROUPS):    
+            if i_age > 0 or compartment != "mtb_naive":
+                model.add_transition_flow(
+                    name=f"all_cause_mortality_from_{compartment}_age_{source_age}",
+                    fractional_rate=PLACEHOLDER_VALUE,  #FIXME! placeholder for now, will need to be age-specific
+                    source=compartment,
+                    source_strata={"age": source_age},
+                    dest="mtb_naive",
+                    dest_strata={"age": AGE_GROUPS[0]}
+                )
+    
+    # Death caused by TB (Untreated), only applied to clinical TB
+    for infectious_status in ["inf", "noninf"]:
+        for source_age in AGE_GROUPS:  
+            model.add_transition_flow(
+                name=f"tb_mortality_{infectious_status}_age_{source_age}",
+                fractional_rate=Parameter(f"tb_mortality_rate_{infectious_status}"),
+                source=f"clin_{infectious_status}",
+                source_strata={"age": source_age},
+                dest="mtb_naive",
+                dest_strata={"age": AGE_GROUPS[0]}
+            )
+
+    # Death on TB treatment
+    for source_age in AGE_GROUPS:  
+        model.add_transition_flow(
+            name=f"tx_death_age_{source_age}",
+            fractional_rate=Parameter("tx_death_rate"),
+            source="treatment",
+            source_strata={"age": source_age},
+            dest="mtb_naive",
+            dest_strata={"age": AGE_GROUPS[0]}
+        )
+
+    """
+        Will now inject extra births to capture population growth
+    """
     # linear interpolation for missing years
     full_index = pd.Index(range(population_series.index.min(), population_series.index.max() + 1))
     full_population_series = population_series.reindex(full_index).interpolate() # reindex with full index and linear-interpolate
