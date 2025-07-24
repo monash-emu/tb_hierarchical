@@ -17,6 +17,9 @@ __pycache__/
 *.tiff
 *.bmp
 
+# Compressed csv files
+*.csv.gz
+
 # file tracking local settings on my mac
 .DS_Store
 
