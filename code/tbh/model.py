@@ -36,14 +36,15 @@ AGE_GROUPS = ["0", "15"]
 
 def get_tb_model(model_config: dict, tv_params: dict):
 
-    init_pop_size = tv_params['population'].iloc[0]
-    model = get_natural_tb_model(model_config, init_pop_size)
+    agg_pop_data = get_pop_size(model_config)
+
+    model = get_natural_tb_model(model_config, agg_pop_data.iloc[0])
     
     add_detection_and_treatment(model)
 
     stratify_model_by_age(model)
 
-    tb_death_flows = add_births_and_deaths(model, tv_params['population'])
+    tb_death_flows = add_births_and_deaths(model, agg_pop_data)
 
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, tb_death_flows)
 
@@ -185,7 +186,7 @@ def stratify_model_by_age(model: CompartmentalModel):
     model.stratify_with(age_stratification)
 
 
-def add_births_and_deaths(model, population_series):
+def add_births_and_deaths(model, agg_pop_data):
 
     """
         All deaths are modelled as transitions back to mtb_naive compartment, stratum age_0
@@ -203,6 +204,7 @@ def add_births_and_deaths(model, population_series):
                     dest="mtb_naive",
                     dest_strata={"age": AGE_GROUPS[0]}
                 )
+                
     
     # Death caused by TB (Untreated), only applied to clinical TB
     tb_death_flows = []
@@ -236,14 +238,14 @@ def add_births_and_deaths(model, population_series):
         Will now inject extra births to capture population growth
     """
     # linear interpolation for missing years
-    full_index = pd.Index(range(population_series.index.min(), population_series.index.max() + 1))
-    full_population_series = population_series.reindex(full_index).interpolate() # reindex with full index and linear-interpolate
+    full_index = pd.Index(range(agg_pop_data.index.min(), agg_pop_data.index.max() + 1))
+    full_population_series = agg_pop_data.reindex(full_index).interpolate() # reindex with full index and linear-interpolate
     pop_entry = full_population_series.diff().dropna() # calculate delta between successive years
 
-    # add 0 growth before first data point and future growth specified by parameter, then use sigmoisal interpolation for entry rate
+    # add 0 growth before first data point, then use sigmoidal interpolation for entry rate
     entry_rate = stf.get_sigmoidal_interpolation_function(
-        [pop_entry.index.min() - 1] + pop_entry.index.to_list() + [pop_entry.index.max() + 1], 
-        [0.] + pop_entry.to_list() + [Parameter("future_pop_growth")]
+        [pop_entry.index.min() - 1] + pop_entry.index.to_list(), 
+        [0.] + pop_entry.to_list()
     )
 
     model.add_importation_flow( # Add births as additional entry rate, (split imports in case the susceptible compartments are further stratified later)
@@ -251,3 +253,18 @@ def add_births_and_deaths(model, population_series):
     )
 
     return tb_death_flows
+
+
+
+from tbh.paths import DATA_FOLDER
+
+def get_pop_size(model_config):
+
+    pop_data = pd.read_csv(DATA_FOLDER / "un_population.csv")
+    # filter for country and truncate historical pre-analysis years
+    pop_data = pop_data[(pop_data["ISO3_code"] == model_config['iso3']) & (pop_data["Time"] >= model_config['start_time'])]
+
+    # Aggregate accross agegroups for each year
+    agg_pop_data = pop_data.groupby('Time')['PopTotal'].sum().sort_index()
+
+    return agg_pop_data
