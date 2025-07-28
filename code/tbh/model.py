@@ -57,7 +57,7 @@ def get_natural_tb_model(model_config, init_pop_size):
     model = CompartmentalModel(
         times=(model_config["start_time"], model_config["end_time"]),
         compartments=COMPARTMENTS,
-        infectious_compartments=INFECTIOUS_COMPARTMENTS,
+        infectious_compartments=INFECTIOUS_COMPARTMENTS
     )
 
     model.set_initial_population(
@@ -172,7 +172,7 @@ def add_detection_and_treatment(model: CompartmentalModel):
         name="tx_relapse",
         fractional_rate=Parameter("tx_relapse_rate"),
         source="treatment",
-        dest="subclin_noninf"  #FIXME! may want to use different assumptions
+        dest="subclin_noninf"  # may want to use different assumptions in sensitivity analysis
     
     ) 
 

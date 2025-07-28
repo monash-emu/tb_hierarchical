@@ -17,10 +17,25 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         name=f"population", compartments=compartments
     )
 
+    # TB incidence
     model.request_output_for_flow(
         name="raw_incidence",
         flow_name="progression",
     )
+
+    # TBI prevalence
+    model.request_output_for_compartments(
+        name="tbi_prevalence",
+        compartments=["incipient", "contained", "cleared"]  # FIXME, we might want to use different assumptions
+    )
+
+    # TB prevalence
+    model.request_output_for_compartments(
+        name="tb_prevalence",
+        compartments=active_compartments
+    )
+
+    request_per_capita_output(model, "tb_prevalence", per=100000.)
 
     # TB notifications
     for active_comp in active_compartments:
@@ -43,4 +58,19 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     model.request_aggregate_output(
         name="raw_tb_mortality",
         sources=tb_death_flows
+    )
+
+
+def request_per_capita_output(model: CompartmentalModel, output, per=100.):
+
+    if per == 100.:
+        suffix = "perc"
+    elif per == 100000.:
+        suffix = "per100k"
+    else:
+        suffix = f"per{per}"
+
+    model.request_function_output(
+        name=f"{output}_{suffix}", 
+        func= per * DerivedOutput(output) / DerivedOutput("population")
     )
