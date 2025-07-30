@@ -3,7 +3,7 @@ from summer2 import CompartmentalModel
 from summer2.parameters import Parameter, DerivedOutput
 
 
-def request_model_outputs(model: CompartmentalModel, compartments: list, active_compartments: list, tb_death_flows: list):
+def request_model_outputs(model: CompartmentalModel, compartments: list, active_compartments: list, nat_death_flows: list, tb_death_flows: list):
     """
     Define model outputs that can later be requested from model.get_derived_outputs_df()
 
@@ -54,6 +54,19 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     )
 
     # Mortality
+    for nat_death_flow in nat_death_flows:
+        model.request_output_for_flow(
+            name=nat_death_flow,
+            flow_name=nat_death_flow,
+            save_results=False
+        )
+    model.request_aggregate_output(
+        name="nat_mortality",
+        sources=nat_death_flows
+    )
+
+
+
     for tb_death_flow in tb_death_flows:
         model.request_output_for_flow(
             name=tb_death_flow,
@@ -65,6 +78,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         sources=tb_death_flows
     )
     request_per_capita_output(model, "tb_mortality", per=100000.)
+
 
 
 def request_per_capita_output(model: CompartmentalModel, output, per=100.):

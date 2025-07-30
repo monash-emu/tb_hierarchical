@@ -45,9 +45,9 @@ def get_tb_model(model_config: dict, tv_params: dict):
 
     stratify_model_by_age(model)
 
-    tb_death_flows = add_births_and_deaths(model, agg_pop_data, death_rate_funcs)
+    nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, death_rate_funcs)
 
-    request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, tb_death_flows)
+    request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, nat_death_flows, tb_death_flows)
 
     return model
 
@@ -194,19 +194,21 @@ def add_births_and_deaths(model, agg_pop_data, death_rates_funcs):
         If used alone, this approach would maintain constant population size, but extra births will be injected next.
     """
     # All cause (non-TB) mortality
+    nat_death_flows = []
     for compartment in COMPARTMENTS:
         for i_age, source_age in enumerate(AGE_GROUPS):    
             if i_age > 0 or compartment != "mtb_naive":
+                name = f"all_cause_mortality_from_{compartment}_age_{source_age}"
                 model.add_transition_flow(
-                    name=f"all_cause_mortality_from_{compartment}_age_{source_age}",
+                    name=name,
                     fractional_rate=death_rates_funcs[source_age],
                     source=compartment,
                     source_strata={"age": source_age},
                     dest="mtb_naive",
                     dest_strata={"age": AGE_GROUPS[0]}
                 )
+                nat_death_flows.append(name)
                 
-    
     # Death caused by TB (Untreated), only applied to clinical TB
     tb_death_flows = []
     for infectious_status in ["inf", "noninf"]:
@@ -253,8 +255,7 @@ def add_births_and_deaths(model, agg_pop_data, death_rates_funcs):
         "births", entry_rate, dest="mtb_naive", split_imports=True, dest_strata={"age": "0"}
     )
 
-    return tb_death_flows
-
+    return nat_death_flows, tb_death_flows
 
 
 from tbh.paths import DATA_FOLDER
