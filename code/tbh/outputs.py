@@ -17,24 +17,29 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         name=f"population", compartments=compartments
     )
 
+    model.request_output_for_flow("births", "births")
+
     # TB incidence
     model.request_output_for_flow(
-        name="raw_incidence",
+        name="tb_incidence",
         flow_name="progression",
     )
+    request_per_capita_output(model, "tb_incidence", per=100000.)
+
 
     # TBI prevalence
     model.request_output_for_compartments(
         name="tbi_prevalence",
         compartments=["incipient", "contained", "cleared"]  # FIXME, we might want to use different assumptions
     )
+    request_per_capita_output(model, "tbi_prevalence", per=100.)
+
 
     # TB prevalence
     model.request_output_for_compartments(
         name="tb_prevalence",
         compartments=active_compartments
     )
-
     request_per_capita_output(model, "tb_prevalence", per=100000.)
 
     # TB notifications
@@ -56,9 +61,10 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
             save_results=False
         )
     model.request_aggregate_output(
-        name="raw_tb_mortality",
+        name="tb_mortality",
         sources=tb_death_flows
     )
+    request_per_capita_output(model, "tb_mortality", per=100000.)
 
 
 def request_per_capita_output(model: CompartmentalModel, output, per=100.):
