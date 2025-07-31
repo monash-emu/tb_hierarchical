@@ -42,6 +42,18 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     )
     request_per_capita_output(model, "tb_prevalence", per=100000.)
 
+    # Percentage subclinical (compare with Frascella et al. CID 2020 doi: 10.1093/cid/ciaa1402)
+    model.request_output_for_compartments(
+        name="subclin_tb_prevalence",
+        compartments=[c for c in active_compartments if c.startswith('subclin_')],
+        save_results=False
+    )
+    model.request_function_output(
+        name="perc_prev_subclinical", 
+        func= 100. * DerivedOutput("subclin_tb_prevalence") / DerivedOutput("tb_prevalence")
+    )
+
+
     # TB notifications
     for active_comp in active_compartments:
         model.request_output_for_flow(
