@@ -2,12 +2,13 @@ from summer2 import CompartmentalModel, AgeStratification
 from summer2.parameters import Parameter
 from summer2.functions import time as stf
 
+from tbh.demographic_tools import get_pop_size, get_death_rates_by_age
 from tbh.outputs import request_model_outputs
 
 import pandas as pd
 from jax import numpy as jnp
 from pathlib import Path
-from typing import Callable
+
 
 HOME_PATH = Path(__file__).parent.parent.parent
 
@@ -32,7 +33,6 @@ COMPARTMENTS = (
 INFECTIOUS_COMPARTMENTS = ("subclin_inf", "clin_inf")
 ACTIVE_COMPS = ["subclin_noninf", "clin_noninf", "subclin_inf", "clin_inf"]
 
-AGE_GROUPS = ["0", "15", "60"]
 
 def get_tb_model(model_config: dict, tv_params: dict):
 
@@ -43,9 +43,9 @@ def get_tb_model(model_config: dict, tv_params: dict):
     
     add_detection_and_treatment(model)
 
-    stratify_model_by_age(model)
+    stratify_model_by_age(model, model_config["age_groups"])
 
-    nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, death_rate_funcs)
+    nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, death_rate_funcs, model_config["age_groups"])
 
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, nat_death_flows, tb_death_flows)
 
@@ -176,18 +176,18 @@ def add_detection_and_treatment(model: CompartmentalModel):
     
     ) 
 
-def stratify_model_by_age(model: CompartmentalModel):
+def stratify_model_by_age(model: CompartmentalModel, age_groups: list):
 
     age_stratification = AgeStratification(
         name="age",
-        strata=AGE_GROUPS,
+        strata=age_groups,
         compartments=COMPARTMENTS
     )
 
     model.stratify_with(age_stratification)
 
 
-def add_births_and_deaths(model, agg_pop_data, death_rates_funcs):
+def add_births_and_deaths(model, agg_pop_data, death_rates_funcs, age_groups):
 
     """
         All deaths are modelled as transitions back to mtb_naive compartment, stratum age_0
@@ -196,7 +196,7 @@ def add_births_and_deaths(model, agg_pop_data, death_rates_funcs):
     # All cause (non-TB) mortality
     nat_death_flows = []
     for compartment in COMPARTMENTS:
-        for i_age, source_age in enumerate(AGE_GROUPS):    
+        for i_age, source_age in enumerate(age_groups):    
             if i_age > 0 or compartment != "mtb_naive":
                 name = f"all_cause_mortality_from_{compartment}_age_{source_age}"
                 model.add_transition_flow(
@@ -205,14 +205,14 @@ def add_births_and_deaths(model, agg_pop_data, death_rates_funcs):
                     source=compartment,
                     source_strata={"age": source_age},
                     dest="mtb_naive",
-                    dest_strata={"age": AGE_GROUPS[0]}
+                    dest_strata={"age": age_groups[0]}
                 )
                 nat_death_flows.append(name)
                 
     # Death caused by TB (Untreated), only applied to clinical TB
     tb_death_flows = []
     for infectious_status in ["inf", "noninf"]:
-        for source_age in AGE_GROUPS:  
+        for source_age in age_groups:  
             flow_name = f"tb_mortality_{infectious_status}_age_{source_age}"
             model.add_transition_flow(
                 name=flow_name,
@@ -220,12 +220,12 @@ def add_births_and_deaths(model, agg_pop_data, death_rates_funcs):
                 source=f"clin_{infectious_status}",
                 source_strata={"age": source_age},
                 dest="mtb_naive",
-                dest_strata={"age": AGE_GROUPS[0]}
+                dest_strata={"age": age_groups[0]}
             )
             tb_death_flows.append(flow_name)
 
     # Death on TB treatment
-    for source_age in AGE_GROUPS:  
+    for source_age in age_groups:  
         flow_name = f"tx_death_age_{source_age}"
         model.add_transition_flow(
             name=flow_name,
@@ -233,7 +233,7 @@ def add_births_and_deaths(model, agg_pop_data, death_rates_funcs):
             source="treatment",
             source_strata={"age": source_age},
             dest="mtb_naive",
-            dest_strata={"age": AGE_GROUPS[0]}
+            dest_strata={"age": age_groups[0]}
         )
         tb_death_flows.append(flow_name)
 
@@ -256,77 +256,4 @@ def add_births_and_deaths(model, agg_pop_data, death_rates_funcs):
     )
 
     return nat_death_flows, tb_death_flows
-
-
-from tbh.paths import DATA_FOLDER
-
-def get_pop_size(model_config):
-
-    pop_data = pd.read_csv(DATA_FOLDER / "un_population.csv")
-    # filter for country and truncate historical pre-analysis years
-    pop_data = pop_data[(pop_data["ISO3_code"] == model_config['iso3']) & (pop_data["Time"] >= model_config['start_time'])]
-
-    # Aggregate accross agegroups for each year
-    agg_pop_data = 1000. * pop_data.groupby('Time')['PopTotal'].sum().sort_index().cummax()  # cummax to avoid transcient population decline
-
-    return agg_pop_data
-
-
-def get_death_rates_by_age(model_config):
-    """
-    Compute death rates using AgeGrpStart as group labels, aggregated over defined bins.
-    
-    Args:
-        model_config (dict): must contain 'iso3', 'start_time'
-        age_bins (list of int): list of age group starting points (e.g., [0, 15, 65])
-    
-    Returns:
-        dict: {AgeGrpStart: pd.Series of death rates indexed by year}
-    """
-    age_bins = [int(a) for a in AGE_GROUPS]
-
-    pop_data = pd.read_csv(DATA_FOLDER / "un_population.csv")
-    mort_data = pd.read_csv(DATA_FOLDER / "un_mortality.csv")
-
-    # Filter by country and start year
-    pop_data = pop_data[(pop_data["ISO3_code"] == model_config["iso3"]) & 
-                        (pop_data["Time"] >= model_config["start_time"])]
-    mort_data = mort_data[(mort_data["ISO3_code"] == model_config["iso3"]) & 
-                          (mort_data["Time"] >= model_config["start_time"])]
-
-    # Define bin edges and labels
-    bin_edges = age_bins + [200]  # use 200 as an upper cap beyond realistic ages
-    bin_labels = age_bins  # label each bin by its lower bound
-
-    pop_data["age_group"] = pd.cut(pop_data["AgeGrpStart"], bins=bin_edges, labels=bin_labels, right=False)
-    mort_data["age_group"] = pd.cut(mort_data["AgeGrpStart"], bins=bin_edges, labels=bin_labels, right=False)
-
-    # Drop rows outside specified bins (age_group == NaN)
-    pop_data = pop_data.dropna(subset=["age_group"])
-    mort_data = mort_data.dropna(subset=["age_group"])
-
-    # Convert category labels back to integers
-    pop_data["age_group"] = pop_data["age_group"].astype(int)
-    mort_data["age_group"] = mort_data["age_group"].astype(int)
-
-    # Aggregate by year and age group
-    pop_summary = pop_data.groupby(["Time", "age_group"])["PopTotal"].sum().reset_index()
-    mort_summary = mort_data.groupby(["Time", "age_group"])["DeathTotal"].sum().reset_index()
-
-    merged = pd.merge(mort_summary, pop_summary, on=["Time", "age_group"])
-    merged["death_rate"] = merged["DeathTotal"] / merged["PopTotal"]
-
-    # dictionary of series
-    death_rate_series = {
-        str(age_group): group.set_index("Time")["death_rate"]
-        for age_group, group in merged.groupby("age_group")
-    }
-
-    # convert to functions
-    death_rate_funcs = {
-        age_group: stf.get_sigmoidal_interpolation_function(series.index, series)
-        for age_group, series in death_rate_series.items()
-    }
-
-    return death_rate_funcs
 

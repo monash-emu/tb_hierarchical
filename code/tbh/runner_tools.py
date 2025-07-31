@@ -20,7 +20,8 @@ DEFAULT_MODEL_CONFIG = {
     "start_time": 1850,
     "end_time": 2050,
     "seed": 100,
-    "iso3": "KIR"
+    "iso3": "KIR",
+    "age_groups": ["0", "15", "75"],
 }
 
 DEFAULT_ANALYSIS_CONFIG = {
