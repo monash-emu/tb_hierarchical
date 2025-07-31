@@ -58,7 +58,8 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     for active_comp in active_compartments:
         model.request_output_for_flow(
             name=f"notifications_{active_comp}",
-            flow_name=f"tb_detection_{active_comp}"
+            flow_name=f"tb_detection_{active_comp}",
+            save_results=False
         )
     model.request_aggregate_output(
         name="notifications",
@@ -76,8 +77,6 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         name="nat_mortality",
         sources=nat_death_flows
     )
-
-
 
     for tb_death_flow in tb_death_flows:
         model.request_output_for_flow(
