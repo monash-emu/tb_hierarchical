@@ -178,13 +178,16 @@ def add_detection_and_treatment(model: CompartmentalModel):
 
 def stratify_model_by_age(model: CompartmentalModel, age_groups: list):
 
-    age_stratification = AgeStratification(
+    age_strat = AgeStratification(
         name="age",
         strata=age_groups,
         compartments=COMPARTMENTS
     )
 
-    model.stratify_with(age_stratification)
+    # Adjust infectiousness of clinical vs nonclinical compartments. Not age-related but summer2 requires this to be done through stratification.
+    age_strat.add_infectiousness_adjustments("subclin_inf", {strata: Parameter("rel_infectiousness_subclin") for strata in age_groups})
+
+    model.stratify_with(age_strat)
 
 
 def add_births_and_deaths(model, agg_pop_data, death_rates_funcs, age_groups):
