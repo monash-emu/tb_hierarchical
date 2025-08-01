@@ -8,6 +8,7 @@ from estival.wrappers import pymc as epm
 from estival.sampling import tools as esamp
 from estival.model import BayesianCompartmentalModel
 from estival import priors as esp
+from estival import targets as est
 
 from .model import get_tb_model
 
@@ -27,6 +28,7 @@ DEFAULT_MODEL_CONFIG = {
 DEFAULT_ANALYSIS_CONFIG = {
     # Metropolis config
     'chains': 4,
+    'cores': 4.,
     'tune': 5000,
     'draws': 20000,
 
@@ -38,6 +40,7 @@ DEFAULT_ANALYSIS_CONFIG = {
 TEST_ANALYSIS_CONFIG = {
     # Metropolis config
     'chains': 4,
+    'cores': 1,
     'tune': 50,
     'draws': 200,
 
@@ -45,6 +48,25 @@ TEST_ANALYSIS_CONFIG = {
     'burn_in': 50,
     'full_runs_samples': 100
 }
+
+# !FIXME this code doesn't belong here
+targets = [
+    est.NormalTarget(
+        name='tb_prevalence_per100k', 
+        data=pd.Series(data=[600,], index=[2020]), 
+        stdev=100.
+    ),
+    est.NormalTarget(
+        name='tbi_prevalence_perc', 
+        data=pd.Series(data=[40,], index=[2020]), 
+        stdev=5.
+    ),
+    est.NormalTarget(
+        name='perc_prev_subclinical', 
+        data=pd.Series(data=[50], index=[2020]), 
+        stdev=5.
+    ),
+]
 
 
 def get_prior(param_name, distribution, distri_param1, distri_param2=None):
@@ -159,7 +181,7 @@ def run_full_runs(
     return full_runs, unc_df
 
 
-def run_full_analysis(params, model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None):
+def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None):
     """
     Run full analysis including Metropolis-sampling-based calibration, full runs, quantiles computation and plotting.
 
@@ -171,14 +193,15 @@ def run_full_analysis(params, model_config=DEFAULT_MODEL_CONFIG, analysis_config
 
     """
     a_c = analysis_config
-
     output_folder.mkdir(parents=True, exist_ok=True) 
+    params, priors, tv_params = get_parameters_and_priors()
 
-    bcm = None
+    model = get_tb_model(model_config, tv_params)
+    bcm = BayesianCompartmentalModel(model, params, priors, targets)
 
     print(">>> Run Metropolis sampling")
     idata = run_metropolis_calibration(
-        bcm, draws=a_c['draws'], tune=a_c['tune'], cores=a_c['chains'], chains=a_c['chains']
+        bcm, draws=a_c['draws'], tune=a_c['tune'], cores=a_c['cores'], chains=a_c['chains']
     )
     az.to_netcdf(idata, output_folder / "idata.nc")
 

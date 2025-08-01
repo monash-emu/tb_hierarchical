@@ -20,6 +20,9 @@ __pycache__/
 # Compressed csv files
 *.csv.gz
 
+# Sampling outputs netcdf files
+*.nc
+
 # file tracking local settings on my mac
 .DS_Store
 
