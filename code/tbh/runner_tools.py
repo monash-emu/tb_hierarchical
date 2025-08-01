@@ -9,7 +9,7 @@ from estival.sampling import tools as esamp
 from estival.model import BayesianCompartmentalModel
 
 from .model import get_tb_model
-from .calibration import get_prior, get_targets
+from .calibration import get_prior
 
 import tbh.plotting as pl
 from tbh.paths import OUTPUT_PARENT_FOLDER, DATA_FOLDER
