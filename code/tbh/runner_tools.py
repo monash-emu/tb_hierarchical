@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 from estival.wrappers import pymc as epm
 from estival.sampling import tools as esamp
 from estival.model import BayesianCompartmentalModel
+from estival import priors as esp
 
 from .model import get_tb_model
-from .calibration import get_prior
 
 import tbh.plotting as pl
 from tbh.paths import OUTPUT_PARENT_FOLDER, DATA_FOLDER
@@ -45,6 +45,14 @@ TEST_ANALYSIS_CONFIG = {
     'burn_in': 50,
     'full_runs_samples': 100
 }
+
+
+def get_prior(param_name, distribution, distri_param1, distri_param2=None):
+    
+    if distribution == "uniform":
+        return esp.UniformPrior(param_name, [distri_param1, distri_param2])
+    else:
+        raise ValueError(f"{distribution} is not currently a supported distribution")
 
 
 def get_parameters_and_priors(params_file_path=DATA_FOLDER / "parameters.xlsx"):
