@@ -42,12 +42,12 @@ TEST_ANALYSIS_CONFIG = {
     # Metropolis config
     'chains': 4,
     'cores': 4,
-    'tune': 50,
-    'draws': 200,
+    'tune': 500,
+    'draws': 2000,
 
     # Full runs config
-    'burn_in': 50,
-    'full_runs_samples': 100
+    'burn_in': 500,
+    'full_runs_samples': 1000
 }
 
 # !FIXME this code doesn't belong here
@@ -207,7 +207,7 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
         bcm, draws=a_c['draws'], tune=a_c['tune'], cores=a_c['cores'], chains=a_c['chains']
     )
     mcmc_time = time() - t0
-    times["mcmc_time"] = f"{mcmc_time} sec (i.e. {round(mcmc_time / 60)} min)"
+    times["mcmc_time"] = f"{round(mcmc_time)} sec (i.e. {round(mcmc_time / 60)} min) --> {round(3600 * (a_c['tune'] + a_c['draws'])/ mcmc_time)} runs per hour"
     az.to_netcdf(idata, output_folder / "idata.nc")
 
     pl.plot_traces(idata, a_c['burn_in'], output_folder)
@@ -217,7 +217,7 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
     t0 = time()
     full_runs, unc_df = run_full_runs(bcm, idata, a_c['burn_in'], a_c['full_runs_samples'])
     fullruns_time = time() - t0
-    times["full_runs_time"] = f"{fullruns_time} sec (i.e. {round(fullruns_time / 60)} min)"
+    times["full_runs_time"] = f"{round(fullruns_time)} sec (i.e. {round(fullruns_time / 60)} min) --> {round(3600 * (a_c['full_runs_samples'])/ fullruns_time)} runs per hour""
     
     selected_outputs = bcm.targets.keys()
 
