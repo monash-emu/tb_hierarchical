@@ -184,8 +184,15 @@ def stratify_model_by_age(model: CompartmentalModel, age_groups: list):
         compartments=COMPARTMENTS
     )
 
+    # Adjust children's susceptibility to infection to capture BCG effect
+    assert "15" in age_groups, "We need 15 years old as an age break for compatibility with BCG effect"
+    age_strat.set_flow_adjustments(
+        flow_name="infection_from_mtb_naive",
+        adjustments={age: (Parameter("rel_susceptibility_children") if int(age) < 15 else 1.) for age in age_groups}
+    )
+
     # Adjust infectiousness of clinical vs nonclinical compartments. Not age-related but summer2 requires this to be done through stratification.
-    age_strat.add_infectiousness_adjustments("subclin_inf", {strata: Parameter("rel_infectiousness_subclin") for strata in age_groups})
+    age_strat.add_infectiousness_adjustments("subclin_inf", {age: Parameter("rel_infectiousness_subclin") for age in age_groups})
 
     model.stratify_with(age_strat)
 
