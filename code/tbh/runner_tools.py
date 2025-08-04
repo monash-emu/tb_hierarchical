@@ -2,7 +2,8 @@ import pandas as pd
 import pymc as pm
 import arviz as az
 import matplotlib.pyplot as plt
-
+from time import time
+import yaml
 
 from estival.wrappers import pymc as epm
 from estival.sampling import tools as esamp
@@ -199,17 +200,25 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
     bcm = BayesianCompartmentalModel(model, params, priors, targets)
 
     print(">>> Run Metropolis sampling")
+    
+    times = {}
+    t0 = time()
     idata = run_metropolis_calibration(
         bcm, draws=a_c['draws'], tune=a_c['tune'], cores=a_c['cores'], chains=a_c['chains']
     )
+    mcmc_time = time() - t0
+    times["mcmc_time"] = f"{mcmc_time} sec (i.e. {round(mcmc_time / 60)} min)"
     az.to_netcdf(idata, output_folder / "idata.nc")
 
     pl.plot_traces(idata, a_c['burn_in'], output_folder)
     pl.plot_post_prior_comparison(idata, a_c['burn_in'], list(bcm.priors.keys()), list(bcm.priors.values()), n_col=4, output_folder_path=output_folder)
 
     print(">>> Run full runs")
+    t0 = time()
     full_runs, unc_df = run_full_runs(bcm, idata, a_c['burn_in'], a_c['full_runs_samples'])
-
+    fullruns_time = time() - t0
+    times["full_runs_time"] = f"{fullruns_time} sec (i.e. {round(fullruns_time / 60)} min)"
+    
     selected_outputs = bcm.targets.keys()
 
     for output in selected_outputs:
@@ -218,3 +227,7 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
         if output_folder:
             plt.savefig(output_folder / f"quantiles_{output}.jpg", facecolor="white", bbox_inches='tight')
             plt.close()
+    
+    if output_folder:
+        with open(output_folder / 'timings.yaml', 'w') as file:
+            yaml.dump_all([times, model_config, analysis_config], file, default_flow_style=False)
