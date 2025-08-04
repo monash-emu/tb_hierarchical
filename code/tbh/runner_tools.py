@@ -40,7 +40,7 @@ DEFAULT_ANALYSIS_CONFIG = {
 TEST_ANALYSIS_CONFIG = {
     # Metropolis config
     'chains': 4,
-    'cores': 1,
+    'cores': 4,
     'tune': 50,
     'draws': 200,
 
@@ -108,7 +108,6 @@ def get_parameters_and_priors(params_file_path=DATA_FOLDER / "parameters.xlsx"):
     tv_params = {col: tv_df[col].dropna() for col in tv_df.columns}
 
     return cst_params, priors, tv_params
-
 
 
 def create_output_dir(array_job_id, task_id, analysis_name):

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=multi_config
+#SBATCH --job-name=test_full_analysis
 #SBATCH --account=sh30
 #SBATCH --time=01:00:00
 #SBATCH --ntasks=1
@@ -13,7 +13,7 @@
 #SBATCH --mail-type=END
 #SBATCH --mail-type=FAIL
 
-#SBATCH --array=1-2
+#SBATCH --array=1
 
 export PYTENSOR_FLAGS=compiledir=$HOME/.pytensor/$SLURM_JOB_ID
 
