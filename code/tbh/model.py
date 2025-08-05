@@ -161,9 +161,9 @@ def add_detection_and_treatment(model: CompartmentalModel):
             source=active_comp,
             dest="treatment"
         )
+    # Track detection rates so they can later be exported as outputs
     model.add_computed_value_func("detection_rate_clin", tv_detection_rate)
     model.add_computed_value_func("detection_rate_subclin", Parameter("rel_detection_subclin") * tv_detection_rate)
-
 
 
     # TB treatment outcomes

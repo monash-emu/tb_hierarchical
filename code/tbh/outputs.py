@@ -53,6 +53,16 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         func= 100. * DerivedOutput("subclin_tb_prevalence") / DerivedOutput("tb_prevalence")
     )
 
+    # Percentage infectious prevalence
+    model.request_output_for_compartments(
+        name="infectious_tb_prevalence",
+        compartments=[c for c in active_compartments if c.endswith('_inf')],
+        save_results=False
+    )
+    model.request_function_output(
+        name="perc_prev_infectious", 
+        func= 100. * DerivedOutput("infectious_tb_prevalence") / DerivedOutput("tb_prevalence")
+    )
 
     # TB notifications
     for active_comp in active_compartments:

@@ -67,6 +67,11 @@ targets = [
         data=pd.Series(data=[50], index=[2020]), 
         stdev=5.
     ),
+    est.NormalTarget(
+        name='perc_prev_infectious', 
+        data=pd.Series(data=[50], index=[2020]), 
+        stdev=5.
+    ),
 ]
 
 
