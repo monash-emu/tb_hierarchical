@@ -17,6 +17,9 @@ __pycache__/
 *.tiff
 *.bmp
 
+# temporary lock files (e.g. open excel doc)
+~$*
+
 # Compressed csv files
 *.csv.gz
 

@@ -151,11 +151,12 @@ def get_natural_tb_model(model_config, init_pop_size):
 
 def add_detection_and_treatment(model: CompartmentalModel):
 
-    # Active disease detection 
+    # Active disease detection, adjusted based on clinical status
     for active_comp in ACTIVE_COMPS:
+        multiplier = 1. if active_comp.startswith("subclin_") else Parameter("rel_detection_clinical") 
         model.add_transition_flow(
             name=f"tb_detection_{active_comp}",
-            fractional_rate=Parameter("tb_detection_rate"),  #FIXME! will differ by active state
+            fractional_rate=multiplier * Parameter("tb_detection_rate"),
             source=active_comp,
             dest="treatment"
         )
