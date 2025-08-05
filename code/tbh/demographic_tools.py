@@ -1,5 +1,8 @@
 import pandas as pd
+from jax import numpy as jnp
+from jax import lax
 from summer2.functions import time as stf
+import numpy as np
 
 from tbh.paths import DATA_FOLDER
 
@@ -73,3 +76,48 @@ def get_death_rates_by_age(model_config):
     }
 
     return death_rate_funcs
+
+
+def gen_mixing_matrix_func(age_groups):
+    """
+        Returns a JAX-compatible function to build a symmetric age-structured mixing matrix
+        for a given set of age group lower bounds.
+
+        Parameters
+        ----------
+        age_groups : list of str
+            List of lower bounds of age intervals, e.g. ["0", "5", "15", "50"].
+
+        Returns
+        -------
+        function
+            A function that takes two parameters (mixing_factor_cc and mixing_factor_ca) and returns
+            a (n_groups x n_groups) mixing matrix as a JAX array.
+    """
+    age_groups = np.array(age_groups, dtype=int)
+    n_groups = len(age_groups)
+ 
+    # Children: age < 15
+    n_child = (age_groups < 15).sum()  # number of child groups
+ 
+    def build_mixing_matrix(mixing_factor_cc, mixing_factor_ca):
+        """
+            Constructs a symmetric mixing matrix between age groups using the provided mixing factors.
+            Children are defined as age groups with lower bound < 15. Adults are all others.
+
+            Parameters
+            ----------
+            mixing_factor_cc : float, Relative mixing rate between children (child-child interactions), ref: adult-adult interactions.
+            mixing_factor_ca : float, Relative mixing rate between children and adults (child-adult interactions), ref: adult-adult interactions.
+
+            Returns
+            -------
+            matrix : jax.Array (n_groups x n_groups) symmetric matrix of mixing rates.
+        """
+     
+        M = jnp.full((n_groups, n_groups), mixing_factor_ca)
+        M = M.at[:n_child,:n_child].set(mixing_factor_cc)
+        M = M.at[n_child:, n_child:].set(1.0)
+        return M
+ 
+    return build_mixing_matrix

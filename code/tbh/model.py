@@ -1,12 +1,11 @@
 from summer2 import CompartmentalModel, AgeStratification
-from summer2.parameters import Parameter
+from summer2.parameters import Parameter, Function
 from summer2.functions import time as stf
 
-from tbh.demographic_tools import get_pop_size, get_death_rates_by_age
+from tbh.demographic_tools import get_pop_size, get_death_rates_by_age, gen_mixing_matrix_func
 from tbh.outputs import request_model_outputs
 
 import pandas as pd
-from jax import numpy as jnp
 from pathlib import Path
 
 
@@ -72,7 +71,7 @@ def get_natural_tb_model(model_config, init_pop_size):
         rel_susceptibility = Parameter(f"rel_sus_{susceptible_comp}")
         model.add_infection_frequency_flow(
             name=f"infection_from_{susceptible_comp}",
-            contact_rate=Parameter("raw_transmission_rate") * rel_susceptibility,  # will be adjusted later by study
+            contact_rate=Parameter("raw_transmission_rate") * rel_susceptibility,
             source=susceptible_comp,
             dest="incipient",
         )
@@ -177,7 +176,18 @@ def add_detection_and_treatment(model: CompartmentalModel):
     ) 
 
 def stratify_model_by_age(model: CompartmentalModel, age_groups: list):
+    """
+        Applies age stratification to the model with specified age groups.
 
+        Adjusts susceptibility for children (<15) to capture BCG effects, sets infectiousness 
+        of subclinical cases, and applies an age-based mixing matrix.
+
+        Parameters
+        ----------
+        model : CompartmentalModel. The model to be stratified by age.
+        age_groups : list of str. List of lower bounds for age strata (must include "15").
+    """
+    # Create a stratification object
     age_strat = AgeStratification(
         name="age",
         strata=age_groups,
@@ -194,6 +204,12 @@ def stratify_model_by_age(model: CompartmentalModel, age_groups: list):
     # Adjust infectiousness of clinical vs nonclinical compartments. Not age-related but summer2 requires this to be done through stratification.
     age_strat.add_infectiousness_adjustments("subclin_inf", {age: Parameter("rel_infectiousness_subclin") for age in age_groups})
 
+    # Age-mixing matrix
+    build_mixing_matrix = gen_mixing_matrix_func(age_groups)  # create a function for a given set of age breakpoints
+    age_mixing_matrix = Function(build_mixing_matrix, [Parameter("mixing_factor_cc"), Parameter("mixing_factor_ca")]) # the function generating the matrix
+    age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
+
+    # Apply stratification
     model.stratify_with(age_strat)
 
 
