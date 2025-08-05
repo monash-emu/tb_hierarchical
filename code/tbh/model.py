@@ -152,14 +152,19 @@ def get_natural_tb_model(model_config, init_pop_size):
 def add_detection_and_treatment(model: CompartmentalModel):
 
     # Active disease detection, adjusted based on clinical status
+    tv_detection_rate = stf.get_sigmoidal_interpolation_function([1950., 2020], [0., Parameter("recent_detection_rate")])
     for active_comp in ACTIVE_COMPS:
-        multiplier = 1. if active_comp.startswith("subclin_") else Parameter("rel_detection_clinical") 
+        multiplier = Parameter("rel_detection_subclin") if active_comp.startswith("subclin_") else 1.
         model.add_transition_flow(
             name=f"tb_detection_{active_comp}",
-            fractional_rate=multiplier * Parameter("tb_detection_rate"),
+            fractional_rate=multiplier * tv_detection_rate,
             source=active_comp,
             dest="treatment"
         )
+    model.add_computed_value_func("detection_rate_clin", tv_detection_rate)
+    model.add_computed_value_func("detection_rate_subclin", Parameter("rel_detection_subclin") * tv_detection_rate)
+
+
 
     # TB treatment outcomes
     model.add_transition_flow(

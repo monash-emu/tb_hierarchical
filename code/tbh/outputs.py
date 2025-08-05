@@ -90,6 +90,10 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     )
     request_per_capita_output(model, "tb_mortality", per=100000.)
 
+    # Track computed values 
+    computed_values_to_save = ['detection_rate_clin', 'detection_rate_subclin']
+    for comp_val in computed_values_to_save:
+        model.request_computed_value_output(comp_val)
 
 
 def request_per_capita_output(model: CompartmentalModel, output, per=100.):
