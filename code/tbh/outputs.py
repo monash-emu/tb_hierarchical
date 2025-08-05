@@ -75,6 +75,11 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         name="notifications",
         sources=[f"notifications_{active_comp}" for active_comp in active_compartments]
     )
+    model.request_function_output(
+        name="perc_notifications_clin",
+        func= 100. * (DerivedOutput("notifications_clin_noninf") + DerivedOutput("notifications_clin_inf")) / DerivedOutput("notifications")
+    )
+
 
     # Mortality
     for nat_death_flow in nat_death_flows:

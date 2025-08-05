@@ -20,7 +20,7 @@ if __name__ == "__main__":
     output_dir = rt.create_output_dir(array_job_id, task_id, ANALYSIS_NAME)
 
     # Specify and run analysis
-    analysis_config = rt.TEST_ANALYSIS_CONFIG
+    analysis_config = rt.DEFAULT_ANALYSIS_CONFIG
     print(f"Start analysis for array_job {array_job_id}, task {task_id}, {ANALYSIS_NAME}")
     rt.run_full_analysis(analysis_config=analysis_config, output_folder=output_dir)
     print(f"Finished in {time() - start_time} seconds", flush=True)
