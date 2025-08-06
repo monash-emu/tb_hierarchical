@@ -11,8 +11,17 @@
 
 #SBATCH --array=1
 
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $@"
+}
+log "Starting job"
+
 export PYTENSOR_FLAGS=compiledir=$HOME/.pytensor/$SLURM_JOB_ID
 
 cd /projects/sh30/users/rragonnet/tb_hierarchical
 
+log "Running Python script"
+
 pixi run python remote_cluster/scripts/massiverun.py $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
+
+log "Job completed"
