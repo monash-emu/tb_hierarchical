@@ -68,7 +68,7 @@ def get_natural_tb_model(model_config, init_pop_size):
 
     # Transmission flows (including reinfection)
     for susceptible_comp in ["mtb_naive", "contained", "cleared","recovered"]:
-        rel_susceptibility = Parameter(f"rel_sus_{susceptible_comp}")
+        rel_susceptibility = 1. if susceptible_comp == "mtb_naive" else Parameter(f"rel_sus_{susceptible_comp}")
         model.add_infection_frequency_flow(
             name=f"infection_from_{susceptible_comp}",
             contact_rate=Parameter("raw_transmission_rate") * rel_susceptibility,
@@ -204,7 +204,7 @@ def stratify_model_by_age(model: CompartmentalModel, age_groups: list):
     assert "15" in age_groups, "We need 15 years old as an age break for compatibility with BCG effect"
     age_strat.set_flow_adjustments(
         flow_name="infection_from_mtb_naive",
-        adjustments={age: (Parameter("rel_susceptibility_children") if int(age) < 15 else 1.) for age in age_groups}
+        adjustments={age: (Parameter("rel_sus_children") if int(age) < 15 else 1.) for age in age_groups}
     )
 
     # Adjust infectiousness of clinical vs nonclinical compartments. Not age-related but summer2 requires this to be done through stratification.
