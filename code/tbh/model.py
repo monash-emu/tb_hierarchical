@@ -219,8 +219,6 @@ def stratify_model_by_age(
         adjustments={age: (Parameter("rel_sus_children") if int(age) < 15 else 1.) for age in age_groups}
     )
 
-    # FIXME! add age-specific infectiousness
-
     # Treatment outcomes are age-specific due to natural mortality being age-specific
     age_strat.set_flow_adjustments(
         "tx_relapse", 
@@ -229,6 +227,13 @@ def stratify_model_by_age(
 
     # Adjust infectiousness of clinical vs nonclinical compartments. Not age-related but summer2 requires this to be done through stratification.
     age_strat.add_infectiousness_adjustments("subclin_inf", {age: Parameter("rel_infectiousness_subclin") for age in age_groups})
+
+    # Prevent children from progressing towards the infectious forms of TB
+    for clinical_status in ["clin", "subclin"]:
+        age_strat.set_flow_adjustments(
+            f"infectiousnnes_gain_{clinical_status}", 
+            {age: (0. if int(age) < 15 else 1.) for age in age_groups}
+        )
 
     # Apply stratification
     model.stratify_with(age_strat)
