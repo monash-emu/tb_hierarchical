@@ -1,4 +1,8 @@
 from jax import numpy as jnp
+import numpy as np
+import pandas as pd
+from pathlib import Path
+
 from summer2 import CompartmentalModel, AgeStratification, Multiply
 from summer2.parameters import Parameter, Function
 from summer2.functions import time as stf
@@ -6,8 +10,6 @@ from summer2.functions import time as stf
 from tbh.demographic_tools import get_pop_size, get_death_rates_by_age, gen_mixing_matrix_func
 from tbh.outputs import request_model_outputs
 
-import pandas as pd
-from pathlib import Path
 
 
 HOME_PATH = Path(__file__).parent.parent.parent
@@ -36,15 +38,16 @@ ACTIVE_COMPS = ["subclin_noninf", "clin_noninf", "subclin_inf", "clin_inf"]
 
 def get_tb_model(model_config: dict, tv_params: dict):
 
-    # Preparing population, mortality and treatment outcome processes 
+    # Preparing population, mortality, treatment outcome and screening processes 
     agg_pop_data = get_pop_size(model_config)
     bckd_death_funcs = get_death_rates_by_age(model_config)
     time_variant_tsr = stf.get_linear_interpolation_function(tv_params['tx_success_pct'].index.to_list(), (tv_params['tx_success_pct'] / 100.).to_list())
     neg_tx_outcome_funcs = get_neg_tx_outcome_funcs(bckd_death_funcs, time_variant_tsr)
+    screening_funcs = get_screening_funcs(tv_params)
 
     # Model building
     model = get_natural_tb_model(model_config, agg_pop_data.iloc[0])
-    add_detection_and_treatment(model, time_variant_tsr)
+    add_detection_and_treatment(model, time_variant_tsr, screening_funcs)
     stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs)
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
@@ -151,9 +154,9 @@ def get_natural_tb_model(model_config, init_pop_size):
     return model
 
 
-def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr):
+def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, screening_funcs):
 
-    # Active disease detection, adjusted based on clinical status
+    # Active disease detection through passive case finding, adjusted based on clinical status
     tv_detection_rate = stf.get_sigmoidal_interpolation_function([1950., 2020], [0., Parameter("recent_detection_rate")])
     for active_comp in ACTIVE_COMPS:
         multiplier = Parameter("rel_detection_subclin") if active_comp.startswith("subclin_") else 1.
@@ -164,9 +167,29 @@ def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr):
             dest="treatment"
         )
     # Track detection rates so they can later be exported as outputs
-    model.add_computed_value_func("detection_rate_clin", tv_detection_rate)
-    model.add_computed_value_func("detection_rate_subclin", Parameter("rel_detection_subclin") * tv_detection_rate)
+    model.add_computed_value_func("passive_detection_rate_clin", tv_detection_rate)
+    model.add_computed_value_func("passive_detection_rate_subclin", Parameter("rel_detection_subclin") * tv_detection_rate)
 
+
+    # Active disease detection through ACF
+    if "xpert_scr" in screening_funcs:
+        for active_comp in ACTIVE_COMPS:
+            model.add_transition_flow(
+                name=f"xpert_scr_detection_{active_comp}",
+                fractional_rate=screening_funcs["xpert_scr"],
+                source=active_comp,
+                dest="treatment"
+            )
+
+    # TPT
+    if "tst_scr" in screening_funcs:
+        for tbi_comp in ["incipient", "contained"]:
+            model.add_transition_flow(
+                name=f"xpert_scr_detection_{tbi_comp}",
+                fractional_rate=screening_funcs["tst_scr"],
+                source=tbi_comp,
+                dest="cleared"
+            )
 
     # TB treatment outcomes (only recovery and relapse here. Tx deaths implemented within the "add_births_and_deaths" function)
     model.add_transition_flow(
@@ -351,4 +374,24 @@ def get_neg_tx_outcome_funcs(bckd_death_funcs, time_variant_tsr):
             [bckd_death_func, time_variant_tsr, Parameter('tx_duration'), Parameter("pct_neg_tx_death")]
         ) for age, bckd_death_func in bckd_death_funcs.items()
     }
+    
+
+def get_screening_funcs(tv_params):
+
+    scr_funcs = {}
+    potential_scr_programs = ["tst_scr", "xpert_scr"]
+    implemented_scr_programs = [program for program in potential_scr_programs if f"pct_{program}" in tv_params]
+    for program in implemented_scr_programs:
+        pct_series = tv_params[f"pct_{program}"]        
+        # convert coverage % to rate
+        rate_series = -np.log(1. - pct_series / 100.)    
+
+        # complete the series with zeroes for missing years, and leading and ending zeroes
+        full_index = pd.Index(range(rate_series.index.min() - 1, rate_series.index.max() + 2))
+        expanded_series = rate_series.reindex(full_index, fill_value=0.)
+                
+        # Linear interpolation
+        scr_funcs[program] = stf.get_linear_interpolation_function(expanded_series.index, expanded_series)
+
+    return scr_funcs
     
