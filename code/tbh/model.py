@@ -1,4 +1,5 @@
-from summer2 import CompartmentalModel, AgeStratification
+from jax import numpy as jnp
+from summer2 import CompartmentalModel, AgeStratification, Multiply
 from summer2.parameters import Parameter, Function
 from summer2.functions import time as stf
 
@@ -35,16 +36,17 @@ ACTIVE_COMPS = ["subclin_noninf", "clin_noninf", "subclin_inf", "clin_inf"]
 
 def get_tb_model(model_config: dict, tv_params: dict):
 
+    # Preparing population, mortality and treatment outcome processes 
     agg_pop_data = get_pop_size(model_config)
-    death_rate_funcs = get_death_rates_by_age(model_config)
+    bckd_death_funcs = get_death_rates_by_age(model_config)
+    time_variant_tsr = stf.get_linear_interpolation_function(tv_params['tx_success_pct'].index.to_list(), (tv_params['tx_success_pct'] / 100.).to_list())
+    neg_tx_outcome_funcs = get_neg_tx_outcome_funcs(bckd_death_funcs, time_variant_tsr)
 
+    # Model building
     model = get_natural_tb_model(model_config, agg_pop_data.iloc[0])
-    
-    add_detection_and_treatment(model)
-
-    stratify_model_by_age(model, model_config["age_groups"])
-
-    nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, death_rate_funcs, model_config["age_groups"])
+    add_detection_and_treatment(model, time_variant_tsr)
+    stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs)
+    nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, nat_death_flows, tb_death_flows)
 
@@ -149,7 +151,7 @@ def get_natural_tb_model(model_config, init_pop_size):
     return model
 
 
-def add_detection_and_treatment(model: CompartmentalModel):
+def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr):
 
     # Active disease detection, adjusted based on clinical status
     tv_detection_rate = stf.get_sigmoidal_interpolation_function([1950., 2020], [0., Parameter("recent_detection_rate")])
@@ -166,22 +168,25 @@ def add_detection_and_treatment(model: CompartmentalModel):
     model.add_computed_value_func("detection_rate_subclin", Parameter("rel_detection_subclin") * tv_detection_rate)
 
 
-    # TB treatment outcomes
+    # TB treatment outcomes (only recovery and relapse here. Tx deaths implemented within the "add_births_and_deaths" function)
     model.add_transition_flow(
         name="tx_recovery",
-        fractional_rate=Parameter("tx_recovery_rate"),
+        fractional_rate= time_variant_tsr /Parameter("tx_duration"),
         source="treatment",
         dest="recovered"
     )
     model.add_transition_flow(
         name="tx_relapse",
-        fractional_rate=Parameter("tx_relapse_rate"),
+        fractional_rate=1.,  # Placehodler only, age-specific value will be specified during age stratification
         source="treatment",
-        dest="subclin_noninf"  # may want to use different assumptions in sensitivity analysis
+        dest="subclin_noninf"
     
     ) 
 
-def stratify_model_by_age(model: CompartmentalModel, age_groups: list):
+
+def stratify_model_by_age(
+        model: CompartmentalModel, age_groups: list, neg_tx_outcome_funcs: dict
+    ):
     """
         Applies age stratification to the model with specified age groups.
 
@@ -193,6 +198,9 @@ def stratify_model_by_age(model: CompartmentalModel, age_groups: list):
         model : CompartmentalModel. The model to be stratified by age.
         age_groups : list of str. List of lower bounds for age strata (must include "15").
     """
+
+    assert "15" in age_groups, "We need 15 years old as an age break for compatibility with BCG effect and mixing matrix"
+
     # Create a stratification object
     age_strat = AgeStratification(
         name="age",
@@ -200,26 +208,33 @@ def stratify_model_by_age(model: CompartmentalModel, age_groups: list):
         compartments=COMPARTMENTS
     )
 
-    # Adjust children's susceptibility to infection to capture BCG effect
-    assert "15" in age_groups, "We need 15 years old as an age break for compatibility with BCG effect"
-    age_strat.set_flow_adjustments(
-        flow_name="infection_from_mtb_naive",
-        adjustments={age: (Parameter("rel_sus_children") if int(age) < 15 else 1.) for age in age_groups}
-    )
-
-    # Adjust infectiousness of clinical vs nonclinical compartments. Not age-related but summer2 requires this to be done through stratification.
-    age_strat.add_infectiousness_adjustments("subclin_inf", {age: Parameter("rel_infectiousness_subclin") for age in age_groups})
-
     # Age-mixing matrix
     build_mixing_matrix = gen_mixing_matrix_func(age_groups)  # create a function for a given set of age breakpoints
     age_mixing_matrix = Function(build_mixing_matrix, [Parameter("mixing_factor_cc"), Parameter("mixing_factor_ca")]) # the function generating the matrix
     age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
 
+    # Adjust children's susceptibility to infection to capture BCG effect
+    age_strat.set_flow_adjustments(
+        flow_name="infection_from_mtb_naive",
+        adjustments={age: (Parameter("rel_sus_children") if int(age) < 15 else 1.) for age in age_groups}
+    )
+
+    # FIXME! add age-specific infectiousness
+
+    # Treatment outcomes are age-specific due to natural mortality being age-specific
+    age_strat.set_flow_adjustments(
+        "tx_relapse", 
+        {age: funcs['relapse'] for age, funcs in neg_tx_outcome_funcs.items()}
+    )
+
+    # Adjust infectiousness of clinical vs nonclinical compartments. Not age-related but summer2 requires this to be done through stratification.
+    age_strat.add_infectiousness_adjustments("subclin_inf", {age: Parameter("rel_infectiousness_subclin") for age in age_groups})
+
     # Apply stratification
     model.stratify_with(age_strat)
 
 
-def add_births_and_deaths(model, agg_pop_data, death_rates_funcs, age_groups):
+def add_births_and_deaths(model, agg_pop_data, bckd_death_rates_funcs, neg_tx_outcome_funcs, age_groups):
 
     """
         All deaths are modelled as transitions back to mtb_naive compartment, stratum age_0
@@ -233,7 +248,7 @@ def add_births_and_deaths(model, agg_pop_data, death_rates_funcs, age_groups):
                 name = f"all_cause_mortality_from_{compartment}_age_{source_age}"
                 model.add_transition_flow(
                     name=name,
-                    fractional_rate=death_rates_funcs[source_age],
+                    fractional_rate=bckd_death_rates_funcs[source_age],
                     source=compartment,
                     source_strata={"age": source_age},
                     dest="mtb_naive",
@@ -261,7 +276,7 @@ def add_births_and_deaths(model, agg_pop_data, death_rates_funcs, age_groups):
         flow_name = f"tx_death_age_{source_age}"
         model.add_transition_flow(
             name=flow_name,
-            fractional_rate=Parameter("tx_death_rate"),
+            fractional_rate=neg_tx_outcome_funcs[source_age]['death'],
             source="treatment",
             source_strata={"age": source_age},
             dest="mtb_naive",
@@ -289,3 +304,46 @@ def add_births_and_deaths(model, agg_pop_data, death_rates_funcs, age_groups):
 
     return nat_death_flows, tb_death_flows
 
+
+def get_neg_tx_outcome_funcs(bckd_death_funcs, time_variant_tsr):
+
+    
+    def get_neg_tx_outcome_funcs_age(bckd_death_rates_func, time_variant_tsr, tx_duration, pct_neg_tx_death):
+    
+        # Calculate the proportion of people dying from natural causes while on treatment
+        prop_natural_death_while_on_treatment = 1.0 - jnp.exp(
+            - tx_duration * bckd_death_rates_func
+        )
+
+        # Calculate the target proportion of treatment outcomes resulting in death based on requests
+        requested_prop_death_on_treatment = (1.0 - time_variant_tsr) * pct_neg_tx_death / 100.
+
+        # Calculate the actual rate of deaths on treatment, with floor of zero
+        prop_death_from_treatment = jnp.max(
+            jnp.array(
+                (
+                    requested_prop_death_on_treatment
+                    - prop_natural_death_while_on_treatment,
+                    0.0,
+                )
+            )
+        )
+
+        # Calculate the proportion of treatment episodes resulting in relapse
+        relapse_prop = (
+            1.0 - time_variant_tsr - prop_death_from_treatment - prop_natural_death_while_on_treatment
+        )
+        neg_tx_outcome_funcs = {
+            "relapse": relapse_prop / tx_duration,
+            "death": prop_death_from_treatment / tx_duration
+        }
+
+        return neg_tx_outcome_funcs
+
+    return {
+        age: Function(
+            get_neg_tx_outcome_funcs_age,
+            [bckd_death_func, time_variant_tsr, Parameter('tx_duration'), Parameter("pct_neg_tx_death")]
+        ) for age, bckd_death_func in bckd_death_funcs.items()
+    }
+    
