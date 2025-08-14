@@ -19,12 +19,13 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
 
     model.request_output_for_flow("births", "births")
 
-    # TB incidence
+    # TB incidence (and cumulative)
     model.request_output_for_flow(
         name="tb_incidence",
         flow_name="progression",
     )
     request_per_capita_output(model, "tb_incidence", per=100000.)
+    model.request_cumulative_output(name="cum_tb_incidence", source="tb_incidence", start_time=2020)
 
 
     # TBI prevalence
@@ -104,6 +105,9 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         sources=tb_death_flows
     )
     request_per_capita_output(model, "tb_mortality", per=100000.)
+
+    model.request_cumulative_output(name="cum_tb_mortality", source="tb_mortality", start_time=2020)
+
 
     # Track computed values 
     computed_values_to_save = ['passive_detection_rate_clin', 'passive_detection_rate_subclin']
