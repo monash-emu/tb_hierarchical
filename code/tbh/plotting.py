@@ -136,11 +136,11 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, incl
     colour = (0.2, 0.2, 0.8)   
 
     time = df.index
-    axis.plot(time, df[0.5], color=colour, zorder=10, label="model (median)")
+    axis.plot(time, df['0.5'], color=colour, zorder=10, label="model (median)")
 
     axis.fill_between(
         time, 
-        df[0.25], df[0.75], 
+        df['0.25'], df['0.75'], 
         color=colour, 
         alpha=0.5, 
         edgecolor=None,
@@ -148,7 +148,7 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, incl
     )
     axis.fill_between(
         time, 
-        df[0.025], df[0.975],
+        df['0.025'], df['0.975'],
         color=colour, 
         alpha=0.3,
         edgecolor=None,

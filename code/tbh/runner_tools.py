@@ -196,6 +196,7 @@ def run_full_runs(
         unc_df = esamp.quantiles_for_results(
             full_run.results, [0.025, 0.25, 0.5, 0.75, 0.975]
         )
+        unc_df.columns = unc_df.columns.set_levels([str(q) for q in unc_df.columns.levels[1]], level=1) # to avoid using floats as column names (not parquet-compatible)
         full_runs[sc] = full_run
         unc_dfs[sc] = unc_df
 
@@ -249,15 +250,56 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
     fullruns_time = time() - t0
     times["full_runs_time"] = f"{round(fullruns_time)} sec (i.e. {round(fullruns_time / 60)} min) --> {round(3600 * (a_c['full_runs_samples'])/ fullruns_time)} runs per hour"
     
+    # Plot targetted outputs
     selected_outputs = bcm.targets.keys()
-
     for output in selected_outputs:
         _, ax = plt.subplots()
         pl.plot_model_fit_with_uncertainty(ax, unc_dfs['baseline'], output, bcm, x_min=2010)
         if output_folder:
             plt.savefig(output_folder / f"quantiles_{output}.jpg", facecolor="white", bbox_inches='tight')
             plt.close()
-    
+
+    # Save quantile df outputs
+    diff_output_quantiles = calculate_diff_output_quantiles(full_runs)
+    for sc, unc_df in unc_dfs.items():
+        unc_df.to_parquet(output_folder / f"uncertainty_df_{sc}.parquet")
+        if sc in diff_output_quantiles:
+            diff_output_quantiles[sc].to_parquet(output_folder / f"diff_quantiles_df_{sc}.parquet")
+
     if output_folder:
         with open(output_folder / 'timings.yaml', 'w') as file:
             yaml.dump_all([times, model_config, analysis_config], file, default_flow_style=False)
+
+
+def calculate_diff_output_quantiles(full_runs, quantiles=[.025, .25, .5, .75, .975]):
+    diff_names = {
+        "TB_averted": "tb_incidence", # need to work with cumulative outputs here
+    }
+    
+    latest_time = full_runs['baseline'].results.index.max()
+    
+    runs_0_latest = full_runs['baseline'].results.loc[latest_time]
+    
+    diff_output_quantiles = {}
+    for sc in full_runs:
+        if sc == 'baseline':
+             continue
+        
+        sc_runs_latest = full_runs[sc].results.loc[latest_time]
+
+        abs_diff = runs_0_latest - sc_runs_latest
+        rel_diff = (runs_0_latest - sc_runs_latest) / sc_runs_latest
+        
+        diff_quantiles_df_abs = pd.DataFrame(
+            index=quantiles, 
+            data={colname: abs_diff[output_name].quantile(quantiles) for colname, output_name in diff_names.items()}
+        )   
+        diff_quantiles_df_rel = pd.DataFrame(
+            index=quantiles, 
+            data={f"{colname}_relative" : rel_diff[output_name].quantile(quantiles) for colname, output_name in diff_names.items()}
+        ) 
+
+        diff_output_quantiles[sc] = pd.concat([diff_quantiles_df_abs, diff_quantiles_df_rel], axis=1)
+
+
+    return diff_output_quantiles

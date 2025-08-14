@@ -201,4 +201,5 @@ cython_debug/
 *.egg-info
 
 # output files
+notebooks/test_outputs/
 remote_cluster/outputs/
