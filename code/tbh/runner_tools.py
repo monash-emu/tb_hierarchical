@@ -35,19 +35,21 @@ DEFAULT_ANALYSIS_CONFIG = {
 
     # Full runs config
     'burn_in': 10000,
-    'full_runs_samples': 1000
+    'full_runs_samples': 1000,
+    'scenarios': ["scenario_1"]
 }
 
 TEST_ANALYSIS_CONFIG = {
     # Metropolis config
     'chains': 4,
     'cores': 4,
-    'tune': 500,
-    'draws': 2000,
+    'tune': 50,
+    'draws': 200,
 
     # Full runs config
-    'burn_in': 500,
-    'full_runs_samples': 1000
+    'burn_in': 50,
+    'full_runs_samples': 100,
+    'scenarios': ["scenario_1"]
 }
 
 # !FIXME this code doesn't belong here
@@ -175,7 +177,7 @@ def run_metropolis_calibration(
 
 
 def run_full_runs(
-    bcm: BayesianCompartmentalModel, idata, burn_in: int, full_runs_samples: int
+    bcm_dict: dict[str, BayesianCompartmentalModel], idata, burn_in: int, full_runs_samples: int
 ):
 
     # select samples
@@ -186,14 +188,18 @@ def run_full_runs(
     burnt_idata = idata.sel(draw=range(burn_in, chain_length))  # Discard burn-in
     full_run_params = az.extract(burnt_idata, num_samples=full_runs_samples)
 
-    full_runs = esamp.model_results_for_samples(
-        full_run_params, bcm, include_extras=False
-    )
-    unc_df = esamp.quantiles_for_results(
-        full_runs.results, [0.025, 0.25, 0.5, 0.75, 0.975]
-    )
+    full_runs, unc_dfs = {}, {}
+    for sc, bcm in bcm_dict.items():
+        full_run = esamp.model_results_for_samples(
+            full_run_params, bcm, include_extras=False
+        )
+        unc_df = esamp.quantiles_for_results(
+            full_run.results, [0.025, 0.25, 0.5, 0.75, 0.975]
+        )
+        full_runs[sc] = full_run
+        unc_dfs[sc] = unc_df
 
-    return full_runs, unc_df
+    return full_runs, unc_dfs
 
 
 def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None):
@@ -230,7 +236,16 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
 
     print(">>> Run full runs")
     t0 = time()
-    full_runs, unc_df = run_full_runs(bcm, idata, a_c['burn_in'], a_c['full_runs_samples'])
+    bcm_dict = {"baseline": bcm}
+    for sc in a_c['scenarios']:
+        assert sc != "baseline", "Please use scenario name different from 'baseline'"
+        sc_params, _, sc_tv_params = get_parameters_and_priors(DATA_FOLDER / f"{sc}.xlsx")
+        sc_params, sc_tv_params = params | sc_params, tv_params | sc_tv_params
+        sc_model = get_tb_model(model_config, sc_tv_params)
+        sc_bcm = BayesianCompartmentalModel(sc_model, sc_params, priors, targets)
+        bcm_dict[sc] = sc_bcm
+
+    full_runs, unc_dfs = run_full_runs(bcm_dict, idata, a_c['burn_in'], a_c['full_runs_samples'])
     fullruns_time = time() - t0
     times["full_runs_time"] = f"{round(fullruns_time)} sec (i.e. {round(fullruns_time / 60)} min) --> {round(3600 * (a_c['full_runs_samples'])/ fullruns_time)} runs per hour"
     
@@ -238,7 +253,7 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
 
     for output in selected_outputs:
         _, ax = plt.subplots()
-        pl.plot_model_fit_with_uncertainty(ax, unc_df, output, bcm, x_min=2010)
+        pl.plot_model_fit_with_uncertainty(ax, unc_dfs['baseline'], output, bcm, x_min=2010)
         if output_folder:
             plt.savefig(output_folder / f"quantiles_{output}.jpg", facecolor="white", bbox_inches='tight')
             plt.close()
