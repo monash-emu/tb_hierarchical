@@ -36,7 +36,7 @@ DEFAULT_ANALYSIS_CONFIG = {
     # Full runs config
     'burn_in': 10000,
     'full_runs_samples': 4000,
-    'scenarios': ["scenario_1"]
+    'scenarios': ["scenario_1", "scenario_2", "scenario_3"]
 }
 
 TEST_ANALYSIS_CONFIG = {
@@ -49,7 +49,7 @@ TEST_ANALYSIS_CONFIG = {
     # Full runs config
     'burn_in': 50,
     'full_runs_samples': 100,
-    'scenarios': ["scenario_1"]
+    'scenarios': ["scenario_1", "scenario_2", "scenario_3"]
 }
 
 # !FIXME this code doesn't belong here
