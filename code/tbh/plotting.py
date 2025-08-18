@@ -20,6 +20,13 @@ title_lookup = {
     "cum_tb_mortality": "N TB deaths 2020-2050",
     "TB_averted": "N TB episodes averted (2020-2050)", 
     "TB_averted_relative": "% TB episodes averted (2020-2050)",
+
+    "tb_prevalence_per100k": "TB prevalence (/100k)",
+    "tbi_prevalence_perc": "TBI prevalence (%)",
+    "perc_prev_subclinical": "Prevalent subclinical TB (%)",
+    "perc_prev_infectious": "Prevalent infectious TB (%)",
+    "notifications": "TB notifications",
+    "perc_notifications_clin": "Clinical notifications (%)"
 }
 sc_names = {
     "baseline": "No intervention",
@@ -146,15 +153,17 @@ def plot_multiple_posteriors(idata, burn_in=0, req_vars=None, output_folder_path
         plt.show()
 
 
-def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, include_legend=True, x_min=None):
+def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, include_legend=True, x_lim=None):
 
     # update_rcparams() 
    
     df = uncertainty_df[output_name]
+    if x_lim:
+        df = df.loc[x_lim[0]:x_lim[1]]
 
     if output_name in bcm.targets:
         t = copy(bcm.targets[output_name].data)
-        axis.scatter(list(t.index), t, marker=".", color='black', label='observations', zorder=11, s=5.)
+        axis.scatter(list(t.index), t, marker=".", color='black', label='observations', zorder=11, s=30.)
 
     colour = (0.2, 0.2, 0.8)   
 
@@ -178,17 +187,15 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, incl
         label="model (95% CI)",
     )
 
-    if output_name == "transformed_random_process":
-        axis.set_ylim((0., axis.get_ylim()[1]))
-    
-    if x_min:
-        axis.set_xlim((x_min, axis.get_xlim()[1]))
-
     # axis.tick_params(axis="x", labelrotation=45)
-    title = output_name # if output_name not in title_lookup else title_lookup[output_name]
+    title = output_name if output_name not in title_lookup else title_lookup[output_name]
 
     axis.set_ylabel(title)
     # plt.tight_layout()
+
+    # Get existing y-limits
+    ymin, ymax = axis.get_ylim()
+    axis.set_ylim(0., 1.2 * ymax)
 
     if include_legend:
         plt.legend(markerscale=2.)
