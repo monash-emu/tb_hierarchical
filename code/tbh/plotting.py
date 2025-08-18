@@ -5,9 +5,32 @@ from math import ceil
 from copy import copy
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from matplotlib.patches import Rectangle
 import numpy as np
 
 from estival import priors as esp
+
+
+title_lookup = {
+    "tb_incidence": "TB incidence",
+    "tb_incidence_per100k": "TB incidence (/100k)",
+    "tbi_prevalence_perc": "TB infection prev. (%)",
+    "tb_mortality_per100k": "TB mortality (/100k)",
+    "cum_tb_incidence": "N TB episodes 2020-2050", 
+    "cum_tb_mortality": "N TB deaths 2020-2050",
+    "TB_averted": "N TB episodes averted (2020-2050)", 
+    "TB_averted_relative": "% TB episodes averted (2020-2050)",
+}
+sc_names = {
+    "baseline": "No intervention",
+    "scenario_1": "TB screening",
+    "scenario_2": "TBI screening",
+    "scenario_3": "TB + TBI screening",
+
+}
+
+sc_colours = ["black", "crimson"]
+unc_sc_colours = ((0.2, 0.2, 0.8), (0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2), (0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2))
 
 
 def plot_traces(idata, burn_in, output_folder_path=None):
@@ -169,3 +192,116 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, incl
 
     if include_legend:
         plt.legend(markerscale=2.)
+
+
+def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, include_unc=False, include_legend=True):
+    ymax = 0.
+    for i_sc, scenario in enumerate(scenarios):
+        df = uncertainty_dfs[scenario][output_name].loc[xlim[0]:xlim[1]]
+        median_df = df['0.5']
+        time = df.index
+        
+        colour = unc_sc_colours[i_sc]
+        label = sc_names[scenario]
+        scenario_zorder = 10 if i_sc == 0 else i_sc + 2
+
+        if include_unc:
+            axis.fill_between(
+                time, 
+                df['0.25'], df['0.75'], 
+                color=colour, alpha=0.7, 
+                edgecolor=None,
+                zorder=scenario_zorder
+            )
+            ymax = max(ymax, df['0.75'].max())
+        else:
+            ymax = median_df.max()
+
+        axis.plot(time, median_df, color=colour, label=label, lw=1.)
+        
+    plot_ymax = ymax * 1.1    
+
+    # axis.tick_params(axis="x", labelrotation=45)
+    title = output_name if output_name not in title_lookup else title_lookup[output_name]
+    axis.set_ylabel(title)
+    # axis.set_xlim((model_start, model_end))
+    axis.set_ylim((0, plot_ymax))
+
+    if include_legend:
+        axis.legend(title="(median and IQR)")
+
+
+def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios):
+    box_width = .5
+    color = 'black'
+    box_color= 'lightcoral'
+    y_max = 0
+    for i, scenario in enumerate(scenarios):      
+        df = uncertainty_dfs[scenario][output_name].iloc[-1]
+
+        x = 1 + i
+        # median
+        axis.hlines(y=df['0.5'], xmin=x - box_width / 2. , xmax= x + box_width / 2., lw=1., color=color, zorder=3)    
+        
+        # IQR
+        q_75 = float(df['0.75'])
+        q_25 = float(df['0.25'])
+        rect = Rectangle(xy=(x - box_width / 2., q_25), width=box_width, height=q_75 - q_25, zorder=2, facecolor=box_color)
+        axis.add_patch(rect)
+
+        # 95% CI
+        q_025 = float(df['0.025'])
+        q_975 = float(df['0.975'])
+        axis.vlines(x=x, ymin=q_025 , ymax=q_975, lw=.7, color=color, zorder=1)
+
+        y_max = max(y_max, q_975)
+        
+    title = output_name if output_name not in title_lookup else title_lookup[output_name]
+    axis.set_ylabel(title)
+    axis.set_xticks(ticks=range(1, len(scenarios) + 1), labels=[sc_names[sc] for sc in scenarios]) #, fontsize=15)
+
+    axis.set_xlim((0.5, 0.5 + len(scenarios)))
+    axis.set_ylim((0, y_max * 1.2))
+
+
+def plot_diff_outputs(axis, diff_quantiles_dfs, output_name, scenarios):
+
+    box_width = .2
+    med_color = 'white'
+    box_color= 'black'
+    y_max_abs = 0.
+    for i, sc in enumerate(scenarios):
+
+        diff_output_df = diff_quantiles_dfs[sc]
+        data = diff_output_df[output_name] 
+        
+        if output_name.endswith("_relative"):  # use %
+            data = data * 100.
+
+        # use %. And use "-" so positive nbs indicate positive effect of closures
+        x = 1 + i
+        # median
+        axis.hlines(y=data.loc[0.5], xmin=x - box_width / 2. , xmax= x + box_width / 2., lw=2., color=med_color, zorder=3)    
+        
+        # IQR
+        q_75 = data.loc[0.75]
+        q_25 = data.loc[0.25]
+        rect = Rectangle(xy=(x - box_width / 2., q_25), width=box_width, height=q_75 - q_25, zorder=2, facecolor=box_color)
+        axis.add_patch(rect)
+
+        # 95% CI
+        q_025 = data.loc[0.025]
+        q_975 = data.loc[0.975]
+        axis.vlines(x=x, ymin=q_025 , ymax=q_975, lw=1.5, color=box_color, zorder=1)
+
+        y_max_abs = max(abs(q_975), y_max_abs)
+        y_max_abs = max(abs(q_025), y_max_abs)
+ 
+    y_label = output_name if output_name not in title_lookup else title_lookup[output_name]  
+    axis.set_ylabel(y_label)
+   
+    x_labels = [sc_names[sc] for sc in scenarios]
+    axis.set_xticks(ticks=range(1, len(scenarios) + 1), labels=x_labels) #, fontsize=15)
+
+    axis.set_xlim((0.5, len(scenarios) + 0.5))
+    axis.set_ylim(0., 1.05 * y_max_abs)
