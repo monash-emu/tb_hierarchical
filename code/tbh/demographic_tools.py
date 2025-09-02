@@ -20,56 +20,72 @@ def get_pop_size(model_config):
 
 
 def get_death_rates_by_age(model_config):
-    """
-    Compute death rates using AgeGrpStart as group labels, aggregated over defined bins.
-    
-    Args:
-        model_config (dict): must contain 'iso3', 'start_time'
-        age_bins (list of int): list of age group starting points (e.g., [0, 15, 65])
-    
-    Returns:
-        dict: {AgeGrpStart: pd.Series of death rates indexed by year}
-    """
     age_bins = [int(a) for a in model_config['age_groups']]
+    last_bin_start = age_bins[-1]
 
     pop_data = pd.read_csv(DATA_FOLDER / "un_population.csv")
     mort_data = pd.read_csv(DATA_FOLDER / "un_mortality.csv")
 
-    # Filter by country and start year
+    # Filter
     pop_data = pop_data[(pop_data["ISO3_code"] == model_config["iso3"]) & 
                         (pop_data["Time"] >= model_config["start_time"])]
     mort_data = mort_data[(mort_data["ISO3_code"] == model_config["iso3"]) & 
                           (mort_data["Time"] >= model_config["start_time"])]
 
-    # Define bin edges and labels
-    bin_edges = age_bins + [200]  # use 200 as an upper cap beyond realistic ages
-    bin_labels = age_bins  # label each bin by its lower bound
+    # --- Step 1: expand population using one-year age-groups, except 100+ ---
+    expanded_pop = []
+    for _, row in pop_data.iterrows():
+        start_age = row["AgeGrpStart"]
+        if start_age == 100:
+            expanded_pop.append({
+                "Time": row["Time"],
+                "Age": "100+",
+                "PopTotal": row["PopTotal"]
+            })
+        else:
+            end_age = start_age + 5
+            for age in range(start_age, end_age):
+                expanded_pop.append({
+                    "Time": row["Time"],
+                    "Age": str(age),
+                    "PopTotal": row["PopTotal"] / 5.  # assumed population uniformly distributed within 5-year age group 
+                })              
+    expanded_pop = pd.DataFrame(expanded_pop)
 
-    pop_data["age_group"] = pd.cut(pop_data["AgeGrpStart"], bins=bin_edges, labels=bin_labels, right=False)
-    mort_data["age_group"] = pd.cut(mort_data["AgeGrpStart"], bins=bin_edges, labels=bin_labels, right=False)
+    # --- Step 2: merge ---
+    mort_data["Age"] = mort_data["AgeGrp"]
+    merged = pd.merge(
+        expanded_pop,
+        mort_data,
+        on=["Time", "Age"],
+        how="left"
+    ).fillna({"DeathTotal": 0})
 
-    # Drop rows outside specified bins (age_group == NaN)
-    pop_data = pop_data.dropna(subset=["age_group"])
-    mort_data = mort_data.dropna(subset=["age_group"])
+    # --- Step 3: assign to model bins ---
+    def assign_bin(age):
+        if age == "100+":
+            return last_bin_start
+        elif int(age) >= last_bin_start:
+            return last_bin_start
+        else:
+            # find appropriate bin
+            for i in range(len(age_bins) - 1):
+                if age_bins[i] <= int(age) < age_bins[i+1]:
+                    return age_bins[i]
+        return None
 
-    # Convert category labels back to integers
-    pop_data["age_group"] = pop_data["age_group"].astype(int)
-    mort_data["age_group"] = mort_data["age_group"].astype(int)
+    merged["age_group"] = merged["Age"].apply(assign_bin)
+    merged = merged.dropna(subset=["age_group"]).astype({"age_group": int})
 
-    # Aggregate by year and age group
-    pop_summary = pop_data.groupby(["Time", "age_group"])["PopTotal"].sum().reset_index()
-    mort_summary = mort_data.groupby(["Time", "age_group"])["DeathTotal"].sum().reset_index()
+    # --- Step 4: aggregate ---
+    agg = merged.groupby(["Time", "age_group"])[["PopTotal", "DeathTotal"]].sum().reset_index()
+    agg["death_rate"] = agg["DeathTotal"] / agg["PopTotal"]
 
-    merged = pd.merge(mort_summary, pop_summary, on=["Time", "age_group"])
-    merged["death_rate"] = merged["DeathTotal"] / merged["PopTotal"]
-
-    # dictionary of series
+    # --- Step 6: wrap ---
     death_rate_series = {
         str(age_group): group.set_index("Time")["death_rate"]
-        for age_group, group in merged.groupby("age_group")
+        for age_group, group in agg.groupby("age_group")
     }
-
-    # convert to functions
     death_rate_funcs = {
         age_group: stf.get_sigmoidal_interpolation_function(series.index, series)
         for age_group, series in death_rate_series.items()
