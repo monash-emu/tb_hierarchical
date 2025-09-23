@@ -83,6 +83,14 @@ class ScreeningProgram:
         )
 
 
+class Scenario:
+    def __init__(self, sc_id, sc_name, scr_prgs, params_ow={}):
+        self.sc_id = sc_id
+        self.sc_name = sc_name
+        self.scr_prgs = scr_prgs
+        self.params_ow = params_ow
+
+
 example_scr_program = ScreeningProgram(
     name="betio_cxr_screening",
     start_time=2024,

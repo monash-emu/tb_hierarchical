@@ -4,6 +4,7 @@ import arviz as az
 import matplotlib.pyplot as plt
 from time import time
 import yaml
+from git import Repo
 
 from estival.wrappers import pymc as epm
 from estival.sampling import tools as esamp
@@ -16,7 +17,14 @@ from .model import get_tb_model
 import tbh.plotting as pl
 from tbh.paths import OUTPUT_PARENT_FOLDER, DATA_FOLDER
 
+#FIXME!: This is a messy import
+import sys
 from pathlib import Path
+root = Path(__file__).resolve().parents[2]
+sys.path.append(str(root))
+
+from data import scenarios as sc
+
 
 DEFAULT_MODEL_CONFIG = {
     "start_time": 1850,
@@ -36,7 +44,7 @@ DEFAULT_ANALYSIS_CONFIG = {
     # Full runs config
     'burn_in': 10000,
     'full_runs_samples': 4000,
-    'scenarios': ["scenario_1", "scenario_2", "scenario_3"]
+    'scenarios': [sc.scenario_1]
 }
 
 TEST_ANALYSIS_CONFIG = {
@@ -49,7 +57,7 @@ TEST_ANALYSIS_CONFIG = {
     # Full runs config
     'burn_in': 50,
     'full_runs_samples': 100,
-    'scenarios': ["scenario_1", "scenario_2", "scenario_3"]
+    'scenarios': [sc.scenario_1]
 }
 
 # !FIXME this code doesn't belong here
@@ -215,6 +223,11 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
 
     """
     a_c = analysis_config
+
+    # check scenario ids are unique
+    sc_ids = [scenario.sc_id for scenario in a_c['scenarios']]
+    assert len(sc_ids) == len(set(sc_ids)), "Please use unique scenario ids."
+
     output_folder.mkdir(parents=True, exist_ok=True) 
     params, priors, tv_params = get_parameters_and_priors()
 
@@ -238,13 +251,12 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
     print(">>> Run full runs")
     t0 = time()
     bcm_dict = {"baseline": bcm}
-    for sc in a_c['scenarios']:
-        assert sc != "baseline", "Please use scenario name different from 'baseline'"
-        sc_params, _, sc_tv_params = get_parameters_and_priors(DATA_FOLDER / f"{sc}.xlsx")
-        sc_params, sc_tv_params = params | sc_params, tv_params | sc_tv_params
-        sc_model = get_tb_model(model_config, sc_tv_params)
+    for scenario in a_c['scenarios']:
+        assert scenario.sc_name != "baseline", "Please use scenario name different from 'baseline'"
+        sc_params = params | scenario.params_ow
+        sc_model = get_tb_model(model_config, tv_params)
         sc_bcm = BayesianCompartmentalModel(sc_model, sc_params, priors, targets)
-        bcm_dict[sc] = sc_bcm
+        bcm_dict[scenario.sc_id] = sc_bcm
 
     full_runs, unc_dfs = run_full_runs(bcm_dict, idata, a_c['burn_in'], a_c['full_runs_samples'])
     fullruns_time = time() - t0
@@ -254,7 +266,7 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
     selected_outputs = bcm.targets.keys()
     for output in selected_outputs:
         _, ax = plt.subplots()
-        pl.plot_model_fit_with_uncertainty(ax, unc_dfs['baseline'], output, bcm, x_min=2010)
+        pl.plot_model_fit_with_uncertainty(ax, unc_dfs['baseline'], output, bcm, x_lim=(2010, model_config['end_time']))
         if output_folder:
             plt.savefig(output_folder / f"quantiles_{output}.jpg", facecolor="white", bbox_inches='tight')
             plt.close()
@@ -267,8 +279,17 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
             diff_output_quantiles[sc].to_parquet(output_folder / f"diff_quantiles_df_{sc}.parquet")
 
     if output_folder:
-        with open(output_folder / 'timings.yaml', 'w') as file:
-            yaml.dump_all([times, model_config, analysis_config], file, default_flow_style=False)
+        # Read git commit id to be saved as part of details log file
+        repo = Repo(search_parent_directories=True)
+        commit = repo.head.commit.hexsha
+
+        with open(output_folder / 'details.yaml', 'w') as file:
+            yaml.dump_all([
+                times, 
+                model_config, 
+                a_c | {"scenarios": sc_ids},
+                {"commit": commit}
+            ], file, default_flow_style=False)
 
 
 def calculate_diff_output_quantiles(full_runs, quantiles=[.025, .25, .5, .75, .975]):
