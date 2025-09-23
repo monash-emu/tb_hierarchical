@@ -205,10 +205,36 @@ def run_full_runs(
             full_run.results, [0.025, 0.25, 0.5, 0.75, 0.975]
         )
         unc_df.columns = unc_df.columns.set_levels([str(q) for q in unc_df.columns.levels[1]], level=1) # to avoid using floats as column names (not parquet-compatible)
+
         full_runs[sc] = full_run
-        unc_dfs[sc] = unc_df
+        unc_dfs[sc] = convert_jax_columns(unc_df)
 
     return full_runs, unc_dfs
+
+
+def convert_jax_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert columns containing JAX arrays into plain Python scalars or lists.
+    Only modifies problematic columns.
+    """
+    def _convert_value(x):
+        if hasattr(x, "item"):  # scalar-like JAX or NumPy
+            try:
+                return x.item()
+            except Exception:
+                return x
+        if hasattr(x, "tolist"):  # array-like JAX or NumPy
+            try:
+                return x.tolist()
+            except Exception:
+                return x
+        return x
+
+    for col in df.columns:
+        if df[col].apply(lambda x: hasattr(x, "item") or hasattr(x, "tolist")).any():
+            df[col] = df[col].map(_convert_value)
+
+    return df
 
 
 def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None):
