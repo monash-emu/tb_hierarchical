@@ -46,11 +46,11 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
 
     # Model building
     model = get_natural_tb_model(model_config, agg_pop_data.iloc[0])
-    add_detection_and_treatment(model, time_variant_tsr, screening_programs)
+    screening_flows = add_detection_and_treatment(model, time_variant_tsr, screening_programs)
     stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs)
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
-    request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, nat_death_flows, tb_death_flows)
+    request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, nat_death_flows, tb_death_flows, screening_flows)
 
     return model
 
@@ -170,15 +170,18 @@ def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, scr
     model.add_computed_value_func("passive_detection_rate_subclin", Parameter("rel_detection_subclin") * tv_detection_rate)
 
     # Apply potential screening programs for TBI and TB
+    screening_flows = []
     for scr_prog in screening_programs:
         dest_comp = scr_prog.scr_tool['dest_comp']
         for source_comp, sensitivity in scr_prog.scr_tool['sensitivities'].items():
+            flow_name = f"{scr_prog.name}_{source_comp}"
             model.add_transition_flow(
-                name=f"{scr_prog.name}_{source_comp}",
+                name=flow_name,
                 fractional_rate=sensitivity * scr_prog.scr_tool['success_prop'] * scr_prog.raw_screening_func,
                 source=source_comp,
                 dest=dest_comp
             )
+            screening_flows.append(flow_name)
 
     # TB treatment outcomes (only recovery and relapse here. Tx deaths implemented within the "add_births_and_deaths" function)
     model.add_transition_flow(
@@ -194,6 +197,8 @@ def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, scr
         dest="subclin_noninf"
     
     ) 
+
+    return screening_flows
 
 
 def stratify_model_by_age(
@@ -252,7 +257,7 @@ def stratify_model_by_age(
         age_multipliers = scr_prog.strata_coverage_multipliers['age']
         # Check consistency between screening program age-groups and model age-groups
         assert set(age_multipliers.keys()).issubset(age_groups), "screening age filters must be model age breaks"
-        
+
         for source_comp in scr_prog.scr_tool['sensitivities']:
             flow_name = f"{scr_prog.name}_{source_comp}"
             age_strat.set_flow_adjustments(

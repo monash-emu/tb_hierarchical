@@ -3,7 +3,7 @@ from summer2 import CompartmentalModel
 from summer2.parameters import Parameter, DerivedOutput
 
 
-def request_model_outputs(model: CompartmentalModel, compartments: list, active_compartments: list, nat_death_flows: list, tb_death_flows: list):
+def request_model_outputs(model: CompartmentalModel, compartments: list, active_compartments: list, nat_death_flows: list, tb_death_flows: list, screening_flows: list):
     """
     Define model outputs that can later be requested from model.get_derived_outputs_df()
 
@@ -81,6 +81,17 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         func= 100. * (DerivedOutput("notifications_clin_noninf") + DerivedOutput("notifications_clin_inf")) / DerivedOutput("notifications")
     )
 
+    # Screening
+    for scr_flow in screening_flows:
+        model.request_output_for_flow(
+            name=scr_flow,
+            flow_name=scr_flow,
+            save_results=False
+        )
+    model.request_aggregate_output(
+        name="screening",
+        sources=screening_flows
+    )
 
     # Mortality
     for nat_death_flow in nat_death_flows:

@@ -78,7 +78,7 @@ class ScreeningProgram:
 
         # FIXME: Not sure about the timeseries below
         self.raw_screening_func = stf.get_linear_interpolation_function(
-            [self.start_time - 1, self.start_time, self.end_time, self.end_time + 1], 
+            [self.start_time - 0.01, self.start_time, self.end_time - 0.01, self.end_time], 
             [0., scr_rate, scr_rate, 0.]
         )
 
@@ -93,8 +93,8 @@ class Scenario:
 
 example_scr_program = ScreeningProgram(
     name="betio_cxr_screening",
-    start_time=2024,
-    end_time=2026,
+    start_time=2026,
+    end_time=2027,
     total_coverage_perc=85.,
     strata_coverage_multipliers={
         "age": {
