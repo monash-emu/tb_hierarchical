@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=test_full_analysis
+#SBATCH --job-name=test_full_analysis_1sc
 #SBATCH --account=sh30
 #SBATCH --time=03:00:00
 #SBATCH --ntasks=1

@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from time import time, sleep
 
-ANALYSIS_NAME = "full_analysis_3scenarios"
+ANALYSIS_NAME = "full_analysis_1scenario"
 
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
