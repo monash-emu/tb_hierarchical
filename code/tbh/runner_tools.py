@@ -31,7 +31,7 @@ DEFAULT_MODEL_CONFIG = {
     "end_time": 2050,
     "seed": 100,
     "iso3": "KIR",
-    "age_groups": ["0", "15", "75"],
+    "age_groups": ["0", "3", "10", "15", "75"],
 }
 
 DEFAULT_ANALYSIS_CONFIG = {

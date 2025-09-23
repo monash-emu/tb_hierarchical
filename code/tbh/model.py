@@ -249,9 +249,12 @@ def stratify_model_by_age(
 
     # Adjust screening interventions by age
     for scr_prog in screening_programs:
+        age_multipliers = scr_prog.strata_coverage_multipliers['age']
+        # Check consistency between screening program age-groups and model age-groups
+        assert set(age_multipliers.keys()).issubset(age_groups), "screening age filters must be model age breaks"
+        
         for source_comp in scr_prog.scr_tool['sensitivities']:
             flow_name = f"{scr_prog.name}_{source_comp}"
-            age_multipliers = scr_prog.strata_coverage_multipliers['age']
             age_strat.set_flow_adjustments(
                 flow_name, 
                 {age: (age_multipliers[age] if age in age_multipliers else 1.) for age in age_groups}
