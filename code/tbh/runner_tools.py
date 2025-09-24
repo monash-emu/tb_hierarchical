@@ -237,7 +237,7 @@ def convert_jax_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None):
+def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None, idata_path=None):
     """
     Run full analysis including Metropolis-sampling-based calibration, full runs, quantiles computation and plotting.
 
@@ -264,9 +264,13 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
     
     times = {}
     t0 = time()
-    idata = run_metropolis_calibration(
-        bcm, draws=a_c['draws'], tune=a_c['tune'], cores=a_c['cores'], chains=a_c['chains']
-    )
+
+    if idata_path:
+        idata = az.from_netcdf(idata_path / "idata.nc")
+    else:
+        idata = run_metropolis_calibration(
+            bcm, draws=a_c['draws'], tune=a_c['tune'], cores=a_c['cores'], chains=a_c['chains']
+        )
     mcmc_time = time() - t0
     times["mcmc_time"] = f"{round(mcmc_time)} sec (i.e. {round(mcmc_time / 60)} min) --> {round(3600 * (a_c['tune'] + a_c['draws'])/ mcmc_time)} runs per hour"
     az.to_netcdf(idata, output_folder / "idata.nc")
