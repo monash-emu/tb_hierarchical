@@ -284,7 +284,7 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
     for scenario in a_c['scenarios']:
         assert scenario.sc_name != "baseline", "Please use scenario name different from 'baseline'"
         sc_params = params | scenario.params_ow
-        sc_model = get_tb_model(model_config, tv_params)
+        sc_model = get_tb_model(model_config, tv_params, screening_programs=scenario.scr_prgs)
         sc_bcm = BayesianCompartmentalModel(sc_model, sc_params, priors, targets)
         bcm_dict[scenario.sc_id] = sc_bcm
 
