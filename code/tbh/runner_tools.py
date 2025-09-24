@@ -32,6 +32,7 @@ DEFAULT_MODEL_CONFIG = {
     "seed": 100,
     "iso3": "KIR",
     "age_groups": ["0", "3", "10", "15", "75"],
+    "pop_scaling": 1.0,
 }
 
 DEFAULT_ANALYSIS_CONFIG = {
