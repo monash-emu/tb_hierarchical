@@ -33,6 +33,7 @@ COMPARTMENTS = (
 )
 
 INFECTIOUS_COMPARTMENTS = ("subclin_inf", "clin_inf")
+LATENT_COMPS = ["incipient", "contained", "cleared"]
 ACTIVE_COMPS = ["subclin_noninf", "clin_noninf", "subclin_inf", "clin_inf"]
 
 
@@ -50,7 +51,7 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs)
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
-    request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, nat_death_flows, tb_death_flows, screening_flows)
+    request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, LATENT_COMPS, nat_death_flows, tb_death_flows, screening_flows)
 
     return model
 

@@ -3,7 +3,7 @@ from summer2 import CompartmentalModel
 from summer2.parameters import Parameter, DerivedOutput
 
 
-def request_model_outputs(model: CompartmentalModel, compartments: list, active_compartments: list, nat_death_flows: list, tb_death_flows: list, screening_flows: list):
+def request_model_outputs(model: CompartmentalModel, compartments: list, active_compartments: list, latent_compartments: list, nat_death_flows: list, tb_death_flows: list, screening_flows: list):
     """
     Define model outputs that can later be requested from model.get_derived_outputs_df()
 
@@ -27,22 +27,35 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     request_per_capita_output(model, "tb_incidence", per=100000.)
     model.request_cumulative_output(name="cum_tb_incidence", source="tb_incidence", start_time=2020)
 
+    """ 
+        Prevalence outputs (TB and TBI, true and measured)
+    """
+    for comp in latent_compartments + active_compartments:
+        model.request_output_for_compartments(
+            name=f"prev_{comp}",
+            compartments=comp
+        )
+        model.request_function_output(
+            name=f"measured_prev_{comp}",
+            func=DerivedOutput(f"prev_{comp}") * Parameter(f"prev_se_{comp}")
+        )
 
-    # TBI prevalence
-    model.request_output_for_compartments(
-        name="tbi_prevalence",
-        compartments=["incipient", "contained", "cleared"]  # FIXME, we might want to use different assumptions
-    )
-    request_per_capita_output(model, "tbi_prevalence", per=100.)
+    # "True" and "Measured" TBI and TB prevalence
+    for state, comp_list, per in zip(["tbi", "tb"], [latent_compartments, active_compartments], [100., 100000.]):
+        # True prevalence
+        model.request_aggregate_output(
+            name=f"{state}_prevalence",
+            sources=[f"prev_{comp}" for comp in comp_list]
+        )
+        request_per_capita_output(model, f"{state}_prevalence", per=per)
 
-
-    # TB prevalence
-    model.request_output_for_compartments(
-        name="tb_prevalence",
-        compartments=active_compartments
-    )
-    request_per_capita_output(model, "tb_prevalence", per=100000.)
-
+        # Measured prevalence (accounting for compartment-specific sensitivity)
+        model.request_aggregate_output(
+            name=f"measured_{state}_prevalence",
+            sources=[f"measured_prev_{comp}" for comp in comp_list]
+        )
+        request_per_capita_output(model, f"measured_{state}_prevalence", per=per)
+    
     # Percentage subclinical (compare with Frascella et al. CID 2020 doi: 10.1093/cid/ciaa1402)
     model.request_output_for_compartments(
         name="subclin_tb_prevalence",

@@ -64,12 +64,12 @@ TEST_ANALYSIS_CONFIG = {
 # !FIXME this code doesn't belong here
 targets = [
     est.NormalTarget(
-        name='tb_prevalence_per100k', 
+        name='measured_tb_prevalence_per100k', 
         data=pd.Series(data=[600,], index=[2020]), 
         stdev=100.
     ),
     est.NormalTarget(
-        name='tbi_prevalence_perc', 
+        name='measured_tbi_prevalence_perc', 
         data=pd.Series(data=[40,], index=[2020]), 
         stdev=5.
     ),

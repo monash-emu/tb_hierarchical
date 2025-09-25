@@ -11,10 +11,10 @@ def get_pop_size(model_config):
 
     pop_data = pd.read_csv(DATA_FOLDER / "un_population.csv")
     # filter for country and truncate historical pre-analysis years
-    pop_data = pop_data[(pop_data["ISO3_code"] == model_config['iso3']) & (pop_data["Time"] >= model_config['start_time'])] * model_config['pop_scaling']
+    pop_data = pop_data[(pop_data["ISO3_code"] == model_config['iso3']) & (pop_data["Time"] >= model_config['start_time'])]
 
     # Aggregate accross agegroups for each year
-    agg_pop_data = 1000. * pop_data.groupby('Time')['PopTotal'].sum().sort_index().cummax()  # cummax to avoid transcient population decline
+    agg_pop_data = model_config['pop_scaling'] * 1000. * pop_data.groupby('Time')['PopTotal'].sum().sort_index().cummax()  # cummax to avoid transcient population decline
 
     return agg_pop_data
 
