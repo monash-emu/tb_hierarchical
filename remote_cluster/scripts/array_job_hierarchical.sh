@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=test_full_analysis_1sc
+#SBATCH --job-name=test_full_analysis_3sc
 #SBATCH --account=sh30
-#SBATCH --time=01:00:00
+#SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=4096
 #SBATCH --cpus-per-task=4

@@ -8,7 +8,8 @@ from tbh.paths import OUTPUT_PARENT_FOLDER
 
 ANALYSIS_NAME = "full_analysis_1scenario"
 
-idata_path = OUTPUT_PARENT_FOLDER / "47337364_full_analysis_1scenario" / "task_1"
+# idata_path = OUTPUT_PARENT_FOLDER / "47337364_full_analysis_1scenario" / "task_1"
+idata_path = None
 
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
