@@ -28,13 +28,11 @@ title_lookup = {
     "notifications": "TB notifications",
     "perc_notifications_clin": "Clinical notifications (%)"
 }
-sc_names = {
-    "baseline": "No intervention",
-    "scenario_1": "TB screening",
-    "scenario_2": "TBI screening",
-    "scenario_3": "TB + TBI screening",
 
-}
+from tbh.runner_tools import DEFAULT_ANALYSIS_CONFIG
+sc_names = {
+    "baseline": "No intervention", 
+} | {scenario.sc_id: scenario.sc_name for scenario in DEFAULT_ANALYSIS_CONFIG['scenarios']}
 
 sc_colours = ["black", "crimson"]
 unc_sc_colours = ((0.2, 0.2, 0.8), (0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2), (0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2))
