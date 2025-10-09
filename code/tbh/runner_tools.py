@@ -297,12 +297,15 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
             plt.savefig(output_folder / f"quantiles_{output}.jpg", facecolor="white", bbox_inches='tight')
             plt.close()
 
-    # Save quantile df outputs
-    diff_output_quantiles = calculate_diff_output_quantiles(full_runs)
+    # Save quantile df outputs, 
     for sc, unc_df in unc_dfs.items():
         unc_df.to_parquet(output_folder / f"uncertainty_df_{sc}.parquet")
-        if sc in diff_output_quantiles:
-            diff_output_quantiles[sc].to_parquet(output_folder / f"diff_quantiles_df_{sc}.parquet")
+    
+    # Save output_diff outputs, using various reference scenarios for differentiation
+    for ref_sc in list(full_runs.keys()):        
+        diff_output_quantiles = calculate_diff_output_quantiles(full_runs, ref_sc=ref_sc)
+        for sc, diff_output_quantile in diff_output_quantiles.items():
+            diff_output_quantile.to_parquet(output_folder / f"diff_quantiles_df_ref_{ref_sc}_{sc}.parquet")
 
     if output_folder:
         # Read git commit id to be saved as part of details log file
