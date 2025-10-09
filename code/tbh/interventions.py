@@ -1,6 +1,6 @@
 from numpy import log
 from summer2.functions import time as stf
-
+from summer2.parameters import Parameter
 
 
 class ScreeningTools:
@@ -8,29 +8,20 @@ class ScreeningTools:
     # TB Infection screening and TPT
     TST = {
         "sensitivities": {
-            "incipient": .8,
-            "contained": .8,
+            "incipient": Parameter('prev_se_incipient'),
+            "contained": Parameter('prev_se_contained'),
         },
         "dest_comp": "cleared",
-        "success_prop": .70       # probability of completing TPT if screened positive 
-    }
-
-    IGRA = {
-        "sensitivities": {
-            "incipient": .9,
-            "contained": .9,
-        },
-        "dest_comp": "cleared",
-        "success_prop": .70       # probability of completing TPT if screened positive 
+        "success_prop": Parameter('tpt_completion_perc') / 100.      # probability of completing TPT if screened positive 
     }
 
     # TB Disease screening
     CXR = {
         "sensitivities": {
-            "subclin_noninf": 0.,
-            "clin_noninf": .5,
-            "subclin_inf": 0.,
-            "clin_inf": .9
+            "subclin_noninf": Parameter('prev_se_subclin_noninf_cxr'),
+            "clin_noninf": Parameter('prev_se_clin_noninf_cxr'),
+            "subclin_inf": Parameter('prev_se_subclin_inf_cxr'),
+            "clin_inf": Parameter('prev_se_clin_inf_cxr')
         },
         "dest_comp": "treatment",
         "success_prop": 1.  # probability of getting started on treatment if screened positive 
@@ -39,10 +30,10 @@ class ScreeningTools:
     Xpert_topup = {
         # sensitivities need to be seen as additional sensitivity compared to screening based on CXR alone
         "sensitivities": {
-            "subclin_noninf": .5,
-            "clin_noninf": .2,
-            "subclin_inf": .8,
-            "clin_inf": 0.
+            "subclin_noninf": Parameter('prev_se_subclin_noninf_pearl') - Parameter('prev_se_subclin_noninf_cxr'),
+            "clin_noninf": Parameter('prev_se_clin_noninf_pearl') - Parameter('prev_se_clin_noninf_cxr'),
+            "subclin_inf": Parameter('prev_se_subclin_inf_pearl') - Parameter('prev_se_subclin_inf_cxr'),
+            "clin_inf": Parameter('prev_se_clin_inf_pearl') - Parameter('prev_se_clin_inf_cxr')
         },
         "dest_comp": "treatment",
         "success_prop": 1.  # probability of getting started on treatment if screened positive 

@@ -64,7 +64,7 @@ scenario_1 = Scenario(
 """
 scenario_2 = Scenario(
     sc_id="scenario_2",
-    sc_name="Betio-like, higher rate",
+    sc_name="Betio-like,\n higher rate",
     scr_prgs=[
         ScreeningProgram(
             name="cxr_3+_85perc",
@@ -116,7 +116,7 @@ scenario_2 = Scenario(
 """
 scenario_3 = Scenario(
     sc_id="scenario_3",
-    sc_name="Drop sputum, much higher rate",
+    sc_name="Drop sputum,\n much higher rate",
     scr_prgs=[
         ScreeningProgram(
             name="cxr_3+_95perc",

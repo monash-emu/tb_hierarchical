@@ -35,9 +35,11 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
             name=f"prev_{comp}",
             compartments=comp
         )
+
+        se_param = Parameter(f"prev_se_{comp}") if comp in latent_compartments else Parameter(f"prev_se_{comp}_pearl")
         model.request_function_output(
             name=f"measured_prev_{comp}",
-            func=DerivedOutput(f"prev_{comp}") * Parameter(f"prev_se_{comp}")
+            func=DerivedOutput(f"prev_{comp}") * se_param
         )
 
     # "True" and "Measured" TBI and TB prevalence

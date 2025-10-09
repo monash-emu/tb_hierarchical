@@ -65,32 +65,32 @@ TEST_ANALYSIS_CONFIG = {
 targets = [
     est.NormalTarget(
         name='measured_tb_prevalence_per100k', 
-        data=pd.Series(data=[600,], index=[2020]), 
+        data=pd.Series(data=[846.,], index=[2024]), 
         stdev=100.
     ),
     est.NormalTarget(
         name='measured_tbi_prevalence_perc', 
-        data=pd.Series(data=[40,], index=[2020]), 
+        data=pd.Series(data=[25.,], index=[2024]), 
         stdev=5.
     ),
     est.NormalTarget(
         name='perc_prev_subclinical', 
-        data=pd.Series(data=[50], index=[2020]), 
+        data=pd.Series(data=[50], index=[2024]), 
         stdev=5.
     ),
     est.NormalTarget(
         name='perc_prev_infectious', 
-        data=pd.Series(data=[50], index=[2020]), 
+        data=pd.Series(data=[50], index=[2024]), 
         stdev=5.
     ),
     est.NormalTarget(
         name='notifications', 
-        data=pd.Series(data=[384], index=[2020]),     # WHO reports 305/100k in 2020, 126099 population
+        data=pd.Series(data=[384], index=[2024]),     # WHO reports 305/100k in 2020, 126099 population
         stdev=50.
     ),
     est.NormalTarget(
         name='perc_notifications_clin', 
-        data=pd.Series(data=[80.], index=[2020]), 
+        data=pd.Series(data=[80.], index=[2024]), 
         stdev=5.
     ),
 ]
