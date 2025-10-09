@@ -318,18 +318,18 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
             ], file, default_flow_style=False)
 
 
-def calculate_diff_output_quantiles(full_runs, quantiles=[.025, .25, .5, .75, .975]):
+def calculate_diff_output_quantiles(full_runs, quantiles=[.025, .25, .5, .75, .975], ref_sc='baseline'):
     diff_names = {
         "TB_averted": "tb_incidence", # need to work with cumulative outputs here
     }
     
     latest_time = full_runs['baseline'].results.index.max()
     
-    runs_0_latest = full_runs['baseline'].results.loc[latest_time]
+    runs_0_latest = full_runs[ref_sc].results.loc[latest_time]
     
     diff_output_quantiles = {}
     for sc in full_runs:
-        if sc == 'baseline':
+        if sc == ref_sc:
              continue
         
         sc_runs_latest = full_runs[sc].results.loc[latest_time]
