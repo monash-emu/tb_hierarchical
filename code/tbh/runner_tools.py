@@ -88,11 +88,6 @@ targets = [
         data=pd.Series(data=[384], index=[2024]),     # WHO reports 305/100k in 2020, 126099 population
         stdev=50.
     ),
-    est.NormalTarget(
-        name='perc_notifications_clin', 
-        data=pd.Series(data=[80.], index=[2024]), 
-        stdev=5.
-    ),
 ]
 
 
