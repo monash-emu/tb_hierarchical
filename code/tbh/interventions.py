@@ -18,8 +18,8 @@ class ScreeningTools:
     # TB Disease screening
     CXR = {
         "sensitivities": {
-            "subclin_noninf": Parameter('prev_se_subclin_noninf_cxr'),
-            "clin_noninf": Parameter('prev_se_clin_noninf_cxr'),
+            "subclin_lowinf": Parameter('prev_se_subclin_lowinf_cxr'),
+            "clin_lowinf": Parameter('prev_se_clin_lowinf_cxr'),
             "subclin_inf": Parameter('prev_se_subclin_inf_cxr'),
             "clin_inf": Parameter('prev_se_clin_inf_cxr')
         },
@@ -30,8 +30,8 @@ class ScreeningTools:
     Xpert_topup = {
         # sensitivities need to be seen as additional sensitivity compared to screening based on CXR alone
         "sensitivities": {
-            "subclin_noninf": Parameter('prev_se_subclin_noninf_pearl') - Parameter('prev_se_subclin_noninf_cxr'),
-            "clin_noninf": Parameter('prev_se_clin_noninf_pearl') - Parameter('prev_se_clin_noninf_cxr'),
+            "subclin_lowinf": Parameter('prev_se_subclin_lowinf_pearl') - Parameter('prev_se_subclin_lowinf_cxr'),
+            "clin_lowinf": Parameter('prev_se_clin_lowinf_pearl') - Parameter('prev_se_clin_lowinf_cxr'),
             "subclin_inf": Parameter('prev_se_subclin_inf_pearl') - Parameter('prev_se_subclin_inf_cxr'),
             "clin_inf": Parameter('prev_se_clin_inf_pearl') - Parameter('prev_se_clin_inf_cxr')
         },

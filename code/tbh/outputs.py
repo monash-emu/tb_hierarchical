@@ -93,7 +93,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     )
     model.request_function_output(
         name="perc_notifications_clin",
-        func= 100. * (DerivedOutput("notifications_clin_noninf") + DerivedOutput("notifications_clin_inf")) / DerivedOutput("notifications")
+        func= 100. * (DerivedOutput("notifications_clin_lowinf") + DerivedOutput("notifications_clin_inf")) / DerivedOutput("notifications")
     )
 
     # Screening

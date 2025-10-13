@@ -23,8 +23,8 @@ COMPARTMENTS = (
     "contained",
     "cleared",
     # TB disease states
-    "subclin_noninf",
-    "clin_noninf",
+    "subclin_lowinf",
+    "clin_lowinf",
     "subclin_inf",
     "clin_inf",
     # Treatment and recovered
@@ -32,9 +32,9 @@ COMPARTMENTS = (
     "recovered"
 )
 
-INFECTIOUS_COMPARTMENTS = ("subclin_inf", "clin_inf")
 LATENT_COMPS = ["incipient", "contained", "cleared"]
-ACTIVE_COMPS = ["subclin_noninf", "clin_noninf", "subclin_inf", "clin_inf"]
+ACTIVE_COMPS = ["subclin_lowinf", "clin_lowinf", "subclin_inf", "clin_inf"]
+INFECTIOUS_COMPARTMENTS = ACTIVE_COMPS
 
 
 def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
@@ -106,14 +106,14 @@ def get_natural_tb_model(model_config, init_pop_size):
         name="progression",
         fractional_rate=Parameter("progression_rate"),
         source="incipient",
-        dest="subclin_noninf",
+        dest="subclin_lowinf",
     )
 
     """
         Active TB dynamics
     """
     # Clinical progression and regression flows
-    for infectious_status in ["inf", "noninf"]:
+    for infectious_status in ["inf", "lowinf"]:
         model.add_transition_flow(
             name=f"clinical_progression_{infectious_status}",
             fractional_rate=Parameter("clinical_progression_rate"),
@@ -132,18 +132,18 @@ def get_natural_tb_model(model_config, init_pop_size):
         model.add_transition_flow(
             name=f"infectiousnnes_gain_{clinical_status}",
             fractional_rate=Parameter("infectiousness_gain_rate"),
-            source=f"{clinical_status}_noninf",
+            source=f"{clinical_status}_lowinf",
             dest=f"{clinical_status}_inf",
         )
         model.add_transition_flow(
             name=f"infectiousnnes_loss_{clinical_status}",
             fractional_rate=Parameter("infectiousness_loss_rate"),
             source=f"{clinical_status}_inf",
-            dest=f"{clinical_status}_noninf",
+            dest=f"{clinical_status}_lowinf",
         )
 
     # TB self-recovery
-    for infectious_status in ["inf", "noninf"]:
+    for infectious_status in ["inf", "lowinf"]:
         model.add_transition_flow(
             name=f"self_recovery_{infectious_status}",
             fractional_rate=Parameter("self_recovery_rate"),
@@ -195,7 +195,7 @@ def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, scr
         name="tx_relapse",
         fractional_rate=1.,  # Placehodler only, age-specific value will be specified during age stratification
         source="treatment",
-        dest="subclin_noninf"
+        dest="subclin_lowinf"
     
     ) 
 
@@ -243,8 +243,14 @@ def stratify_model_by_age(
         {age: funcs['relapse'] for age, funcs in neg_tx_outcome_funcs.items()}
     )
 
-    # Adjust infectiousness of clinical vs nonclinical compartments. Not age-related but summer2 requires this to be done through stratification.
-    age_strat.add_infectiousness_adjustments("subclin_inf", {age: Parameter("rel_infectiousness_subclin") for age in age_groups})
+    # Reduce infectiousness of  subclinical and lowinfectious compartments. Also, makes children not infectious.
+    for compartment in ACTIVE_COMPS:
+        inf_adjuster = 1.
+        if compartment.endswith("_lowinf"):
+            inf_adjuster *= Parameter("rel_infectiousness_lowinf")
+        if compartment.startswith("subclin_"):
+            inf_adjuster *= Parameter("rel_infectiousness_subclin")
+        age_strat.add_infectiousness_adjustments(compartment, {age: 0. if int(age)<15 else inf_adjuster for age in age_groups})
 
     # Prevent children from progressing towards the infectious forms of TB
     for clinical_status in ["clin", "subclin"]:
@@ -294,7 +300,7 @@ def add_births_and_deaths(model, agg_pop_data, bckd_death_rates_funcs, neg_tx_ou
                 
     # Death caused by TB (Untreated), only applied to clinical TB
     tb_death_flows = []
-    for infectious_status in ["inf", "noninf"]:
+    for infectious_status in ["inf", "lowinf"]:
         for source_age in age_groups:  
             flow_name = f"tb_mortality_{infectious_status}_age_{source_age}"
             model.add_transition_flow(
