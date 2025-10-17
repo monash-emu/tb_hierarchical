@@ -86,7 +86,7 @@ def get_natural_tb_model(model_config, init_pop_size):
     """
     model.add_transition_flow(
         name="containment",
-        fractional_rate=Parameter("containment_rate"),
+        fractional_rate=1.,  # later adjusted by age
         source="incipient",
         dest="contained",
     )
@@ -104,7 +104,7 @@ def get_natural_tb_model(model_config, init_pop_size):
     )    
     model.add_transition_flow(
         name="progression",
-        fractional_rate=Parameter("progression_rate"),
+        fractional_rate=1., # later adjusted by age
         source="incipient",
         dest="subclin_lowinf",
     )
@@ -219,6 +219,8 @@ def stratify_model_by_age(
 
     assert "15" in age_groups, "We need 15 years old as an age break for compatibility with BCG effect and mixing matrix"
 
+    assert "0" in age_groups and "5" in age_groups, "For compatibility with age-specific TB infection parameters"
+
     # Create a stratification object
     age_strat = AgeStratification(
         name="age",
@@ -230,6 +232,19 @@ def stratify_model_by_age(
     build_mixing_matrix = gen_mixing_matrix_func(age_groups)  # create a function for a given set of age breakpoints
     age_mixing_matrix = Function(build_mixing_matrix, [Parameter("mixing_factor_cc"), Parameter("mixing_factor_ca")]) # the function generating the matrix
     age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
+
+    # Adjust infection progression and containment by age
+    for flow_name in ["progression", "containment"]:
+        adjustments = {}
+        for age in age_groups:
+            int_age = int(age)
+            latency_age_cat = "age0" if int_age < 5 else "age5" if int_age < 15 else "age15"
+            adjustments[age] = Parameter(f"{flow_name}_rate_{latency_age_cat}")
+        
+        age_strat.set_flow_adjustments(
+            flow_name=flow_name,
+            adjustments=adjustments
+        )
 
     # Adjust children's susceptibility to infection to capture BCG effect
     age_strat.set_flow_adjustments(
