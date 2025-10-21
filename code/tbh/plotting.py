@@ -310,3 +310,84 @@ def plot_diff_outputs(axis, diff_quantiles_dfs, output_name, scenarios):
 
     axis.set_xlim((0.5, len(scenarios) + 0.5))
     axis.set_ylim(0., 1.05 * y_max_abs)
+
+
+
+def plot_single_fit(bcm, params):
+
+    res = bcm.run(params)
+        
+    # Number of targets
+    n_targets = len(bcm.targets)
+    n_cols = 3
+    n_rows = ceil(n_targets / n_cols)
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 5 * n_rows))
+    axes = axes.flatten()  # make it easy to index
+
+    for i, (t_name, t) in enumerate(bcm.targets.items()):
+        ax = axes[i]
+        
+        t_data = t.data
+        series = res.derived_outputs[t_name].loc[2010:2025]
+        
+        # Plot main line
+        series.plot(ax=ax, title=t_name)
+        
+        # Plot single-point data as dot
+        t_data.plot(ax=ax, style="o")
+        
+        # Set y-limits
+        ax.set_ylim(bottom=0)
+        ymax = series.max()
+        ax.set_ylim(top=max([1.3 * ymax, t_data.max()]))
+        ax.set_xlabel("Year")
+        ax.set_ylabel("Value")
+
+    # Hide any unused subplots
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.show()
+
+
+def visualise_mle_params(priors, mle_params):
+    """
+    Visualise MLE parameters relative to their priors.
+    Each prior range is scaled to the same visual length (0–1).
+    """
+    fig, ax = plt.subplots(figsize=(6, len(mle_params) * 0.6))
+
+    # Reverse order so the first param appears on top
+    for i, (param_name, mle_val) in enumerate(reversed(mle_params.items())):
+        lower = priors[param_name].start
+        upper = priors[param_name].end
+        y = i
+        
+        # Normalise the MLE to 0–1
+        norm_mle = (mle_val - lower) / (upper - lower)
+
+        # Draw normalised prior line (0–1 visually)
+        ax.hlines(y, 0, 1, color='lightgrey', linewidth=4)
+        
+        # Plot the MLE point
+        ax.plot(norm_mle, y, 'o', color='tab:red', markersize=8)
+        
+        # Add label on the right
+        ax.text(1.05, y, f"{param_name}", va='center', fontsize=10)
+        
+        # Optionally show numeric values for reference
+        ax.text(-0.05, y, f"[{lower}, {upper}]", va='center', ha='right', color='grey', fontsize=8)
+
+    ax.set_xlim(-0.1, 1.2)
+    ax.set_yticks([])
+    ax.set_xlabel("Normalised prior scale (0–1)")
+    ax.set_title("MLE position within each prior range (equal visual lengths)")
+    
+        # Remove box (spines)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    
+    plt.tight_layout()
+    plt.show()
