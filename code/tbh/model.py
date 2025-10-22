@@ -102,12 +102,20 @@ def get_natural_tb_model(model_config, init_pop_size):
         source="contained",
         dest="incipient",
     )    
+    # Progression splits between low and high infectious categories (but all are subclinical)
     model.add_transition_flow(
-        name="progression",
-        fractional_rate=1., # later adjusted by age
+        name="progression_lowinf",
+        fractional_rate=1. - Parameter("progression_prop_infectious"), # later adjusted by age
         source="incipient",
         dest="subclin_lowinf",
     )
+    model.add_transition_flow(
+        name="progression_inf",
+        fractional_rate=Parameter("progression_prop_infectious"), # later adjusted by age
+        source="incipient",
+        dest="subclin_inf",
+    )
+
 
     """
         Active TB dynamics
@@ -234,12 +242,13 @@ def stratify_model_by_age(
     age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
 
     # Adjust infection progression and containment by age
-    for flow_name in ["progression", "containment"]:
+    for flow_name in ["progression_lowinf", "progression_inf", "containment"]:
+        param_stem = "containment" if flow_name == "containment" else "progression"
         adjustments = {}
         for age in age_groups:
             int_age = int(age)
             latency_age_cat = "age0" if int_age < 5 else "age5" if int_age < 15 else "age15"
-            adjustments[age] = Parameter(f"{flow_name}_rate_{latency_age_cat}")
+            adjustments[age] = Parameter(f"{param_stem}_rate_{latency_age_cat}")
         
         age_strat.set_flow_adjustments(
             flow_name=flow_name,
@@ -267,12 +276,12 @@ def stratify_model_by_age(
             inf_adjuster *= Parameter("rel_infectiousness_subclin")
         age_strat.add_infectiousness_adjustments(compartment, {age: 0. if int(age)<15 else inf_adjuster for age in age_groups})
 
-    # Prevent children from progressing towards the infectious forms of TB
-    for clinical_status in ["clin", "subclin"]:
-        age_strat.set_flow_adjustments(
-            f"infectiousnnes_gain_{clinical_status}", 
-            {age: (0. if int(age) < 15 else 1.) for age in age_groups}
-        )
+    # # Prevent children from progressing towards the infectious forms of TB
+    # for clinical_status in ["clin", "subclin"]:
+    #     age_strat.set_flow_adjustments(
+    #         f"infectiousnnes_gain_{clinical_status}", 
+    #         {age: (0. if int(age) < 15 else 1.) for age in age_groups}
+    #     )
 
     # Adjust screening interventions by age
     for scr_prog in screening_programs:

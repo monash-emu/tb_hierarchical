@@ -20,10 +20,15 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     model.request_output_for_flow("births", "births")
 
     # TB incidence (and cumulative)
-    model.request_output_for_flow(
-        name="tb_incidence",
-        flow_name="progression",
-    )
+    for inf_cat in ["lowinf", "inf"]:
+        model.request_output_for_flow(
+            name=f"tb_incidence_{inf_cat}",
+            flow_name=f"progression_{inf_cat}",
+        )
+    model.request_aggregate_output(
+        name=f"tb_incidence",
+        sources=[f"tb_incidence_{inf_cat}" for inf_cat in ["lowinf", "inf"]]
+    )    
     request_per_capita_output(model, "tb_incidence", per=100000.)
     model.request_cumulative_output(name="cum_tb_incidence", source="tb_incidence", start_time=2020)
 
