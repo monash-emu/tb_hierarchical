@@ -13,9 +13,16 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         active_compartments: list of active TB compartments
         tb_death_flows: list of flow names for TB mortality
     """
+    age_strata = model.stratifications['age'].strata
+
+    # Population size (incl. age-specific)
     model.request_output_for_compartments(
         name=f"population", compartments=compartments
     )
+    for age in age_strata:
+        model.request_output_for_compartments(
+            name=f"populationXage_{age}", compartments=compartments, strata={"age": age}
+        )
 
     model.request_output_for_flow("births", "births")
 
@@ -36,33 +43,47 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         Prevalence outputs (TB and TBI, true and measured)
     """
     for comp in latent_compartments + active_compartments:
-        model.request_output_for_compartments(
-            name=f"prev_{comp}",
-            compartments=comp
-        )
-
         se_param = Parameter(f"prev_se_{comp}") if comp in latent_compartments else Parameter(f"prev_se_{comp}_pearl")
-        model.request_function_output(
-            name=f"measured_prev_{comp}",
-            func=DerivedOutput(f"prev_{comp}") * se_param
-        )
+        for age in age_strata:
+            model.request_output_for_compartments(
+                name=f"prev_{comp}Xage_{age}", compartments=comp, strata={"age": age}, save_results=False
+            )
+            model.request_function_output(
+                name=f"measured_prev_{comp}Xage_{age}", func=DerivedOutput(f"prev_{comp}Xage_{age}") * se_param, save_results=False
+            )
+        model.request_aggregate_output(name=f"prev_{comp}", sources=[f"prev_{comp}Xage_{age}" for age in age_strata], save_results=False)
+        model.request_aggregate_output(name=f"measured_prev_{comp}", sources=[f"measured_prev_{comp}Xage_{age}" for age in age_strata], save_results=False)
 
     # "True" and "Measured" TBI and TB prevalence
     for state, comp_list, per in zip(["tbi", "tb"], [latent_compartments, active_compartments], [100., 100000.]):
-        # True prevalence
+        ## True prevalence
+        # All ages
         model.request_aggregate_output(
-            name=f"{state}_prevalence",
-            sources=[f"prev_{comp}" for comp in comp_list]
+            name=f"{state}_prevalence", sources=[f"prev_{comp}" for comp in comp_list]
         )
         request_per_capita_output(model, f"{state}_prevalence", per=per)
+        # Age-specific
+        for age in age_strata:
+            model.request_aggregate_output(
+                name=f"{state}_prevalenceXage_{age}", sources=[f"prev_{comp}Xage_{age}" for comp in comp_list]
+            )
+            request_per_capita_output(model, f"{state}_prevalenceXage_{age}", per=per, denominator_output=f"populationXage_{age}")        
 
-        # Measured prevalence (accounting for compartment-specific sensitivity)
+        ## Measured prevalence (accounting for compartment-specific sensitivity)
+        # All ages
         model.request_aggregate_output(
             name=f"measured_{state}_prevalence",
             sources=[f"measured_prev_{comp}" for comp in comp_list]
         )
         request_per_capita_output(model, f"measured_{state}_prevalence", per=per)
-    
+        # Age-specific
+        for age in age_strata:
+            model.request_aggregate_output(
+                name=f"measured_{state}_prevalenceXage_{age}", sources=[f"measured_prev_{comp}Xage_{age}" for comp in comp_list]
+            )
+            request_per_capita_output(model, f"measured_{state}_prevalenceXage_{age}", per=per, denominator_output=f"populationXage_{age}")           
+
+
     # Percentage subclinical (compare with Frascella et al. CID 2020 doi: 10.1093/cid/ciaa1402)
     model.request_output_for_compartments(
         name="subclin_tb_prevalence",
@@ -146,7 +167,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         model.request_computed_value_output(comp_val)
 
 
-def request_per_capita_output(model: CompartmentalModel, output, per=100.):
+def request_per_capita_output(model: CompartmentalModel, output, per=100., denominator_output="population"):
 
     if per == 100.:
         suffix = "perc"
@@ -157,5 +178,5 @@ def request_per_capita_output(model: CompartmentalModel, output, per=100.):
 
     model.request_function_output(
         name=f"{output}_{suffix}", 
-        func= per * DerivedOutput(output) / DerivedOutput("population")
+        func= per * DerivedOutput(output) / DerivedOutput(denominator_output)
     )
