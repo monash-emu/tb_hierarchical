@@ -20,7 +20,13 @@ export PYTENSOR_FLAGS=compiledir=$HOME/.pytensor/$SLURM_JOB_ID
 
 cd /projects/sh30/users/rragonnet/tb_hierarchical
 
+git fetch origin
+git checkout agespec_tbi_target
+git pull origin agespec_tbi_target
+
 log "Running Python script"
+
+
 
 pixi run python remote_cluster/scripts/massiverun.py $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
 
