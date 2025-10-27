@@ -391,3 +391,73 @@ def visualise_mle_params(priors, mle_params):
     
     plt.tight_layout()
     plt.show()
+
+
+def plot_age_spec_tbi_prev(unc_df, bcm):
+    agegroups = ["5", "10", "15", "65"]
+    
+    box_data = []
+    targets = []
+
+    # Collect quantile info per age group
+    for age in agegroups:
+        output_name = f"tbi_prevalenceXage_{age}_perc"
+
+        year = bcm.targets[output_name].data.index[0]
+        quantiles = unc_df[output_name].loc[year]
+        target = bcm.targets[output_name].data.iloc[0]
+
+        # Store quantiles in order for boxplot
+        box_data.append([
+            quantiles['0.025'],
+            quantiles['0.25'],
+            quantiles['0.5'],
+            quantiles['0.75'],
+            quantiles['0.975']
+        ])
+        targets.append(target)
+
+    # --- Plot ---
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    # Custom boxplot (using pre-computed quantiles)
+    bp = ax.bxp(
+        [
+            {
+                'med': d[2],
+                'q1': d[1],
+                'q3': d[3],
+                'whislo': d[0],
+                'whishi': d[4],
+                'fliers': []
+            } for d in box_data
+        ],
+        positions=range(len(agegroups)),
+        showfliers=False,
+        patch_artist=True
+    )
+
+    # Style boxes
+    for box in bp['boxes']:
+        box.set(facecolor='lightblue', alpha=0.6, edgecolor='navy')
+    for whisker in bp['whiskers']:
+        whisker.set(color='navy', linewidth=1)
+    for cap in bp['caps']:
+        cap.set(color='navy', linewidth=1)
+    for median in bp['medians']:
+        median.set(color='darkblue', linewidth=2)
+
+    # Overlay target points
+    ax.scatter(range(len(agegroups)), targets, color='red', marker='x', s=80, label='Target')
+
+    # Labels and formatting
+    ax.set_xticks(range(len(agegroups)))
+    ax.set_xticklabels(agegroups)
+    ax.set_xlabel("Age group")
+    ax.set_ylabel("TBI prevalence (%)")
+    ax.set_title("Measured vs modelled TBI prevalence by age group")
+    ax.legend()
+    ax.grid(alpha=0.3)
+
+    plt.tight_layout()
+    plt.show()
