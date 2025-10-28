@@ -76,22 +76,22 @@ targets = [
     # ),
 
     est.NormalTarget(
-        name='tbi_prevalenceXage_5_perc', 
+        name='measured_tbi_prevalenceXage_5_perc', 
         data=pd.Series(data=[4.,], index=[2024]), 
         stdev=5.
     ),
     est.NormalTarget(
-        name='tbi_prevalenceXage_10_perc', 
+        name='measured_tbi_prevalenceXage_10_perc', 
         data=pd.Series(data=[12.,], index=[2024]), 
         stdev=5.
     ),
     est.NormalTarget(
-        name='tbi_prevalenceXage_15_perc', 
+        name='measured_tbi_prevalenceXage_15_perc', 
         data=pd.Series(data=[35.,], index=[2024]), 
         stdev=5.
     ),
     est.NormalTarget(
-        name='tbi_prevalenceXage_65_perc', 
+        name='measured_tbi_prevalenceXage_65_perc', 
         data=pd.Series(data=[35.,], index=[2024]), 
         stdev=5.
     ),
