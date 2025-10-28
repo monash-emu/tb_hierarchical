@@ -401,7 +401,7 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
 
     # Collect quantile info per age group
     for age in agegroups:
-        output_name = f"tbi_prevalenceXage_{age}_perc"
+        output_name = f"measured_tbi_prevalenceXage_{age}_perc"
 
         year = bcm.targets[output_name].data.index[0]
         quantiles = unc_df[output_name].loc[year]
