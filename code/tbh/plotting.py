@@ -26,7 +26,11 @@ title_lookup = {
     "perc_prev_subclinical": "Prevalent subclinical TB (%)",
     "perc_prev_infectious": "Prevalent infectious TB (%)",
     "notifications": "TB notifications",
-    "perc_notifications_clin": "Clinical notifications (%)"
+    "perc_notifications_clin": "Clinical notifications (%)",
+
+
+    "measured_tbi_prevalence_perc": "Measured TBI prevalence (%)",
+    "measured_tb_prevalence_per100k": "TB prevalence (/100k)",
 }
 
 from tbh.runner_tools import DEFAULT_ANALYSIS_CONFIG
@@ -100,7 +104,9 @@ def plot_post_prior_comparison(
         plt.savefig(output_folder_path / "mc_posteriors.jpg", facecolor="white", bbox_inches='tight')
         plt.close()
         
-    return ax.figure.tight_layout()
+    ax.figure.tight_layout()
+    
+    return ax.figure
 
 
 def plot_multiple_posteriors(idata, burn_in=0, req_vars=None, output_folder_path=None):
