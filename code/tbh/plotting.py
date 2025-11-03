@@ -28,9 +28,11 @@ title_lookup = {
     "notifications": "TB notifications",
     "perc_notifications_clin": "Clinical notifications (%)",
 
-
+    "viable_tbi_prevalence_perc": "Viable TBI prevalence (%)",
     "measured_tbi_prevalence_perc": "Measured TBI prevalence (%)",
     "measured_tb_prevalence_per100k": "TB prevalence (/100k)",
+
+    "passive_detection_rate_clin": "Passive detec. rate (/y), clinical TB"
 }
 
 from tbh.runner_tools import DEFAULT_ANALYSIS_CONFIG
@@ -203,6 +205,31 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, incl
 
     if include_legend:
         plt.legend(markerscale=2.)
+
+
+def plot_all_model_fits(uncertainty_df, bcm, n_col=3):
+
+    selected_outputs = list(bcm.targets.keys())
+    n_row = ceil(len(selected_outputs) / n_col)
+
+    fig, axes = plt.subplots(n_row, n_col, figsize=(5 * n_col, 3.6 * n_row))
+    axes = axes.flatten()  # Flatten to simplify indexing
+
+    for i, output in enumerate(selected_outputs):
+        ax = axes[i]
+        out_name = output if output not in title_lookup else title_lookup[output]
+        plot_model_fit_with_uncertainty(ax, uncertainty_df, output, bcm, x_lim=(2010, 2025))
+        ax.set_title(out_name)
+        if i == 0:
+            ax.legend()
+
+    # Hide any unused axes
+    for j in range(len(selected_outputs), len(axes)):
+        fig.delaxes(axes[j])
+
+    fig.tight_layout()
+
+    return fig
 
 
 def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, include_unc=False, include_legend=True):
