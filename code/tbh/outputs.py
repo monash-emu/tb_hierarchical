@@ -83,6 +83,11 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
             )
             request_per_capita_output(model, f"measured_{state}_prevalenceXage_{age}", per=per, denominator_output=f"populationXage_{age}")           
 
+    # Prevalence of viable TB infection ('incipient' and 'contained')
+    model.request_aggregate_output(
+        name="viable_tbi_prevalence", sources=[f"prev_{comp}" for comp in ['incipient', 'contained']]
+    )
+    request_per_capita_output(model, "viable_tbi_prevalence", per=100.)           
 
     # Percentage subclinical (compare with Frascella et al. CID 2020 doi: 10.1093/cid/ciaa1402)
     model.request_output_for_compartments(
