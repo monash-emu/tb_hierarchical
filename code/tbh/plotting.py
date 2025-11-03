@@ -159,7 +159,7 @@ def plot_multiple_posteriors(idata, burn_in=0, req_vars=None, output_folder_path
         plt.show()
 
 
-def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, include_legend=True, x_lim=None):
+def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, include_legend=True, x_lim=None, ylab_fontsize=12):
 
     # update_rcparams() 
    
@@ -196,7 +196,7 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, incl
     # axis.tick_params(axis="x", labelrotation=45)
     title = output_name if output_name not in title_lookup else title_lookup[output_name]
 
-    axis.set_ylabel(title)
+    axis.set_ylabel(title, fontsize=ylab_fontsize)
     # plt.tight_layout()
 
     # Get existing y-limits
@@ -232,7 +232,7 @@ def plot_all_model_fits(uncertainty_df, bcm, n_col=3):
     return fig
 
 
-def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, include_unc=False, include_legend=True):
+def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, include_unc=False, include_legend=True, ylab_fontsize=12):
     ymax = 0.
     for i_sc, scenario in enumerate(scenarios):
         df = uncertainty_dfs[scenario][output_name].loc[xlim[0]:xlim[1]]
@@ -261,7 +261,7 @@ def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, incl
 
     # axis.tick_params(axis="x", labelrotation=45)
     title = output_name if output_name not in title_lookup else title_lookup[output_name]
-    axis.set_ylabel(title)
+    axis.set_ylabel(title, fontsize=ylab_fontsize)
     # axis.set_xlim((model_start, model_end))
     axis.set_ylim((0, plot_ymax))
 
