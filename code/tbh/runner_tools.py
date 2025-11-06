@@ -68,11 +68,34 @@ targets = [
         data=pd.Series(data=[846.,], index=[2024]), 
         stdev=100.
     ),
+
+    # est.NormalTarget(
+    #     name='measured_tbi_prevalence_perc', 
+    #     data=pd.Series(data=[25.,], index=[2024]), 
+    #     stdev=5.
+    # ),
     est.NormalTarget(
-        name='measured_tbi_prevalence_perc', 
-        data=pd.Series(data=[25.,], index=[2024]), 
+        name='measured_tbi_prevalenceXage_5_perc', 
+        data=pd.Series(data=[4.,], index=[2024]), 
         stdev=5.
     ),
+    est.NormalTarget(
+        name='measured_tbi_prevalenceXage_10_perc', 
+        data=pd.Series(data=[12.,], index=[2024]), 
+        stdev=5.
+    ),
+    est.NormalTarget(
+        name='measured_tbi_prevalenceXage_15_perc', 
+        data=pd.Series(data=[35.,], index=[2024]), 
+        stdev=5.
+    ),
+    est.NormalTarget(
+        name='measured_tbi_prevalenceXage_65_perc', 
+        data=pd.Series(data=[35.,], index=[2024]), 
+        stdev=5.
+    ),
+
+
     est.NormalTarget(
         name='perc_prev_subclinical', 
         data=pd.Series(data=[50], index=[2024]), 

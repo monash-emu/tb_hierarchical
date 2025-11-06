@@ -5,7 +5,9 @@ from math import ceil
 from copy import copy
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from matplotlib.patches import Rectangle
+import matplotlib.patches as mpatches
+import matplotlib.lines as mlines
+
 import numpy as np
 
 from estival import priors as esp
@@ -159,6 +161,98 @@ def plot_multiple_posteriors(idata, burn_in=0, req_vars=None, output_folder_path
         plt.show()
 
 
+def plot_posterior_pairs(
+    idata: az.InferenceData,
+    burn_in: int,
+    req_vars: list,
+    kind='scatter',
+    output_folder_path=None
+) -> plt.Figure:
+    """
+    Generate a pairwise posterior plot for selected parameters after burn-in.
+
+    This function discards the specified number of initial MCMC samples (burn-in) and
+    produces a pair plot showing the marginal posterior distributions and pairwise
+    joint distributions for the requested variables.
+
+    Parameters
+    ----------
+    idata : az.InferenceData
+        ArviZ InferenceData object containing posterior samples.
+    burn_in : int
+        Number of initial samples to discard as burn-in.
+    req_vars : list of str
+        List of variable names to include in the pairwise posterior plot.
+    output_folder_path : pathlib.Path or str, optional
+        Directory path where the figure will be saved as 'mc_posteriors.jpg'.
+        If None, the figure is displayed but not saved.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The matplotlib Figure object containing the pairwise posterior plot.
+    """
+    
+    az.rcParams["plot.max_subplots"]=200
+
+    # Discard burn-in samples
+    chain_length = idata.sample_stats.sizes['draw']
+    burnt_idata = idata.sel(draw=range(burn_in, chain_length))
+
+    # --- Plot pairwise posterior distributions ---
+    axes = az.plot_pair(
+        burnt_idata,
+        var_names=req_vars,
+        kind=kind,           # Smooth density estimates
+        marginals=True,       # Include 1D marginal distributions
+        point_estimate="mode",
+        divergences=True,
+        figsize=(30, 27),
+        kde_kwargs={
+             "contourf_kwargs": {"cmap": "hot_r"},
+        },
+    )
+
+    # Compute correlations
+    samples = burnt_idata.posterior.stack(draws=("chain", "draw"))[req_vars].to_dataframe()
+    corr_matrix = samples.corr()
+
+    n = len(req_vars)
+    for i in range(n):
+        for j in range(i):  # Only lower triangle
+            ax = axes[i, j]  # safe, lower triangle only
+            corr = corr_matrix.iloc[i, j]
+            ax.text(
+                0.5, 0.9, f"r = {corr:.2f}",  # Place near top-centre
+                transform=ax.transAxes,
+                ha="center",
+                fontsize=16,
+                color="black"
+            )
+
+
+    for ax in np.ravel(axes):
+        ax.set_xlabel(ax.get_xlabel(), fontsize=17)
+        ax.set_ylabel(ax.get_ylabel(), fontsize=17)
+        ax.tick_params(axis='both', labelsize=10)
+
+        if kind == 'scatter':
+            for coll in ax.collections:
+                coll.set_rasterized(True)
+
+    # Ensure we have a Figure handle
+    fig = axes.flat[0].figure
+
+    # Save or display
+    if output_folder_path:
+        plt.savefig(output_folder_path / "mc_posteriors.jpg", facecolor="white", bbox_inches="tight")
+        plt.close(fig)
+    else:
+        fig.tight_layout()
+
+    return fig
+
+
 def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, include_legend=True, x_lim=None, ylab_fontsize=12):
 
     # update_rcparams() 
@@ -284,7 +378,7 @@ def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios):
         # IQR
         q_75 = float(df['0.75'])
         q_25 = float(df['0.25'])
-        rect = Rectangle(xy=(x - box_width / 2., q_25), width=box_width, height=q_75 - q_25, zorder=2, facecolor=box_color)
+        rect = mpatches.Rectangle(xy=(x - box_width / 2., q_25), width=box_width, height=q_75 - q_25, zorder=2, facecolor=box_color)
         axis.add_patch(rect)
 
         # 95% CI
@@ -324,7 +418,7 @@ def plot_diff_outputs(axis, diff_quantiles_dfs, output_name, scenarios):
         # IQR
         q_75 = data.loc[0.75]
         q_25 = data.loc[0.25]
-        rect = Rectangle(xy=(x - box_width / 2., q_25), width=box_width, height=q_75 - q_25, zorder=2, facecolor=box_color)
+        rect = mpatches.Rectangle(xy=(x - box_width / 2., q_25), width=box_width, height=q_75 - q_25, zorder=2, facecolor=box_color)
         axis.add_patch(rect)
 
         # 95% CI
@@ -343,7 +437,6 @@ def plot_diff_outputs(axis, diff_quantiles_dfs, output_name, scenarios):
 
     axis.set_xlim((0.5, len(scenarios) + 0.5))
     axis.set_ylim(0., 1.05 * y_max_abs)
-
 
 
 def plot_single_fit(bcm, params):
@@ -481,16 +574,94 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
         median.set(color='darkblue', linewidth=2)
 
     # Overlay target points
-    ax.scatter(range(len(agegroups)), targets, color='red', marker='x', s=80, label='Target')
+    ax.scatter(range(len(agegroups)), targets, color='red', marker='x', s=80, label='Observed')
+
+    # Create proxy artists for legend
+    model_patch = mpatches.Patch(facecolor='lightblue', edgecolor='navy', alpha=0.6, label='Modelled (quantiles)')
+    obs_marker = mlines.Line2D([], [], color='red', marker='x', linestyle='None', markersize=8, label='Observed')
+
+    # Labels and formatting
+    ax.set_xticks(range(len(agegroups)))
+    ax.set_xticklabels([f"{age}-{int(agegroups[i_age + 1]) - 1}" if i_age < (len(agegroups) - 1) else f"{age}+" for i_age, age in enumerate(agegroups)])
+    ax.set_xlabel("Age group")
+    ax.set_ylabel("TST positivity rate (%)")
+    ax.set_title("Observed vs modelled TST positivity fraction by age group")
+    ax.legend(handles=[model_patch, obs_marker], loc='best')
+    ax.grid(alpha=0.3)
+
+    ax.set_ylim(bottom=0)  # ensures y-axis starts at 0
+
+    plt.tight_layout()
+    # plt.show()
+
+    return fig
+
+    agegroups = ["5", "10", "15", "65"]
+    
+    box_data = []
+    targets = []
+
+    # Collect quantile info per age group
+    for age in agegroups:
+        output_name = f"measured_tbi_prevalenceXage_{age}_perc"
+
+        year = bcm.targets[output_name].data.index[0]
+        quantiles = unc_df[output_name].loc[year]
+        target = bcm.targets[output_name].data.iloc[0]
+
+        # Store quantiles in order for boxplot
+        box_data.append([
+            quantiles['0.025'],
+            quantiles['0.25'],
+            quantiles['0.5'],
+            quantiles['0.75'],
+            quantiles['0.975']
+        ])
+        targets.append(target)
+
+    # --- Plot ---
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    # Custom boxplot (using pre-computed quantiles)
+    bp = ax.bxp(
+        [
+            {
+                'med': d[2],
+                'q1': d[1],
+                'q3': d[3],
+                'whislo': d[0],
+                'whishi': d[4],
+                'fliers': []
+            } for d in box_data
+        ],
+        positions=range(len(agegroups)),
+        showfliers=False,
+        patch_artist=True
+    )
+
+    # Style boxes
+    for box in bp['boxes']:
+        box.set(facecolor='lightblue', alpha=0.6, edgecolor='navy')
+    for whisker in bp['whiskers']:
+        whisker.set(color='navy', linewidth=1)
+    for cap in bp['caps']:
+        cap.set(color='navy', linewidth=1)
+    for median in bp['medians']:
+        median.set(color='darkblue', linewidth=2)
+
+    # Overlay target points
+    ax.scatter(range(len(agegroups)), targets, color='red', marker='x', s=80, label='Observations')
 
     # Labels and formatting
     ax.set_xticks(range(len(agegroups)))
     ax.set_xticklabels(agegroups)
     ax.set_xlabel("Age group")
-    ax.set_ylabel("TBI prevalence (%)")
-    ax.set_title("Measured vs modelled TBI prevalence by age group")
+    ax.set_ylabel("TST positivity rate (%)")
+    ax.set_title("Observed vs modelled TST positivity fraction by age group")
     ax.legend()
     ax.grid(alpha=0.3)
 
     plt.tight_layout()
     plt.show()
+
+    return fig
