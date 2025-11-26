@@ -301,9 +301,11 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, incl
         plt.legend(markerscale=2.)
 
 
-def plot_all_model_fits(uncertainty_df, bcm, n_col=3):
+def plot_all_model_fits(uncertainty_df, bcm, n_col=3, excluded_outputs=[]):
 
     selected_outputs = list(bcm.targets.keys())
+    selected_outputs = [o for o in selected_outputs if o not in excluded_outputs]
+
     n_row = ceil(len(selected_outputs) / n_col)
 
     fig, axes = plt.subplots(n_row, n_col, figsize=(5 * n_col, 3.6 * n_row))
