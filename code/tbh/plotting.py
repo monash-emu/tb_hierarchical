@@ -25,13 +25,13 @@ title_lookup = {
 
     "tb_prevalence_per100k": "TB prevalence (/100k)",
     "tbi_prevalence_perc": "TBI prevalence (%)",
-    "perc_prev_subclinical": "Prevalent subclinical TB (%)",
-    "perc_prev_infectious": "Prevalent infectious TB (%)",
-    "notifications": "TB notifications",
+    "perc_prev_subclinical": "% TB subclinical",
+    "perc_prev_infectious": "% TB infectious",
+    "notifications": "TB notifications (n)",
     "perc_notifications_clin": "Clinical notifications (%)",
 
     "viable_tbi_prevalence_perc": "Viable TBI prevalence (%)",
-    "measured_tbi_prevalence_perc": "Measured TBI prevalence (%)",
+    "measured_tbi_prevalence_perc": "TST positivity (%)",
     "measured_tb_prevalence_per100k": "TB prevalence (/100k)",
 
     "passive_detection_rate_clin": "Passive detec. rate (/y), clinical TB"
@@ -586,7 +586,7 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
     ax.set_xticks(range(len(agegroups)))
     ax.set_xticklabels([f"{age}-{int(agegroups[i_age + 1]) - 1}" if i_age < (len(agegroups) - 1) else f"{age}+" for i_age, age in enumerate(agegroups)])
     ax.set_xlabel("Age group")
-    ax.set_ylabel("TST positivity rate (%)")
+    ax.set_ylabel(title_lookup["measured_tbi_prevalence_perc"])
     ax.set_title("Observed vs modelled TST positivity fraction by age group")
     ax.legend(handles=[model_patch, obs_marker], loc='best')
     ax.grid(alpha=0.3)
