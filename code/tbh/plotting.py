@@ -16,7 +16,6 @@ from estival import priors as esp
 title_lookup = {
     "tb_incidence": "TB incidence",
     "tb_incidence_per100k": "TB incidence (/100k)",
-    "tbi_prevalence_perc": "TB infection prev. (%)",
     "tb_mortality_per100k": "TB mortality (/100k)",
     "cum_tb_incidence": "N TB episodes 2020-2050", 
     "cum_tb_mortality": "N TB deaths 2020-2050",
@@ -585,7 +584,7 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
     # Labels and formatting
     ax.set_xticks(range(len(agegroups)))
     ax.set_xticklabels([f"{age}-{int(agegroups[i_age + 1]) - 1}" if i_age < (len(agegroups) - 1) else f"{age}+" for i_age, age in enumerate(agegroups)])
-    ax.set_xlabel("Age group")
+    ax.set_xlabel("Age group (years)")
     ax.set_ylabel(title_lookup["measured_tbi_prevalence_perc"])
     ax.set_title("Observed vs modelled TST positivity fraction by age group")
     ax.legend(handles=[model_patch, obs_marker], loc='best')
