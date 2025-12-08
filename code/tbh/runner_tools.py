@@ -25,6 +25,7 @@ sys.path.append(str(root))
 
 from data import scenarios as sc
 
+SCENARIOS = [sc.scenario_1, sc.scenario_2, sc.scenario_3, sc.scenario_4, sc.scenario_5]
 
 DEFAULT_MODEL_CONFIG = {
     "start_time": 1850,
@@ -45,7 +46,7 @@ DEFAULT_ANALYSIS_CONFIG = {
     # Full runs config
     'burn_in': 10000,
     'full_runs_samples': 4000,
-    'scenarios': [sc.scenario_1, sc.scenario_2, sc.scenario_3]
+    'scenarios': SCENARIOS
 }
 
 TEST_ANALYSIS_CONFIG = {
@@ -58,7 +59,7 @@ TEST_ANALYSIS_CONFIG = {
     # Full runs config
     'burn_in': 50,
     'full_runs_samples': 100,
-    'scenarios': [sc.scenario_1, sc.scenario_2, sc.scenario_3]
+    'scenarios': SCENARIOS
 }
 
 # !FIXME this code doesn't belong here

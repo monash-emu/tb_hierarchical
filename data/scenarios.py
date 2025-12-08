@@ -116,7 +116,7 @@ scenario_2 = Scenario(
 """
 scenario_3 = Scenario(
     sc_id="scenario_3",
-    sc_name="Drop Xpert / High",
+    sc_name="3. Drop Xpert / High",
     scr_prgs=[
         ScreeningProgram(
             name="cxr_3+",
@@ -155,7 +155,7 @@ scenario_3 = Scenario(
 """
 scenario_4 = Scenario(
     sc_id="scenario_4",
-    sc_name="Drop Xpert - Scr 10+ / VHigh",
+    sc_name="4. Drop Xpert - Scr 10+ / VHigh",
     scr_prgs=[
         ScreeningProgram(
             name="cxr_10+",
@@ -195,7 +195,7 @@ scenario_4 = Scenario(
 """
 scenario_5 = Scenario(
     sc_id="scenario_5",
-    sc_name="Drop Xpert & TST / Max",
+    sc_name="5. Drop Xpert & TST / Max",
     scr_prgs=[
         ScreeningProgram(
             name="cxr_3+",
