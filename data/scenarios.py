@@ -11,13 +11,13 @@ from tbh.interventions import Scenario, ScreeningProgram, ScreeningTools
 """
 scenario_1 = Scenario(
     sc_id="scenario_1",
-    sc_name="Betio-like",
+    sc_name="1. Current / Low",
     scr_prgs=[
         ScreeningProgram(
-            name="cxr_3+_75perc",
+            name="cxr_3+",
             start_time=2026,
             end_time=2027,
-            total_coverage_perc=75.,
+            total_coverage_perc=85. * 15/35,
             strata_coverage_multipliers={
                 "age": {
                     "0": 0.
@@ -26,10 +26,10 @@ scenario_1 = Scenario(
             scr_tool=ScreeningTools.CXR
         ),
         ScreeningProgram( 
-            name="xpert_10+_35perc",
+            name="xpert_10+",
             start_time=2026,
             end_time=2027,
-            total_coverage_perc=35 * .75, # 30-40% of those screened
+            total_coverage_perc=85. * 0.35 * 15/35, # 30-40% of those screened
             strata_coverage_multipliers={
                 "age": {
                     "0": 0.,
@@ -39,10 +39,10 @@ scenario_1 = Scenario(
             scr_tool=ScreeningTools.Xpert_topup
         ),
         ScreeningProgram(
-            name="tst_3+_75perc",
+            name="tst_3+",
             start_time=2026,
             end_time=2027,
-            total_coverage_perc=75.,
+            total_coverage_perc=85. * 15/35,
             strata_coverage_multipliers={
                 "age": {
                     "0": 0.,
@@ -64,13 +64,13 @@ scenario_1 = Scenario(
 """
 scenario_2 = Scenario(
     sc_id="scenario_2",
-    sc_name="Betio-like,\n higher rate",
+    sc_name="2. Current / Med",
     scr_prgs=[
         ScreeningProgram(
-            name="cxr_3+_85perc",
+            name="cxr_3+",
             start_time=2026,
             end_time=2027,
-            total_coverage_perc=85.,
+            total_coverage_perc=85. * 20/35,
             strata_coverage_multipliers={
                 "age": {
                     "0": 0.
@@ -79,10 +79,10 @@ scenario_2 = Scenario(
             scr_tool=ScreeningTools.CXR
         ),
         ScreeningProgram( 
-            name="xpert_10+_35perc",
+            name="xpert_10+",
             start_time=2026,
             end_time=2027,
-            total_coverage_perc=35. * .85,
+            total_coverage_perc=85. * 0.35 * 20/35, # 30-40% of those screened
             strata_coverage_multipliers={
                 "age": {
                     "0": 0.,
@@ -92,10 +92,10 @@ scenario_2 = Scenario(
             scr_tool=ScreeningTools.Xpert_topup
         ),
         ScreeningProgram(
-            name="tst_3+_85perc",
+            name="tst_3+",
             start_time=2026,
             end_time=2027,
-            total_coverage_perc=85.,
+            total_coverage_perc=85. * 20/35,
             strata_coverage_multipliers={
                 "age": {
                     "0": 0.,
@@ -116,13 +116,13 @@ scenario_2 = Scenario(
 """
 scenario_3 = Scenario(
     sc_id="scenario_3",
-    sc_name="Drop sputum,\n much higher rate",
+    sc_name="Drop Xpert / High",
     scr_prgs=[
         ScreeningProgram(
-            name="cxr_3+_95perc",
+            name="cxr_3+",
             start_time=2026,
             end_time=2027,
-            total_coverage_perc=95.,
+            total_coverage_perc=85. * 25/35,
             strata_coverage_multipliers={
                 "age": {
                     "0": 0.
@@ -131,10 +131,10 @@ scenario_3 = Scenario(
             scr_tool=ScreeningTools.CXR
         ),
         ScreeningProgram(
-            name="tst_3+_85perc",
+            name="tst_3+",
             start_time=2026,
             end_time=2027,
-            total_coverage_perc=95.,
+            total_coverage_perc=85. * 25/35,
             strata_coverage_multipliers={
                 "age": {
                     "0": 0.,
@@ -153,6 +153,38 @@ scenario_3 = Scenario(
     70% TPT completion
     95% TB treatment success in identified cases
 """
+scenario_4 = Scenario(
+    sc_id="scenario_4",
+    sc_name="Drop Xpert - Scr 10+ / VHigh",
+    scr_prgs=[
+        ScreeningProgram(
+            name="cxr_10+",
+            start_time=2026,
+            end_time=2027,
+            total_coverage_perc=85. * 30/35,
+            strata_coverage_multipliers={
+                "age": {
+                    "0": 0.,
+                    "3": 0.
+                }
+            },
+            scr_tool=ScreeningTools.CXR
+        ),
+        ScreeningProgram(
+            name="tst_3+",
+            start_time=2026,
+            end_time=2027,
+            total_coverage_perc=85. * 30/35,
+            strata_coverage_multipliers={
+                "age": {
+                    "0": 0.,
+                    "3": 0.
+                }
+            },
+            scr_tool=ScreeningTools.TST
+        ),
+    ]
+)
 
 """
     Scenario 5
@@ -161,3 +193,21 @@ scenario_3 = Scenario(
     85% coverage of everyone >3yrs (30-40% of people >10yrs screened with universal sputum Xpert as well)
     95% TB treatment success in identified cases
 """
+scenario_5 = Scenario(
+    sc_id="scenario_5",
+    sc_name="Drop Xpert & TST / Max",
+    scr_prgs=[
+        ScreeningProgram(
+            name="cxr_3+",
+            start_time=2026,
+            end_time=2027,
+            total_coverage_perc=85. * 35/35,
+            strata_coverage_multipliers={
+                "age": {
+                    "0": 0.
+                }
+            },
+            scr_tool=ScreeningTools.CXR
+        ),
+    ]
+)
