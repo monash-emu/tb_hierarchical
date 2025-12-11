@@ -83,22 +83,22 @@ targets = [
     # ),
     est.NormalTarget(
         name='tst_posXage_3_perc', 
-        data=pd.Series(data=[4.,], index=[2024]), 
+        data=pd.Series(data=[3.4,], index=[2025]), 
         stdev=5.
     ),
     est.NormalTarget(
         name='tst_posXage_10_perc', 
-        data=pd.Series(data=[12.,], index=[2024]), 
+        data=pd.Series(data=[9.4,], index=[2025]), 
         stdev=5.
     ),
     est.NormalTarget(
         name='tst_posXage_15_perc', 
-        data=pd.Series(data=[35.,], index=[2024]), 
+        data=pd.Series(data=[28.2,], index=[2025]), 
         stdev=5.
     ),
     est.NormalTarget(
         name='tst_posXage_65_perc', 
-        data=pd.Series(data=[35.,], index=[2024]), 
+        data=pd.Series(data=[32.7,], index=[2025]), 
         stdev=5.
     ),
 
