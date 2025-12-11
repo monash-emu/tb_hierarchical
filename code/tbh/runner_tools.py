@@ -66,9 +66,15 @@ TEST_ANALYSIS_CONFIG = {
 targets = [
     est.NormalTarget(
         name='pearl_pos_per100k', 
-        data=pd.Series(data=[846.,], index=[2024]), 
+        data=pd.Series(data=[900.4,], index=[2025]), 
         stdev=100.
     ),
+    est.NormalTarget(
+        name='cxr_pos_per100k', 
+        data=pd.Series(data=[596.3,], index=[2025]), 
+        stdev=100.
+    ),
+
 
     # est.NormalTarget(
     #     name='measured_tbi_prevalence_perc', 
