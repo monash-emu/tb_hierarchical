@@ -72,8 +72,11 @@ def get_natural_tb_model(model_config, init_pop_size):
     )
 
     # Transmission flows (including reinfection)
-    for susceptible_comp in ["mtb_naive", "contained", "cleared","recovered"]:
-        rel_susceptibility = 1. if susceptible_comp == "mtb_naive" else Parameter(f"rel_sus_{susceptible_comp}")
+    for susceptible_comp in ["mtb_naive", "contained", "cleared", "recovered"]:
+        if susceptible_comp == "recovered": # usinf commong parameter for rel_susceptibility after clearance and recovery
+            rel_susceptibility = Parameter("rel_sus_cleared")
+        else:
+            rel_susceptibility = 1. if susceptible_comp == "mtb_naive" else Parameter(f"rel_sus_{susceptible_comp}")
         model.add_infection_frequency_flow(
             name=f"infection_from_{susceptible_comp}",
             contact_rate=Parameter("raw_transmission_rate") * rel_susceptibility,
