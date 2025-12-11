@@ -105,17 +105,17 @@ targets = [
 
     est.NormalTarget(
         name='perc_prev_subclinical', 
-        data=pd.Series(data=[50], index=[2024]), 
+        data=pd.Series(data=[81.3], index=[2025]),  # 113 out of 113+26
         stdev=5.
     ),
     est.NormalTarget(
         name='perc_prev_infectious', 
-        data=pd.Series(data=[50], index=[2024]), 
+        data=pd.Series(data=[69.5], index=[2025]),  # 98 out of 141
         stdev=5.
     ),
     est.NormalTarget(
         name='notifications', 
-        data=pd.Series(data=[384], index=[2024]),     # WHO reports 305/100k in 2020, 126099 population
+        data=pd.Series(data=[384], index=[2024]),     #FIXME! For now: WHO reports 305/100k in 2020, 126099 population
         stdev=50.
     ),
 ]
