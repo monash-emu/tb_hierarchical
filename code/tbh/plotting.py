@@ -30,8 +30,8 @@ title_lookup = {
     "perc_notifications_clin": "Clinical notifications (%)",
 
     "viable_tbi_prevalence_perc": "Viable TBI prevalence (%)",
-    "measured_tbi_prevalence_perc": "TST positivity (%)",
-    "measured_tb_prevalence_per100k": "TB prevalence (/100k)",
+    "tst_pos_perc": "TST positivity (%)",
+    "pearl_pos_per100k": "TB prevalence (/100k)",
 
     "passive_detection_rate_clin": "Passive detec. rate (/y), clinical TB"
 }
@@ -521,14 +521,14 @@ def visualise_mle_params(priors, mle_params):
 
 
 def plot_age_spec_tbi_prev(unc_df, bcm):
-    agegroups = ["5", "10", "15", "65"]
+    agegroups = ["3", "10", "15", "65"]
     
     box_data = []
     targets = []
 
     # Collect quantile info per age group
     for age in agegroups:
-        output_name = f"measured_tbi_prevalenceXage_{age}_perc"
+        output_name = f"tst_posXage_{age}_perc"
 
         year = bcm.targets[output_name].data.index[0]
         quantiles = unc_df[output_name].loc[year]
@@ -585,7 +585,7 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
     ax.set_xticks(range(len(agegroups)))
     ax.set_xticklabels([f"{age}-{int(agegroups[i_age + 1]) - 1}" if i_age < (len(agegroups) - 1) else f"{age}+" for i_age, age in enumerate(agegroups)])
     ax.set_xlabel("Age group (years)")
-    ax.set_ylabel(title_lookup["measured_tbi_prevalence_perc"])
+    ax.set_ylabel(title_lookup["tst_pos_perc"])
     ax.set_title("Observed vs modelled TST positivity fraction by age group")
     ax.legend(handles=[model_patch, obs_marker], loc='best')
     ax.grid(alpha=0.3)

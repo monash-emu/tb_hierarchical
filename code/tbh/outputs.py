@@ -40,48 +40,61 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     model.request_cumulative_output(name="cum_tb_incidence", source="tb_incidence", start_time=2020)
 
     """ 
-        Prevalence outputs (TB and TBI, true and measured)
+        Prevalence outputs (TB and TBI)
     """
+    # True absolute prevalence (i.e. compartment sizes) for TB and TBI
     for comp in latent_compartments + active_compartments:
-        se_param = Parameter(f"prev_se_{comp}") if comp in latent_compartments else Parameter(f"prev_se_{comp}_pearl")
         for age in age_strata:
             model.request_output_for_compartments(
                 name=f"prev_{comp}Xage_{age}", compartments=comp, strata={"age": age}, save_results=False
-            )
-            model.request_function_output(
-                name=f"measured_prev_{comp}Xage_{age}", func=DerivedOutput(f"prev_{comp}Xage_{age}") * se_param, save_results=False
-            )
+            )           
         model.request_aggregate_output(name=f"prev_{comp}", sources=[f"prev_{comp}Xage_{age}" for age in age_strata], save_results=False)
-        model.request_aggregate_output(name=f"measured_prev_{comp}", sources=[f"measured_prev_{comp}Xage_{age}" for age in age_strata], save_results=False)
-
-    # "True" and "Measured" TBI and TB prevalence
+    # True per-capita prevalence for TB and TBI
     for state, comp_list, per in zip(["tbi", "tb"], [latent_compartments, active_compartments], [100., 100000.]):
-        ## True prevalence
-        # All ages
         model.request_aggregate_output(
-            name=f"{state}_prevalence", sources=[f"prev_{comp}" for comp in comp_list]
+                name=f"{state}_prevalence", sources=[f"prev_{comp}" for comp in comp_list]
         )
         request_per_capita_output(model, f"{state}_prevalence", per=per)
-        # Age-specific
-        for age in age_strata:
-            model.request_aggregate_output(
-                name=f"{state}_prevalenceXage_{age}", sources=[f"prev_{comp}Xage_{age}" for comp in comp_list]
-            )
-            request_per_capita_output(model, f"{state}_prevalenceXage_{age}", per=per, denominator_output=f"populationXage_{age}")        
 
-        ## Measured prevalence (accounting for compartment-specific sensitivity)
-        # All ages
+
+    # Measured n TST positive (accounting for compartment-specific sensitivity for TST) 
+    for comp in latent_compartments:
+        for age in age_strata:
+            model.request_function_output(
+                name=f"tst_pos_{comp}Xage_{age}", func=DerivedOutput(f"prev_{comp}Xage_{age}") * Parameter(f"prev_se_{comp}"), save_results=False
+            )
+    # Per-capita TST positivity for each age-group and aggregated
+    for age in age_strata:
         model.request_aggregate_output(
-            name=f"measured_{state}_prevalence",
-            sources=[f"measured_prev_{comp}" for comp in comp_list]
+            name=f"tst_posXage_{age}", sources=[f"tst_pos_{comp}Xage_{age}" for comp in latent_compartments]
         )
-        request_per_capita_output(model, f"measured_{state}_prevalence", per=per)
-        # Age-specific
+        request_per_capita_output(model, f"tst_posXage_{age}", per=100, denominator_output=f"populationXage_{age}")           
+    model.request_aggregate_output(
+        name="tst_pos", sources=[f"tst_posXage_{age}" for age in age_strata]
+    )
+    request_per_capita_output(model, "tst_pos", per=100)
+
+
+    # Measured PEARL (i.e. Xpert) and CXR positivity (accounting for compartment-specific sensitivity for different tests) 
+    for comp in active_compartments:
+        for age in age_strata:
+            for test in ['pearl', 'cxr']:
+                model.request_function_output(
+                    name=f"{test}_prev_{comp}Xage_{age}", func=DerivedOutput(f"prev_{comp}Xage_{age}") * Parameter(f"prev_se_{comp}_{test}"), save_results=False
+                )
+
+    # Per-capita PEARL and CXR positivity for each age-group and aggregated
+    for test in ['pearl', 'cxr']:
         for age in age_strata:
             model.request_aggregate_output(
-                name=f"measured_{state}_prevalenceXage_{age}", sources=[f"measured_prev_{comp}Xage_{age}" for comp in comp_list]
+                name=f"{test}_posXage_{age}", sources=[f"{test}_prev_{comp}Xage_{age}" for comp in active_compartments]
             )
-            request_per_capita_output(model, f"measured_{state}_prevalenceXage_{age}", per=per, denominator_output=f"populationXage_{age}")           
+            request_per_capita_output(model, f"{test}_posXage_{age}", per=100000., denominator_output=f"populationXage_{age}")           
+        model.request_aggregate_output(
+            name=f"{test}_pos", sources=[f"{test}_posXage_{age}" for age in age_strata]
+        )
+        request_per_capita_output(model, f"{test}_pos", per=100000.)
+
 
     # Prevalence of viable TB infection ('incipient' and 'contained')
     model.request_aggregate_output(
