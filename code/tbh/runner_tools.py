@@ -66,12 +66,12 @@ TEST_ANALYSIS_CONFIG = {
 targets = [
     est.NormalTarget(
         name='pearl_pos_per100k', 
-        data=pd.Series(data=[900.4,], index=[2025]), 
+        data=pd.Series(data=[900.4,], index=[2024]), 
         stdev=100.
     ),
     est.NormalTarget(
         name='cxr_pos_per100k', 
-        data=pd.Series(data=[596.3,], index=[2025]), 
+        data=pd.Series(data=[596.3,], index=[2024]), 
         stdev=100.
     ),
 
@@ -83,34 +83,34 @@ targets = [
     # ),
     est.NormalTarget(
         name='tst_posXage_3_9_perc', 
-        data=pd.Series(data=[3.4,], index=[2025]), 
+        data=pd.Series(data=[3.4,], index=[2024]), 
         stdev=5.
     ),
     est.NormalTarget(
         name='tst_posXage_10_perc', 
-        data=pd.Series(data=[9.4,], index=[2025]), 
+        data=pd.Series(data=[9.4,], index=[2024]), 
         stdev=5.
     ),
     est.NormalTarget(
         name='tst_posXage_15_perc', 
-        data=pd.Series(data=[28.2,], index=[2025]), 
+        data=pd.Series(data=[28.2,], index=[2024]), 
         stdev=5.
     ),
     est.NormalTarget(
         name='tst_posXage_65_perc', 
-        data=pd.Series(data=[32.7,], index=[2025]), 
+        data=pd.Series(data=[32.7,], index=[2024]), 
         stdev=5.
     ),
 
 
     est.NormalTarget(
         name='perc_prev_subclinical', 
-        data=pd.Series(data=[81.3], index=[2025]),  # 113 out of 113+26
+        data=pd.Series(data=[81.3], index=[2024]),  # 113 out of 113+26
         stdev=5.
     ),
     est.NormalTarget(
         name='perc_prev_infectious', 
-        data=pd.Series(data=[69.5], index=[2025]),  # 98 out of 141
+        data=pd.Series(data=[69.5], index=[2024]),  # 98 out of 141
         stdev=5.
     ),
     est.NormalTarget(
