@@ -31,7 +31,8 @@ title_lookup = {
 
     "viable_tbi_prevalence_perc": "Viable TBI prevalence (%)",
     "tst_pos_perc": "TST positivity (%)",
-    "pearl_pos_per100k": "TB prevalence (/100k)",
+    "pearl_pos_per100k": "PEARL TB prevalence (/100k)",
+    "cxr_pos_per100k": "CXR TB prevalence (/100k)",
 
     "passive_detection_rate_clin": "Passive detec. rate (/y), clinical TB"
 }
@@ -521,7 +522,7 @@ def visualise_mle_params(priors, mle_params):
 
 
 def plot_age_spec_tbi_prev(unc_df, bcm):
-    agegroups = ["3", "10", "15", "65"]
+    agegroups = ["3_9", "10", "15", "65"]
     
     box_data = []
     targets = []
@@ -583,7 +584,18 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
 
     # Labels and formatting
     ax.set_xticks(range(len(agegroups)))
-    ax.set_xticklabels([f"{age}-{int(agegroups[i_age + 1]) - 1}" if i_age < (len(agegroups) - 1) else f"{age}+" for i_age, age in enumerate(agegroups)])
+    
+    x_tick_labels = []
+    for i_age, age in enumerate(agegroups):
+        if age == "3_9":
+            x_tick_labels.append("3_9")
+        else:
+            if i_age < (len(agegroups) - 1):
+                next_age = agegroups[i_age + 1]
+                x_tick_labels.append(f"{age}-{int(next_age) - 1}")
+            else:
+                x_tick_labels.append(f"{age}+")        
+    
     ax.set_xlabel("Age group (years)")
     ax.set_ylabel(title_lookup["tst_pos_perc"])
     ax.set_title("Observed vs modelled TST positivity fraction by age group")

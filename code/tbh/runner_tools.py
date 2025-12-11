@@ -32,7 +32,7 @@ DEFAULT_MODEL_CONFIG = {
     "end_time": 2050,
     "seed": 100,
     "iso3": "KIR",
-    "age_groups": ["0", "3", "10", "15", "65"],
+    "age_groups": ["0", "3", "5", "10", "15", "65"],
     "pop_scaling": 1.0,
 }
 
@@ -82,7 +82,7 @@ targets = [
     #     stdev=5.
     # ),
     est.NormalTarget(
-        name='tst_posXage_3_perc', 
+        name='tst_posXage_3_9_perc', 
         data=pd.Series(data=[3.4,], index=[2025]), 
         stdev=5.
     ),
