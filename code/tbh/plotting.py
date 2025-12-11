@@ -588,14 +588,15 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
     x_tick_labels = []
     for i_age, age in enumerate(agegroups):
         if age == "3_9":
-            x_tick_labels.append("3_9")
+            x_tick_labels.append("3-9")
         else:
             if i_age < (len(agegroups) - 1):
                 next_age = agegroups[i_age + 1]
                 x_tick_labels.append(f"{age}-{int(next_age) - 1}")
             else:
                 x_tick_labels.append(f"{age}+")        
-    
+    ax.set_xticklabels(x_tick_labels)
+
     ax.set_xlabel("Age group (years)")
     ax.set_ylabel(title_lookup["tst_pos_perc"])
     ax.set_title("Observed vs modelled TST positivity fraction by age group")
