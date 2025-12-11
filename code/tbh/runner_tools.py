@@ -32,7 +32,7 @@ DEFAULT_MODEL_CONFIG = {
     "end_time": 2050,
     "seed": 100,
     "iso3": "KIR",
-    "age_groups": ["0", "3", "5", "10", "15", "65"],
+    "age_groups": ["0", "3", "10", "15", "65"],
     "pop_scaling": 1.0,
 }
 
