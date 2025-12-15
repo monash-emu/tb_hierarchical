@@ -338,7 +338,7 @@ def calculate_diff_output_quantiles(full_runs, quantiles=[.025, .25, .5, .75, .9
         sc_runs_latest = full_runs[sc].results.loc[latest_time]
 
         abs_diff = runs_0_latest - sc_runs_latest
-        rel_diff = (runs_0_latest - sc_runs_latest) / sc_runs_latest
+        rel_diff = (runs_0_latest - sc_runs_latest) / runs_0_latest
         
         diff_quantiles_df_abs = pd.DataFrame(
             index=quantiles, 
