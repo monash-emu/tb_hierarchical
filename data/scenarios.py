@@ -70,10 +70,10 @@ for sc_num, coverage_key in enumerate(cov_list, start=1):
         )
     )
 
-# Scenarios 6-10 consider dropping Xpert with varying coverage (med, high, vhigh)
+# Scenarios 6-10 consider dropping Xpert with varying coverage
 for sc_num, coverage_key in enumerate(cov_list, start=6):
     coverage = COVERAGE[coverage_key]
-    [
+    scr_prgs = [
         make_scr_program(
             scr_tool=ScreeningTools.CXR,
             name="cxr_10+",
