@@ -33,7 +33,7 @@ DEFAULT_MODEL_CONFIG = {
     "seed": 100,
     "iso3": "KIR",
     "age_groups": ["0", "3", "5", "10", "15", "65"],
-    "pop_scaling": 1.0,
+    "pop_scaling": 40483. / 119438., # 40,483 people in South Tarawa in 2023, excluding Betio, Bairiki and Nanikai. Out of total Kiribati population of 119,438
 }
 
 DEFAULT_ANALYSIS_CONFIG = {
@@ -62,7 +62,13 @@ TEST_ANALYSIS_CONFIG = {
     'scenarios': SCENARIOS
 }
 
-# !FIXME this code doesn't belong here
+# !FIXME this code about calibration targets doesn't belong here
+def read_notifications(file_path=DATA_FOLDER / "notifications.xlsx"):
+    df = pd.read_excel(file_path)
+    df = df[df['year'] < 2023]
+    notifications = pd.Series(data=df['inputed_all_other'].values, index=df['year'])
+    return notifications
+
 targets = [
     est.NormalTarget(
         name='pearl_pos_per100k', 
@@ -75,12 +81,6 @@ targets = [
         stdev=100.
     ),
 
-
-    # est.NormalTarget(
-    #     name='measured_tbi_prevalence_perc', 
-    #     data=pd.Series(data=[25.,], index=[2024]), 
-    #     stdev=5.
-    # ),
     est.NormalTarget(
         name='tst_posXage_3_9_perc', 
         data=pd.Series(data=[3.4,], index=[2024]), 
@@ -102,7 +102,6 @@ targets = [
         stdev=5.
     ),
 
-
     est.NormalTarget(
         name='perc_prev_subclinical', 
         data=pd.Series(data=[81.3], index=[2024]),  # 113 out of 113+26
@@ -115,7 +114,7 @@ targets = [
     ),
     est.NormalTarget(
         name='notifications', 
-        data=pd.Series(data=[384], index=[2024]),     #FIXME! For now: WHO reports 305/100k in 2020, 126099 population
+        data=read_notifications(), 
         stdev=50.
     ),
 ]
