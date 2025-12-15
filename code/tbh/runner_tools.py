@@ -45,7 +45,7 @@ DEFAULT_ANALYSIS_CONFIG = {
 
     # Full runs config
     'burn_in': 10000,
-    'full_runs_samples': 4000,
+    'full_runs_samples': 1000,
     'scenarios': SCENARIOS
 }
 
