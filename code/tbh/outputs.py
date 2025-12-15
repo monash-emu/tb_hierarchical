@@ -40,7 +40,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         sources=[f"tb_incidence_{inf_cat}" for inf_cat in ["lowinf", "inf"]]
     )    
     request_per_capita_output(model, "tb_incidence", per=100000.)
-    model.request_cumulative_output(name="cum_tb_incidence", source="tb_incidence", start_time=2020)
+    model.request_cumulative_output(name="cum_tb_incidence", source="tb_incidence", start_time=2026)
 
     """ 
         Prevalence outputs (TB and TBI)
@@ -185,7 +185,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     )
     request_per_capita_output(model, "tb_mortality", per=100000.)
 
-    model.request_cumulative_output(name="cum_tb_mortality", source="tb_mortality", start_time=2020)
+    model.request_cumulative_output(name="cum_tb_mortality", source="tb_mortality", start_time=2026)
 
 
     # Track computed values 
