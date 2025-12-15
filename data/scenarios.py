@@ -1,213 +1,132 @@
 from tbh.interventions import Scenario, ScreeningProgram, ScreeningTools
 
-"""
-    Scenario 1
-    Continue as current at a rate of around 300/week (15,000/year)
-    Screen 35,000 people in total by end 2026 for TB and TBI  (20,000 people unscreened)
-    85% coverage of everyone >3yrs
-    All people screened with CXR (30-40% of people >10yrs screened with universal sputum Xpert as well)
-    70% TPT completion
-    95% TB treatment success in identified cases
-"""
-scenario_1 = Scenario(
-    sc_id="scenario_1",
-    sc_name="1. Current / Low",
-    scr_prgs=[
-        ScreeningProgram(
+COVERAGE = {
+    "low": 0.60,
+    "med": 0.70,
+    "high": 0.80,
+    "vhigh": 0.90,
+    "max": 0.95,
+}
+EFF_ENROLMENT_PERC = 85.
+START_TIME, END_TIME = 2026, 2027
+
+# HELPER FUNCTION
+def make_scr_program(scr_tool, name, coverage, ages_excluded=None):
+    if ages_excluded:
+        strata_coverage_multipliers={
+            "age": {age: 0. for age in ages_excluded}
+        }
+    else:
+        strata_coverage_multipliers={}
+
+    return ScreeningProgram(
+        name=name,
+        start_time=START_TIME,
+        end_time=END_TIME,
+        total_coverage_perc=coverage * EFF_ENROLMENT_PERC,
+        strata_coverage_multipliers=strata_coverage_multipliers,
+        scr_tool=scr_tool
+    )
+
+SCENARIOS = []
+
+# Scenarios 1, 2, 3 are based on current program but varying coverage (low, med, high)
+for sc_num, coverage_key in enumerate(["low", "med", "high"], start=1):
+    coverage = COVERAGE[coverage_key]
+    scr_prgs = [
+        make_scr_program(
+            scr_tool=ScreeningTools.CXR,
             name="cxr_3+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 15/35,
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.
-                }
-            },
-            scr_tool=ScreeningTools.CXR
+            coverage=coverage,
+            ages_excluded=["0"]
         ),
-        ScreeningProgram( 
+        make_scr_program(
+            scr_tool=ScreeningTools.Xpert_topup,
             name="xpert_10+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 0.35 * 15/35, # 30-40% of those screened
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.,
-                    "3": 0.
-                }
-            },
-            scr_tool=ScreeningTools.Xpert_topup
+            coverage=coverage * 0.35,  # 30-40% of those screened
+            ages_excluded=["0", "3"]
         ),
-        ScreeningProgram(
+        make_scr_program(
+            scr_tool=ScreeningTools.TST,
             name="tst_3+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 15/35,
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.,
-                }
-            },
-            scr_tool=ScreeningTools.TST
+            coverage=coverage,
+            ages_excluded=["0"]
         ),
     ]
-)
 
+    SCENARIOS.append(
+        Scenario(
+            sc_id=f"scenario_{sc_num}",
+            sc_name=f"{sc_num}. Current / {coverage_key.capitalize()}",
+            scr_prgs=scr_prgs
+        )
+    )
 
-"""
-    Scenario 2
-    Continue as current at a rate of around 400/week (20,000/year)
-    Screen 40,000 people in total by end 2026 for TB and TBI  (15,000 people unscreened)
-    85% coverage of everyone >3yrs
-    70% TPT completion
-    95% TB treatment success in identified cases
-"""
-scenario_2 = Scenario(
-    sc_id="scenario_2",
-    sc_name="2. Current / Med",
-    scr_prgs=[
-        ScreeningProgram(
+# Scenarios 4, 5, 6 consider dropping Xpert with varying coverage (med, high, vhigh)
+for sc_num, coverage_key in enumerate(["med", "high", "vhigh"], start=4):
+    coverage = COVERAGE[coverage_key]
+    scr_prgs = [
+        make_scr_program(
+            scr_tool=ScreeningTools.CXR,
             name="cxr_3+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 20/35,
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.
-                }
-            },
-            scr_tool=ScreeningTools.CXR
+            coverage=coverage,
+            ages_excluded=["0"]
         ),
-        ScreeningProgram( 
-            name="xpert_10+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 0.35 * 20/35, # 30-40% of those screened
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.,
-                    "3": 0.
-                }
-            },
-            scr_tool=ScreeningTools.Xpert_topup
-        ),
-        ScreeningProgram(
+        make_scr_program(
+            scr_tool=ScreeningTools.TST,
             name="tst_3+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 20/35,
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.,
-                }
-            },
-            scr_tool=ScreeningTools.TST
+            coverage=coverage,
+            ages_excluded=["0"]
         ),
     ]
-)
+    SCENARIOS.append(
+        Scenario(
+            sc_id=f"scenario_{sc_num}",
+            sc_name=f"{sc_num}. Drop Xpert / {coverage_key.capitalize()}",
+            scr_prgs=scr_prgs
+        )
+    )
 
-"""
-    Scenario 3
-    Continue as current, but drop sputum Xpert in those >10yrs (CXR with AI reading as main screen) at a rate of 500/week (25,000/year)
-    Screen 45,000 people in total by end 2026 for TB and TBI  (10,000 people unscreened)
-    85% coverage of everyone >3yrs (30-40% of people >10yrs screened with universal sputum Xpert as well)
-    70% TPT completion
-    95% TB treatment success in identified cases
-"""
-scenario_3 = Scenario(
-    sc_id="scenario_3",
-    sc_name="3. Drop Xpert / High",
-    scr_prgs=[
-        ScreeningProgram(
-            name="cxr_3+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 25/35,
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.
-                }
-            },
-            scr_tool=ScreeningTools.CXR
-        ),
-        ScreeningProgram(
-            name="tst_3+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 25/35,
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.,
-                }
-            },
-            scr_tool=ScreeningTools.TST
-        ),
-    ]
-)
-
-"""
-    Scenario 4
-    Continue as current, but drop sputum Xpert in those >10yrs and stop screening children <10yrs (CXR with AI reading as main screen) at a rate of 600/week (30,000/year)
-    Screen 50,000 people in total by end 2026 for TB and TBI  (5,000 people unscreened)
-    85% coverage of everyone >10yrs (30-40% of people >10yrs screened with universal sputum Xpert as well)
-    70% TPT completion
-    95% TB treatment success in identified cases
-"""
-scenario_4 = Scenario(
-    sc_id="scenario_4",
-    sc_name="4. Drop Xpert - Scr 10+ / VHigh",
-    scr_prgs=[
-        ScreeningProgram(
+# Scenario 7, 8, 9 consider dropping Xpert and stopping screening children <10yrs with varying coverage (high, vhigh, max)
+for sc_num, coverage_key in enumerate(["high", "vhigh", "max"], start=7):
+    coverage = COVERAGE[coverage_key]
+    scr_prgs = [
+        make_scr_program(
+            scr_tool=ScreeningTools.CXR,
             name="cxr_10+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 30/35,
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.,
-                    "3": 0.
-                }
-            },
-            scr_tool=ScreeningTools.CXR
+            coverage=coverage,
+            ages_excluded=["0", "3"]
         ),
-        ScreeningProgram(
-            name="tst_3+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 30/35,
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.,
-                    "3": 0.
-                }
-            },
-            scr_tool=ScreeningTools.TST
+        make_scr_program(
+            scr_tool=ScreeningTools.TST,
+            name="tst_10+",
+            coverage=coverage,
+            ages_excluded=["0", "3"]
         ),
     ]
-)
+    SCENARIOS.append(
+        Scenario(
+            sc_id=f"scenario_{sc_num}",
+            sc_name=f"{sc_num}. Drop Xpert - Scr 10+ / {coverage_key.capitalize()}",
+            scr_prgs=scr_prgs
+        )
+    )   
 
-"""
-    Scenario 5
-    Continue as current, but drop sputum Xpert in those >10yrs (CXR with AI reading as main screen) at a rate of 700/week (30,000/year) AND stop TST (TBI screening + TPT, unless recent HH TB contact)
-    Screen 55,000 people in total by end 2026 for TB only  (no people unscreened)
-    85% coverage of everyone >3yrs (30-40% of people >10yrs screened with universal sputum Xpert as well)
-    95% TB treatment success in identified cases
-"""
-scenario_5 = Scenario(
-    sc_id="scenario_5",
-    sc_name="5. Drop Xpert & TST / Max",
-    scr_prgs=[
-        ScreeningProgram(
-            name="cxr_3+",
-            start_time=2026,
-            end_time=2027,
-            total_coverage_perc=85. * 35/35,
-            strata_coverage_multipliers={
-                "age": {
-                    "0": 0.
-                }
-            },
-            scr_tool=ScreeningTools.CXR
+# Scenario 10, 11, 12 consider dropping Xpert and TST and stopping screening children <10yrs with varying coverage (high, vhigh, max)
+for sc_num, coverage_key in enumerate(["high", "vhigh", "max"], start=10):
+    coverage = COVERAGE[coverage_key]
+    scr_prgs = [
+        make_scr_program(
+            scr_tool=ScreeningTools.CXR,
+            name="cxr_10+",
+            coverage=coverage,
+            ages_excluded=["0", "3"]
         ),
     ]
-)
+    SCENARIOS.append(
+        Scenario(
+            sc_id=f"scenario_{sc_num}",
+            sc_name=f"{sc_num}. Drop Xpert & TST / {coverage_key.capitalize()}",
+            scr_prgs=scr_prgs
+        )
+    )   

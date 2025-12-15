@@ -23,9 +23,9 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[2]
 sys.path.append(str(root))
 
-from data import scenarios as sc
+from data import scenarios 
 
-SCENARIOS = [sc.scenario_1, sc.scenario_2, sc.scenario_3, sc.scenario_4, sc.scenario_5]
+SCENARIOS = scenarios.SCENARIOS
 
 DEFAULT_MODEL_CONFIG = {
     "start_time": 1850,
@@ -297,9 +297,10 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
         idata = run_metropolis_calibration(
             bcm, draws=a_c['draws'], tune=a_c['tune'], cores=a_c['cores'], chains=a_c['chains']
         )
+        az.to_netcdf(idata, output_folder / "idata.nc")
+
     mcmc_time = time() - t0
     times["mcmc_time"] = f"{round(mcmc_time)} sec (i.e. {round(mcmc_time / 60)} min) --> {round(3600 * (a_c['tune'] + a_c['draws'])/ mcmc_time)} runs per hour"
-    az.to_netcdf(idata, output_folder / "idata.nc")
 
     pl.plot_traces(idata, a_c['burn_in'], output_folder)
     pl.plot_post_prior_comparison(idata, a_c['burn_in'], list(bcm.priors.keys()), list(bcm.priors.values()), n_col=4, output_folder_path=output_folder)
@@ -332,7 +333,7 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
         unc_df.to_parquet(output_folder / f"uncertainty_df_{sc}.parquet")
     
     # Save output_diff outputs, using various reference scenarios for differentiation
-    for ref_sc in list(full_runs.keys()):        
+    for ref_sc in ['baseline']: # list(full_runs.keys()):        
         diff_output_quantiles = calculate_diff_output_quantiles(full_runs, ref_sc=ref_sc)
         for sc, diff_output_quantile in diff_output_quantiles.items():
             diff_output_quantile.to_parquet(output_folder / f"diff_quantiles_df_ref_{ref_sc}_{sc}.parquet")
