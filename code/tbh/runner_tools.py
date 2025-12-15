@@ -69,54 +69,23 @@ def read_notifications(file_path=DATA_FOLDER / "notifications.xlsx"):
     notifications = pd.Series(data=df['inputed_all_other'].values, index=df['year'])
     return notifications
 
+def get_normal_target(name, data):
+    return est.NormalTarget(
+        name=name, 
+        data=data, 
+        stdev=0.20 / 1.96 * data.mean()  # so 95% of the density is within +/-20% of the mean
+    )
+
 targets = [
-    est.NormalTarget(
-        name='pearl_pos_per100k', 
-        data=pd.Series(data=[900.4,], index=[2024]), 
-        stdev=100.
-    ),
-    est.NormalTarget(
-        name='cxr_pos_per100k', 
-        data=pd.Series(data=[596.3,], index=[2024]), 
-        stdev=100.
-    ),
-
-    est.NormalTarget(
-        name='tst_posXage_3_9_perc', 
-        data=pd.Series(data=[3.4,], index=[2024]), 
-        stdev=5.
-    ),
-    est.NormalTarget(
-        name='tst_posXage_10_perc', 
-        data=pd.Series(data=[9.4,], index=[2024]), 
-        stdev=5.
-    ),
-    est.NormalTarget(
-        name='tst_posXage_15_perc', 
-        data=pd.Series(data=[28.2,], index=[2024]), 
-        stdev=5.
-    ),
-    est.NormalTarget(
-        name='tst_posXage_65_perc', 
-        data=pd.Series(data=[32.7,], index=[2024]), 
-        stdev=5.
-    ),
-
-    est.NormalTarget(
-        name='perc_prev_subclinical', 
-        data=pd.Series(data=[81.3], index=[2024]),  # 113 out of 113+26
-        stdev=5.
-    ),
-    est.NormalTarget(
-        name='perc_prev_infectious', 
-        data=pd.Series(data=[69.5], index=[2024]),  # 98 out of 141
-        stdev=5.
-    ),
-    est.NormalTarget(
-        name='notifications', 
-        data=read_notifications(), 
-        stdev=50.
-    ),
+    get_normal_target('pearl_pos_per100k', pd.Series(data=[900.4,], index=[2024])),
+    get_normal_target('cxr_pos_per100k', pd.Series(data=[596.3,], index=[2024])),
+    get_normal_target('tst_posXage_3_9_perc', pd.Series(data=[3.4,], index=[2024])),
+    get_normal_target('tst_posXage_10_perc', pd.Series(data=[9.4,], index=[2024])),
+    get_normal_target('tst_posXage_15_perc', pd.Series(data=[28.2,], index=[2024])),
+    get_normal_target('tst_posXage_65_perc', pd.Series(data=[32.7,], index=[2024])),
+    get_normal_target('perc_prev_subclinical', pd.Series(data=[81.3], index=[2024])),  # 113 out of 113+26
+    get_normal_target('perc_prev_infectious', pd.Series(data=[69.5], index=[2024])),  # 98 out of 141
+    get_normal_target('notifications', read_notifications()),
 ]
 
 

@@ -16,24 +16,41 @@ class ScreeningTools:
     }
 
     # TB Disease screening
-    CXR = {
+    SSX = { # symptom screening
         "sensitivities": {
-            "subclin_lowinf": Parameter('prev_se_subclin_lowinf_cxr'),
-            "clin_lowinf": Parameter('prev_se_clin_lowinf_cxr'),
-            "subclin_inf": Parameter('prev_se_subclin_inf_cxr'),
-            "clin_inf": Parameter('prev_se_clin_inf_cxr')
+            tb_state: Parameter(f"prev_se_{tb_state}_ssx") for tb_state in [
+                "subclin_lowinf", "clin_lowinf", "subclin_inf", "clin_inf"
+            ]
+        },
+        "dest_comp": "treatment",
+        "success_prop": 1.  # probability of getting started on treatment if screened positive
+    }
+    
+    CXR = { # chest X-ray in addition to symptom screening
+        "sensitivities": {
+            tb_state: Parameter(f"prev_se_{tb_state}_cxr") for tb_state in [
+                "subclin_lowinf", "clin_lowinf", "subclin_inf", "clin_inf"
+            ]
         },
         "dest_comp": "treatment",
         "success_prop": 1.  # probability of getting started on treatment if screened positive 
     }
 
-    Xpert_topup = {
-        # sensitivities need to be seen as additional sensitivity compared to screening based on CXR alone
+    PLTS = { # Pluslife Tongue Swab in addition to symptom screening and CXR
         "sensitivities": {
-            "subclin_lowinf": Parameter('prev_se_subclin_lowinf_pearl') - Parameter('prev_se_subclin_lowinf_cxr'),
-            "clin_lowinf": Parameter('prev_se_clin_lowinf_pearl') - Parameter('prev_se_clin_lowinf_cxr'),
-            "subclin_inf": Parameter('prev_se_subclin_inf_pearl') - Parameter('prev_se_subclin_inf_cxr'),
-            "clin_inf": Parameter('prev_se_clin_inf_pearl') - Parameter('prev_se_clin_inf_cxr')
+            tb_state: Parameter(f"prev_se_{tb_state}_plts") for tb_state in [
+                "subclin_lowinf", "clin_lowinf", "subclin_inf", "clin_inf"
+            ]
+        },
+        "dest_comp": "treatment",
+        "success_prop": 1.  # probability of getting started on treatment if screened positive 
+    }
+
+    PEARL = { # Xpert MTB/RIF Ultra in addition to symptom screening and CXR
+        "sensitivities" : {
+            tb_state: Parameter(f"prev_se_{tb_state}_pearl") for tb_state in [
+                "subclin_lowinf", "clin_lowinf", "subclin_inf", "clin_inf"
+            ]
         },
         "dest_comp": "treatment",
         "success_prop": 1.  # probability of getting started on treatment if screened positive 
@@ -106,7 +123,7 @@ example_xpert_program = ScreeningProgram(
             "3": 0.
         }
     },
-    scr_tool=ScreeningTools.Xpert_topup
+    scr_tool=ScreeningTools.PEARL
 )
 
 example_tpt_program = ScreeningProgram(
