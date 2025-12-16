@@ -69,11 +69,11 @@ def read_notifications(file_path=DATA_FOLDER / "notifications.xlsx"):
     notifications = pd.Series(data=df['inputed_all_other'].values, index=df['year'])
     return notifications
 
-def get_normal_target(name, data):
+def get_normal_target(name, data, tol_perc=20):
     return est.NormalTarget(
         name=name, 
         data=data, 
-        stdev=0.20 / 1.96 * data.mean()  # so 95% of the density is within +/-20% of the mean
+        stdev=(tol_perc / 100.) / 1.96 * data.mean()  # so 95% of the density is within +/- tol_perc % of the mean
     )
 
 targets = [
@@ -85,7 +85,7 @@ targets = [
     get_normal_target('tst_posXage_65_perc', pd.Series(data=[32.7,], index=[2024])),
     get_normal_target('perc_prev_subclinical', pd.Series(data=[81.3], index=[2024])),  # 113 out of 113+26
     get_normal_target('perc_prev_infectious', pd.Series(data=[69.5], index=[2024])),  # 98 out of 141
-    get_normal_target('notifications', read_notifications()),
+    get_normal_target('notifications', read_notifications(), tol_perc=40.),
 ]
 
 
