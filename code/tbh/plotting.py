@@ -316,7 +316,8 @@ def plot_all_model_fits(uncertainty_df, bcm, n_col=3, excluded_outputs=[]):
     for i, output in enumerate(selected_outputs):
         ax = axes[i]
         out_name = output if output not in title_lookup else title_lookup[output]
-        plot_model_fit_with_uncertainty(ax, uncertainty_df, output, bcm, x_lim=(2010, 2025))
+        x_min = 1990 if output == "notifications" else 2010
+        plot_model_fit_with_uncertainty(ax, uncertainty_df, output, bcm, x_lim=(x_min, 2025))
         ax.set_title(out_name)
         if i == 0:
             ax.legend()
@@ -459,7 +460,7 @@ def plot_single_fit(bcm, params):
         ax = axes[i]
         
         t_data = t.data
-        series = res.derived_outputs[t_name].loc[2010:2025]
+        series = res.derived_outputs[t_name].loc[1980:2025]
         
         # Plot main line
         series.plot(ax=ax, title=t_name)

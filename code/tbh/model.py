@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 
 from summer2 import CompartmentalModel, AgeStratification, Multiply
-from summer2.parameters import Parameter, Function
+from summer2.parameters import Parameter, Function, Time
 from summer2.functions import time as stf
 
 from tbh.demographic_tools import get_pop_size, get_death_rates_by_age, gen_mixing_matrix_func
@@ -168,7 +168,17 @@ def get_natural_tb_model(model_config, init_pop_size):
 def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, screening_programs):
 
     # Active disease detection through passive case finding, adjusted based on clinical status
-    tv_detection_rate = stf.get_sigmoidal_interpolation_function([1950., 2020], [0., Parameter("recent_detection_rate")])
+    tv_detection_rate = Parameter("recent_detection_rate") * Function(
+        tanh_based_scaleup,
+        [
+            Time,
+            Parameter("passive_detection_shape"),
+            Parameter("passive_detection_inflection"),
+            0.5,
+            1.,
+        ],
+    )
+    
     for active_comp in ACTIVE_COMPS:
         multiplier = Parameter("rel_detection_subclin") if active_comp.startswith("subclin_") else 1.
         model.add_transition_flow(
@@ -415,3 +425,43 @@ def get_neg_tx_outcome_funcs(bckd_death_funcs, time_variant_tsr):
             [bckd_death_func, time_variant_tsr, Parameter('tx_duration'), Parameter("pct_neg_tx_death")]
         ) for age, bckd_death_func in bckd_death_funcs.items()
     }
+
+
+
+def tanh_based_scaleup(
+    t: float,
+    shape: float,
+    inflection_time: float,
+    start_asymptote: float,
+    end_asymptote: float = 1.0,
+) -> float:
+    """
+    Compute a smooth transition scaling function based on the hyperbolic tangent (tanh).
+
+    The formula used is:
+        f(t) = (tanh(shape × (t - inflection_time)) / 2 + 0.5) × (end_asymptote - start_asymptote) + start_asymptote
+
+    Parameters:
+        t (float):
+            Input time at which to evaluate the function.
+
+        shape (float):
+            Controls the steepness of the transition.
+            Higher values yield steeper transitions.
+
+        inflection_time (float):
+            The inflection point of the tanh function (midpoint of transition).
+
+        start_asymptote (float):
+            Lower asymptotic value (initial level before scale-up).
+
+        end_asymptote (float, optional):
+            Upper asymptotic value (final level after scale-up). Default is 1.0.
+
+    Returns:
+        float:
+            Scaled value at time t, smoothly transitioning from start_asymptote to end_asymptote.
+    """
+    rng = end_asymptote - start_asymptote
+    return (jnp.tanh(shape * (t - inflection_time)) / 2.0 + 0.5) * rng + start_asymptote
+
