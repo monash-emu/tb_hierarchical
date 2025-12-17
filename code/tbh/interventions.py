@@ -46,9 +46,9 @@ class ScreeningTools:
         "success_prop": 1.  # probability of getting started on treatment if screened positive 
     }
 
-    PEARL = { # Xpert MTB/RIF Ultra in addition to symptom screening and CXR
+    PEARL = { # Xpert MTB/RIF Ultra in addition to symptom screening and CXR (Xpert done for about 35%, other 65% get CXR only)
         "sensitivities" : {
-            tb_state: Parameter(f"prev_se_{tb_state}_pearl") for tb_state in [
+            tb_state: .35 * Parameter(f"prev_se_{tb_state}_pearl") + .65 * Parameter(f"prev_se_{tb_state}_cxr") for tb_state in [
                 "subclin_lowinf", "clin_lowinf", "subclin_inf", "clin_inf"
             ]
         },
@@ -99,14 +99,16 @@ class Scenario:
         self.params_ow = params_ow
 
 
-example_scr_program = ScreeningProgram(
+example_cxr_program = ScreeningProgram(
     name="betio_cxr_screening",
     start_time=2026,
     end_time=2027,
     total_coverage_perc=85.,
     strata_coverage_multipliers={
         "age": {
-            "0": 0.
+            "0": 0.,
+            "3": 0.,
+            "5": 0.
         }
     },
     scr_tool=ScreeningTools.CXR
@@ -114,13 +116,14 @@ example_scr_program = ScreeningProgram(
 
 example_xpert_program = ScreeningProgram(
     name="betio_xpert_screening",
-    start_time=2024,
-    end_time=2026,
+    start_time=2026,
+    end_time=2027,
     total_coverage_perc=85,
     strata_coverage_multipliers={
         "age": {
             "0": 0.,
-            "3": 0.
+            "3": 0.,
+            "5": 0.
         }
     },
     scr_tool=ScreeningTools.PEARL

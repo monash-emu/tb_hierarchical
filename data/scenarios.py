@@ -39,20 +39,14 @@ for sc_num, coverage_key in enumerate(cov_list, start=1):
         make_scr_program(
             scr_tool=ScreeningTools.PEARL,
             name="pearl_10+",
-            coverage=coverage * 0.35, # 35% of 10+ screened get an Xpert
-            ages_excluded=["0", "3"]
-        ),
-        make_scr_program(
-            scr_tool=ScreeningTools.CXR,
-            name="cxr_10+",
-            coverage=coverage * 0.65,  # 65% of 10+ don't get an Xpert
-            ages_excluded=["0", "3"]
+            coverage=coverage,
+            ages_excluded=["0", "3", "5"]
         ),
         make_scr_program(
             scr_tool=ScreeningTools.SSX, # symptom screen only for 3-9yr olds
             name="ssx_3_9",
             coverage=coverage, 
-            ages_excluded=["0", "5", "10", "15", "65"]
+            ages_excluded=["0", "10", "15", "65"]
         ),
         make_scr_program(
             scr_tool=ScreeningTools.TST, # TST for 3+yr olds
@@ -78,13 +72,13 @@ for sc_num, coverage_key in enumerate(cov_list, start=6):
             scr_tool=ScreeningTools.CXR,
             name="cxr_10+",
             coverage=coverage,
-            ages_excluded=["0", "3"]
+            ages_excluded=["0", "3", "5"]
         ),
         make_scr_program(
             scr_tool=ScreeningTools.SSX, # symptom screen only for 3-9yr olds
             name="ssx_3_9",
             coverage=coverage, 
-            ages_excluded=["0", "5", "10", "15", "65"]
+            ages_excluded=["0", "10", "15", "65"]
         ),
         make_scr_program(
             scr_tool=ScreeningTools.TST, # TST for 3+yr olds
