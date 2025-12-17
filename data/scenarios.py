@@ -103,13 +103,13 @@ for sc_num, coverage_key in enumerate(cov_list, start=11):
             scr_tool=ScreeningTools.CXR,
             name="cxr_10+",
             coverage=coverage,
-            ages_excluded=["0", "3"]
+            ages_excluded=["0", "3", "5"]
         ),
         make_scr_program(
             scr_tool=ScreeningTools.TST, 
             name="tst_10+",
             coverage=coverage,
-            ages_excluded=["0", "3"]
+            ages_excluded=["0", "3", "5"]
         ),
     ]
     SCENARIOS.append(
@@ -128,7 +128,7 @@ for sc_num, coverage_key in enumerate(cov_list, start=16):
             scr_tool=ScreeningTools.CXR,
             name="cxr_10+",
             coverage=coverage,
-            ages_excluded=["0", "3"]
+            ages_excluded=["0", "3", "5"]
         ),
     ]
     SCENARIOS.append(
@@ -147,13 +147,13 @@ for sc_num, coverage_key in enumerate(cov_list, start=21):
             scr_tool=ScreeningTools.PLTS,
             name="plts_10+",
             coverage=coverage,
-            ages_excluded=["0", "3"]
+            ages_excluded=["0", "3", "5"]
         ),
         make_scr_program(
             scr_tool=ScreeningTools.SSX, # symptom screen only for 3-9yr olds
             name="ssx_3_9",
             coverage=coverage, 
-            ages_excluded=["0", "5", "10", "15", "65"]
+            ages_excluded=["0", "10", "15", "65"]
         ),
         make_scr_program(
             scr_tool=ScreeningTools.TST, # TST for 3+yr olds  
