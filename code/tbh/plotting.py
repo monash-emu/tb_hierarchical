@@ -368,13 +368,13 @@ def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, incl
         axis.legend(title="(median and IQR)")
 
 
-def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios):
+def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios, end_year=2050):
     box_width = .5
     color = 'black'
     box_color= 'lightcoral'
     y_max = 0
     for i, scenario in enumerate(scenarios):      
-        df = uncertainty_dfs[scenario][output_name].iloc[-1]
+        df = uncertainty_dfs[scenario][output_name].loc[end_year]
 
         x = 1 + i
         # median

@@ -92,11 +92,12 @@ class ScreeningProgram:
 
 
 class Scenario:
-    def __init__(self, sc_id, sc_name, scr_prgs, params_ow={}):
+    def __init__(self, sc_id, sc_name, scr_prgs, desc="", params_ow={}):
         self.sc_id = sc_id
         self.sc_name = sc_name
         self.scr_prgs = scr_prgs
         self.params_ow = params_ow
+        self.description = desc
 
 
 example_cxr_program = ScreeningProgram(
