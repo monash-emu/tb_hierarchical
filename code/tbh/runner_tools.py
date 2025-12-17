@@ -41,10 +41,10 @@ DEFAULT_ANALYSIS_CONFIG = {
     'chains': 4,
     'cores': 4.,
     'tune': 5000,
-    'draws': 20000,
+    'draws': 10000,
 
     # Full runs config
-    'burn_in': 10000,
+    'burn_in': 5000,
     'full_runs_samples': 1000,
     'scenarios': SCENARIOS
 }
