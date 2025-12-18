@@ -29,7 +29,7 @@ SCENARIOS = scenarios.SCENARIOS
 
 DEFAULT_MODEL_CONFIG = {
     "start_time": 1850,
-    "end_time": 2050,
+    "end_time": 2035,
     "seed": 100,
     "iso3": "KIR",
     "age_groups": ["0", "3", "5", "10", "15", "65"],
@@ -320,22 +320,20 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
             ], file, default_flow_style=False)
 
 
-def calculate_diff_output_quantiles(full_runs, quantiles=[.025, .25, .5, .75, .975], ref_sc='baseline'):
+def calculate_diff_output_quantiles(full_runs, quantiles=[.025, .25, .5, .75, .975], ref_sc='baseline', end_year=2035):
     diff_names = {
         "TB_averted": "cum_tb_incidence",
         "deaths_averted": "cum_tb_mortality",
     }
     
-    latest_time = full_runs['baseline'].results.index.max()
-    
-    runs_0_latest = full_runs[ref_sc].results.loc[latest_time]
+    runs_0_latest = full_runs[ref_sc].results.loc[end_year]
     
     diff_output_quantiles = {}
     for sc in full_runs:
         if sc == ref_sc:
              continue
         
-        sc_runs_latest = full_runs[sc].results.loc[latest_time]
+        sc_runs_latest = full_runs[sc].results.loc[end_year]
 
         abs_diff = runs_0_latest - sc_runs_latest
         rel_diff = (runs_0_latest - sc_runs_latest) / runs_0_latest

@@ -27,7 +27,7 @@ title_lookup = {
     "tb_prevalence_per100k": "TB prevalence (/100k)",
     "tbi_prevalence_perc": "TBI prevalence (%)",
     "perc_prev_subclinical": "% TB subclinical",
-    "perc_prev_infectious": "% TB infectious",
+    "perc_prev_infectious": "% TB more infectious",
     "notifications": "TB notifications (n)",
     "perc_notifications_clin": "Clinical notifications (%)",
 
@@ -368,7 +368,7 @@ def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, incl
         axis.legend(title="(median and IQR)")
 
 
-def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios, end_year=2050):
+def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios, end_year=2035):
     box_width = .5
     color = 'black'
     box_color= 'lightcoral'
