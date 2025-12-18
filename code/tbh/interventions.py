@@ -2,8 +2,17 @@ from numpy import log
 from summer2.functions import time as stf
 from summer2.parameters import Parameter
 
+TB_STATES = [
+    "subclin_lowinf", "clin_lowinf",
+    "subclin_inf", "clin_inf"
+]
 
 class ScreeningTools:
+
+    se_ssx   = {s: Parameter(f"prev_se_{s}_ssx")   for s in TB_STATES}
+    se_cxr   = {s: Parameter(f"prev_se_{s}_cxr")   for s in TB_STATES}
+    se_plts  = {s: Parameter(f"prev_se_{s}_plts")  for s in TB_STATES}
+    se_pearl = {s: Parameter(f"prev_se_{s}_pearl") for s in TB_STATES}
 
     # TB Infection screening and TPT
     TST = {
@@ -17,45 +26,42 @@ class ScreeningTools:
 
     # TB Disease screening
     SSX = { # symptom screening
-        "sensitivities": {
-            tb_state: Parameter(f"prev_se_{tb_state}_ssx") for tb_state in [
-                "subclin_lowinf", "clin_lowinf", "subclin_inf", "clin_inf"
-            ]
-        },
+        "sensitivities": se_ssx,
         "dest_comp": "treatment",
         "success_prop": 1.  # probability of getting started on treatment if screened positive
     }
     
     CXR = { # chest X-ray in addition to symptom screening
-        "sensitivities": {
-            tb_state: Parameter(f"prev_se_{tb_state}_cxr") for tb_state in [
-                "subclin_lowinf", "clin_lowinf", "subclin_inf", "clin_inf"
-            ]
-        },
+        "sensitivities": se_cxr,
         "dest_comp": "treatment",
         "success_prop": 1.  # probability of getting started on treatment if screened positive 
     }
 
     PLTS = { # Pluslife Tongue Swab in addition to symptom screening and CXR
-        "sensitivities": {
-            tb_state: Parameter(f"prev_se_{tb_state}_plts") for tb_state in [
-                "subclin_lowinf", "clin_lowinf", "subclin_inf", "clin_inf"
-            ]
-        },
+        "sensitivities": se_plts,
         "dest_comp": "treatment",
         "success_prop": 1.  # probability of getting started on treatment if screened positive 
     }
 
-    PEARL = { # Xpert MTB/RIF Ultra in addition to symptom screening and CXR (Xpert done for about 35%, other 65% get CXR only)
-        "sensitivities" : {
-            tb_state: .35 * Parameter(f"prev_se_{tb_state}_pearl") + .65 * Parameter(f"prev_se_{tb_state}_cxr") for tb_state in [
-                "subclin_lowinf", "clin_lowinf", "subclin_inf", "clin_inf"
-            ]
-        },
-        "dest_comp": "treatment",
-        "success_prop": 1.  # probability of getting started on treatment if screened positive 
-    }
+    # PEARL = { # Xpert MTB/RIF Ultra in addition to symptom screening and CXR (Xpert done for about 35%, other 65% get CXR only)
+    #     "sensitivities" : {
+    #         s: 0.35 * se_pearl[s] + 0.65 * se_cxr[s]
+    #         for s in TB_STATES
+    #     },
+    #     "dest_comp": "treatment",
+    #     "success_prop": 1.  # probability of getting started on treatment if screened positive 
+    # }
 
+# build PEARL *after* class exists
+ScreeningTools.PEARL = {
+    "sensitivities": {
+        s: 0.35 * ScreeningTools.se_pearl[s]
+         + 0.65 * ScreeningTools.se_cxr[s]
+        for s in TB_STATES
+    },
+    "dest_comp": "treatment",
+    "success_prop": 1.0,
+}
 
 class ScreeningProgram:
     def __init__(self, name, start_time, end_time, total_coverage_perc, strata_coverage_multipliers, scr_tool):
@@ -99,6 +105,22 @@ class Scenario:
         self.params_ow = params_ow
         self.description = desc
 
+
+
+example_ssx_program = ScreeningProgram(
+    name="ssx_screening",
+    start_time=2026,
+    end_time=2027,
+    total_coverage_perc=85.,
+    strata_coverage_multipliers={
+        "age": {
+            "0": 0.,
+            "3": 0.,
+            "5": 0.
+        }
+    },
+    scr_tool=ScreeningTools.SSX
+)
 
 example_cxr_program = ScreeningProgram(
     name="betio_cxr_screening",
