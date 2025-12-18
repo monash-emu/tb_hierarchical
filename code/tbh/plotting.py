@@ -17,12 +17,12 @@ title_lookup = {
     "tb_incidence": "TB incidence",
     "tb_incidence_per100k": "TB incidence (/100k)",
     "tb_mortality_per100k": "TB mortality (/100k)",
-    "cum_tb_incidence": "N TB episodes 2026-2050", 
-    "cum_tb_mortality": "N TB deaths 2026-2050",
-    "TB_averted": "N TB episodes averted (2026-2050)", 
-    "TB_averted_relative": "% TB episodes averted (2026-2050)",
-    "deaths_averted": "N TB deaths averted (2026-2050)", 
-    "deaths_averted_relative": "% TB deaths averted (2026-2050)",
+    "cum_tb_incidence": "N TB episodes 2026-2035", 
+    "cum_tb_mortality": "N TB deaths 2026-2035",
+    "TB_averted": "N TB episodes averted (2026-2035)", 
+    "TB_averted_relative": "% TB episodes averted (2026-2035)",
+    "deaths_averted": "N TB deaths averted (2026-2035)", 
+    "deaths_averted_relative": "% TB deaths averted (2026-2035)",
 
     "tb_prevalence_per100k": "TB prevalence (/100k)",
     "tbi_prevalence_perc": "TBI prevalence (%)",
@@ -36,7 +36,12 @@ title_lookup = {
     "pearl_pos_per100k": "PEARL TB prevalence (/100k)",
     "cxr_pos_per100k": "CXR TB prevalence (/100k)",
 
-    "passive_detection_rate_clin": "Passive detec. rate (/y), clinical TB"
+    "passive_detection_rate_clin": "Passive detec. rate (/y), clinical TB",
+
+    "tst_posXage_3_9_perc": "TST positivity 3-9yrs old (%)",
+    "tst_posXage_10_perc": "TST positivity 10-14yrs old (%)",
+    "tst_posXage_15_perc": "TST positivity 15-64yrs old (%)",
+    "tst_posXage_65_perc": "TST positivity 65+yrs old (%)",
 }
 
 from tbh.runner_tools import DEFAULT_ANALYSIS_CONFIG
@@ -602,7 +607,7 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
 
     ax.set_xlabel("Age group (years)")
     ax.set_ylabel(title_lookup["tst_pos_perc"])
-    ax.set_title("Observed vs modelled TST positivity fraction by age group")
+    ax.set_title(f"Observed vs modelled TST positivity fraction by age group in {year}")
     ax.legend(handles=[model_patch, obs_marker], loc='best')
     ax.grid(alpha=0.3)
 
