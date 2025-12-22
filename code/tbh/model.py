@@ -10,7 +10,7 @@ from summer2.functions import time as stf
 from tbh.demographic_tools import get_pop_size, get_death_rates_by_age, gen_mixing_matrix_func
 from tbh.outputs import request_model_outputs
 
-TRANSMISSION_MODE = "density"  # "frequency"
+TRANSMISSION_MODE = "frequency"  # "density"
 
 HOME_PATH = Path(__file__).parent.parent.parent
 
