@@ -32,7 +32,7 @@ DEFAULT_MODEL_CONFIG = {
     "end_time": 2035,
     "seed": 100,
     "iso3": "KIR",
-    "age_groups": ["0", "3", "5", "10", "15", "65"],
+    "age_groups": ["0", "3", "5", "10", "15", "18", "65"],
     "pop_scaling": 40483. / 119438., # 40,483 people in South Tarawa in 2023, excluding Betio, Bairiki and Nanikai. Out of total Kiribati population of 119,438
 }
 
@@ -77,12 +77,16 @@ def get_normal_target(name, data, tol_perc=20):
     )
 
 targets = [
-    get_normal_target('pearl_pos_per100k', pd.Series(data=[900.4,], index=[2024])),
-    get_normal_target('cxr_pos_per100k', pd.Series(data=[596.3,], index=[2024])),
-    get_normal_target('tst_posXage_3_9_perc', pd.Series(data=[3.4,], index=[2024])),
-    get_normal_target('tst_posXage_10_perc', pd.Series(data=[9.4,], index=[2024])),
-    get_normal_target('tst_posXage_15_perc', pd.Series(data=[28.2,], index=[2024])),
-    get_normal_target('tst_posXage_65_perc', pd.Series(data=[32.7,], index=[2024])),
+    get_normal_target('pearl_pos_per100k', pd.Series(data=[900.4], index=[2024])),
+    get_normal_target('cxr_pos_per100k', pd.Series(data=[596.3], index=[2024])),
+    get_normal_target('tst_posXage_3_9_perc', pd.Series(data=[3.4], index=[2024])),
+    get_normal_target('tst_posXage_10_perc', pd.Series(data=[9.4], index=[2024])),
+    get_normal_target('tst_posXage_15_perc', pd.Series(data=[28.2], index=[2024])),
+    get_normal_target('tst_posXage_65_perc', pd.Series(data=[32.7], index=[2024])),
+
+    # Kerri's paper
+    get_normal_target('tst_posXage_18+_perc', pd.Series(data=[38.0], index=[2011])),
+
     get_normal_target('perc_prev_subclinical', pd.Series(data=[81.3], index=[2024])),  # 113 out of 113+26
     get_normal_target('perc_prev_infectious', pd.Series(data=[69.5], index=[2024])),  # 98 out of 141
     get_normal_target('notifications', read_notifications(), tol_perc=40.),

@@ -43,6 +43,9 @@ title_lookup = {
     "tst_posXage_10_perc": "TST positivity 10-14yrs old (%)",
     "tst_posXage_15_perc": "TST positivity 15-64yrs old (%)",
     "tst_posXage_65_perc": "TST positivity 65+yrs old (%)",
+
+    "tst_posXage_18+_perc": "TST positivity 18+yrs old (%)",
+
 }
 
 from tbh.runner_tools import DEFAULT_ANALYSIS_CONFIG

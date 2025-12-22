@@ -26,6 +26,9 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     model.request_aggregate_output(
         name="populationXage_3_9", sources=[f"populationXage_{age}" for age in ['3', '5']]
     )
+    model.request_aggregate_output(
+        name="populationXage_18+", sources=[f"populationXage_{age}" for age in ['18', '65']]
+    )
 
     model.request_output_for_flow("births", "births")
 
@@ -66,13 +69,16 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
             model.request_function_output(
                 name=f"tst_pos_{comp}Xage_{age}", func=DerivedOutput(f"prev_{comp}Xage_{age}") * Parameter(f"prev_se_{comp}"), save_results=False
             )
-        # manually add '3-9' age group
+        # manually add '3-9' and '18+' age group
         model.request_aggregate_output(
             name=f"tst_pos_{comp}Xage_3_9", sources=[f"tst_pos_{comp}Xage_{age}" for age in ['3', '5']]
-
         )
+        model.request_aggregate_output(
+            name=f"tst_pos_{comp}Xage_18+", sources=[f"tst_pos_{comp}Xage_{age}" for age in ['18', '65']]
+        )
+
     # Per-capita TST positivity for each age-group and aggregated
-    for age in age_strata + ['3_9']:
+    for age in age_strata + ['3_9', '18+']:
         model.request_aggregate_output(
             name=f"tst_posXage_{age}", sources=[f"tst_pos_{comp}Xage_{age}" for comp in latent_compartments]
         )
