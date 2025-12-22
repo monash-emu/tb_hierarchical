@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
+import matplotlib.ticker as mticker
 
 import numpy as np
 
@@ -366,8 +367,12 @@ def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, incl
     # axis.tick_params(axis="x", labelrotation=45)
     title = output_name if output_name not in title_lookup else title_lookup[output_name]
     axis.set_ylabel(title, fontsize=ylab_fontsize)
-    # axis.set_xlim((model_start, model_end))
+    axis.set_xlim(xlim)
     axis.set_ylim((0, plot_ymax))
+
+    # years = range(xlim[0], xlim[1], 5)
+    # axis.set_xticks(years)
+    # axis.set_xticklabels([str(y) for y in years])
 
     if include_legend:
         axis.legend(title="(median and IQR)")
