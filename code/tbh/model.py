@@ -185,7 +185,7 @@ def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, scr
             Time,
             Parameter("passive_detection_shape"),
             Parameter("passive_detection_inflection"),
-            0.5,
+            Parameter("passive_detection_past_frac"), # what detection rate was in the past, relative to current
             1.,
         ],
     )
