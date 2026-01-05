@@ -10,8 +10,6 @@ from summer2.functions import time as stf
 from tbh.demographic_tools import get_pop_size, get_death_rates_by_age, gen_mixing_matrix_func
 from tbh.outputs import request_model_outputs
 
-TRANSMISSION_MODE = "frequency"  # "density"
-
 HOME_PATH = Path(__file__).parent.parent.parent
 
 PLACEHOLDER_VALUE = 0.
@@ -78,23 +76,14 @@ def get_natural_tb_model(model_config, init_pop_size):
         else:
             rel_susceptibility = 1. if susceptible_comp == "mtb_naive" else Parameter(f"rel_sus_{susceptible_comp}")
         
-        if TRANSMISSION_MODE == "density":
-            model.add_infection_density_flow(
-                name=f"infection_from_{susceptible_comp}",
-                contact_rate=Parameter("raw_transmission_rate") * rel_susceptibility,
-                source=susceptible_comp,
-                dest="incipient",
-            )
-        elif TRANSMISSION_MODE == "frequency":
-            model.add_infection_frequency_flow(
-                name=f"infection_from_{susceptible_comp}",
-                contact_rate=Parameter("raw_transmission_rate") * rel_susceptibility,
-                source=susceptible_comp,
-                dest="incipient",
-            )
-        else:
-            raise ValueError(f"{TRANSMISSION_MODE} must be one of 'frequency' or 'density")  # frequency-dependent transmission
-
+        model.add_infection_generalised_flow(
+            name=f"infection_from_{susceptible_comp}", 
+            gen_infection_exp=Parameter("infection_pop_scale"),
+            contact_rate=Parameter("raw_transmission_rate") * rel_susceptibility,
+            source=susceptible_comp,
+            dest="incipient",
+        )
+        
     """
          Early TB infection dynamics
     """
