@@ -6,7 +6,7 @@ from pathlib import Path
 from time import time, sleep
 from tbh.paths import OUTPUT_PARENT_FOLDER
 
-ANALYSIS_NAME = "25sc_revised_se"
+ANALYSIS_NAME = "generalised_trans"
 
 # idata_path = OUTPUT_PARENT_FOLDER / "47337364_full_analysis_1scenario" / "task_1"
 idata_path = None
