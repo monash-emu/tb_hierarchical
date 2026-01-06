@@ -44,7 +44,7 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     neg_tx_outcome_funcs = get_neg_tx_outcome_funcs(bckd_death_funcs, time_variant_tsr)
 
     # Model building
-    model = get_natural_tb_model(model_config, agg_pop_data.iloc[0])
+    model = get_natural_tb_model(model_config, agg_pop_data)
     screening_flows = add_detection_and_treatment(model, time_variant_tsr, screening_programs)
     stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs)
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
@@ -54,7 +54,7 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     return model
 
 
-def get_natural_tb_model(model_config, init_pop_size):
+def get_natural_tb_model(model_config, pop_size):
 
     model = CompartmentalModel(
         times=(model_config["start_time"], model_config["end_time"]),
@@ -64,10 +64,16 @@ def get_natural_tb_model(model_config, init_pop_size):
 
     model.set_initial_population(
         distribution={
-            "mtb_naive": init_pop_size - model_config["seed"],
+            "mtb_naive": pop_size.iloc[0] - model_config["seed"],
             "clin_inf": model_config["seed"],
         },
     )
+
+    infection_pop_scale = Parameter("infection_pop_scale")
+    # Scale the raw transmission rate by population size at year 2020 (arbitrary choice)
+    # This is to ensure that the "raw_transmission_rate" parameter keeps the same order of magnitude across different transmission modes (frequency- or density-dependent)
+    pop_2020 = pop_size.loc[2020]
+    rescaled_transmission_rate = Parameter("raw_transmission_rate") * pop_2020 ** infection_pop_scale
 
     # Transmission flows (including reinfection)
     for susceptible_comp in ["mtb_naive", "contained", "cleared", "recovered"]:
@@ -78,8 +84,8 @@ def get_natural_tb_model(model_config, init_pop_size):
         
         model.add_infection_generalised_flow(
             name=f"infection_from_{susceptible_comp}", 
-            gen_infection_exp=Parameter("infection_pop_scale"),
-            contact_rate=Parameter("raw_transmission_rate") * rel_susceptibility,
+            gen_infection_exp=infection_pop_scale,
+            contact_rate=rescaled_transmission_rate * rel_susceptibility,
             source=susceptible_comp,
             dest="incipient",
         )
