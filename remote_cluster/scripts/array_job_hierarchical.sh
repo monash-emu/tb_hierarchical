@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=generalised_transmission
+#SBATCH --job-name=heterogenous_mixing
 #SBATCH --account=sh30
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
