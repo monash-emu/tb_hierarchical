@@ -1,5 +1,6 @@
 import pandas as pd
 from jax import numpy as jnp
+from jax.numpy.linalg import eigvals
 from jax import lax
 from summer2.functions import time as stf
 import numpy as np
@@ -96,44 +97,64 @@ def get_death_rates_by_age(model_config):
 
 def gen_mixing_matrix_func(age_groups):
     """
-        Returns a JAX-compatible function to build a symmetric age-structured mixing matrix
-        for a given set of age group lower bounds.
+    Returns a JAX-compatible function to build a symmetric age-structured mixing matrix
+    for a given set of age group lower bounds, with configurable socialising parameters.
+
+    Parameters
+    ----------
+    age_groups : list of int
+        List of lower bounds of age intervals, e.g. [0, 5, 15, 50].
+
+    Returns
+    -------
+    function
+        A function that takes child_socialising and elderly_socialising parameters and returns
+        an (n_groups x n_groups) mixing matrix as a JAX array.
+    """
+    age_groups = np.array(age_groups, dtype=int)
+
+    # Determine socialising parameter for each group
+    def build_mixing_matrix(child_socialising, elderly_socialising):
+        """
+        Constructs a symmetric mixing matrix where each age group has a socialising parameter.
+        Socialising parameter model:
+        Each age group is assigned a socialising parameter that reflects their relative level of social contacts. 
+        - Children (<15 years) use `child_socialising`.
+        - Middle-aged adults (15–64 years) have baseline socialising = 1.0.
+        - Elderly (≥65 years) use `elderly_socialising`.
+
+        The mixing matrix is constructed such that:
+        - Diagonal elements (within-group contacts) equal the group's socialising parameter.
+        - Off-diagonal elements (between-group contacts) equal the product of the socialising parameters of the two groups.
+
+        This assumes that contact intensity between two groups is proportional to the product of their social activity levels.
 
         Parameters
         ----------
-        age_groups : list of str
-            List of lower bounds of age intervals, e.g. ["0", "5", "15", "50"].
+        child_socialising : float
+            Socialising factor for children (age < 15)
+        elderly_socialising : float
+            Socialising factor for elderly (age >= 65)
 
         Returns
         -------
-        function
-            A function that takes two parameters (mixing_factor_cc and mixing_factor_ca) and returns
-            a (n_groups x n_groups) mixing matrix as a JAX array.
-    """
-    age_groups = np.array(age_groups, dtype=int)
-    n_groups = len(age_groups)
- 
-    # Children: age < 15
-    n_child = (age_groups < 15).sum()  # number of child groups
- 
-    def build_mixing_matrix(mixing_factor_cc, mixing_factor_ca):
+        matrix : jax.Array (n_groups x n_groups)
         """
-            Constructs a symmetric mixing matrix between age groups using the provided mixing factors.
-            Children are defined as age groups with lower bound < 15. Adults are all others.
+        # Assign socialising parameters per age group
+        socialising = jnp.array([
+            child_socialising if age < 15 else
+            elderly_socialising if age >= 65 else
+            1.0
+            for age in age_groups
+        ])
 
-            Parameters
-            ----------
-            mixing_factor_cc : float, Relative mixing rate between children (child-child interactions), ref: adult-adult interactions.
-            mixing_factor_ca : float, Relative mixing rate between children and adults (child-adult interactions), ref: adult-adult interactions.
+        # Construct the mixing matrix: outer product
+        M = jnp.outer(socialising, socialising)
+        # Compute spectral radius (largest absolute eigenvalue)
+        rho = jnp.max(jnp.abs(eigvals(M)))
 
-            Returns
-            -------
-            matrix : jax.Array (n_groups x n_groups) symmetric matrix of mixing rates.
-        """
-     
-        M = jnp.full((n_groups, n_groups), mixing_factor_ca)
-        M = M.at[:n_child,:n_child].set(mixing_factor_cc)
-        M = M.at[n_child:, n_child:].set(1.0)
+        # Rescale so spectral radius = 1
+        M = M / rho
         return M
- 
+
     return build_mixing_matrix

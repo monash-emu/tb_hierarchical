@@ -257,7 +257,7 @@ def stratify_model_by_age(
 
     # Age-mixing matrix
     build_mixing_matrix = gen_mixing_matrix_func(age_groups)  # create a function for a given set of age breakpoints
-    age_mixing_matrix = Function(build_mixing_matrix, [Parameter("mixing_factor_cc"), Parameter("mixing_factor_ca")]) # the function generating the matrix
+    age_mixing_matrix = Function(build_mixing_matrix, [Parameter("child_socialising"), Parameter("elderly_socialising")]) # the function generating the matrix
     age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
 
     # Adjust infection progression and containment by age
