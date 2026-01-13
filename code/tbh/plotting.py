@@ -243,8 +243,8 @@ def plot_posterior_pairs(
 
 
     for ax in np.ravel(axes):
-        ax.set_xlabel(ax.get_xlabel(), fontsize=17)
-        ax.set_ylabel(ax.get_ylabel(), fontsize=17)
+        ax.set_xlabel(ax.get_xlabel(), fontsize=17, rotation=15) #, ha='right', va='top')
+        ax.set_ylabel(ax.get_ylabel(), fontsize=17, rotation=15, ha='right', va='bottom')
         ax.tick_params(axis='both', labelsize=10)
 
         if kind == 'scatter':
