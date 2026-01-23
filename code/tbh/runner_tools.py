@@ -32,7 +32,7 @@ DEFAULT_MODEL_CONFIG = {
     "end_time": 2035,
     "seed": 100,
     "iso3": "KIR",
-    "age_groups": ["0", "3", "5", "10", "15", "18", "65"],
+    "age_groups": ["0", "3", "5", "10", "15", "18", "40", "65"],
     "pop_scaling": 40483. / 119438., # 40,483 people in South Tarawa in 2023, excluding Betio, Bairiki and Nanikai. Out of total Kiribati population of 119,438
 }
 
