@@ -7,7 +7,9 @@ from summer2 import CompartmentalModel, AgeStratification, Multiply
 from summer2.parameters import Parameter, Function, Time
 from summer2.functions import time as stf
 
-from tbh.demographic_tools import get_pop_size, get_death_rates_by_age, gen_mixing_matrix_func
+from tbh.demographic_tools import get_pop_size, get_death_rates_by_age
+from tbh.age_mixing import gen_age_mixing_matrix_func
+
 from tbh.outputs import request_model_outputs
 
 HOME_PATH = Path(__file__).parent.parent.parent
@@ -46,7 +48,7 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     # Model building
     model = get_natural_tb_model(model_config, agg_pop_data)
     screening_flows = add_detection_and_treatment(model, time_variant_tsr, screening_programs)
-    stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs)
+    stratify_model_by_age(model, model_config, neg_tx_outcome_funcs, screening_programs)
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, LATENT_COMPS, nat_death_flows, tb_death_flows, screening_flows)
@@ -230,7 +232,7 @@ def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, scr
 
 
 def stratify_model_by_age(
-        model: CompartmentalModel, age_groups: list, neg_tx_outcome_funcs: dict, screening_programs: list
+        model: CompartmentalModel, model_config: dict, neg_tx_outcome_funcs: dict, screening_programs: list
     ):
     """
         Applies age stratification to the model with specified age groups.
@@ -243,6 +245,7 @@ def stratify_model_by_age(
         model : CompartmentalModel. The model to be stratified by age.
         age_groups : list of str. List of lower bounds for age strata (must include "15").
     """
+    age_groups, iso3 = model_config["age_groups"], model_config["iso3"]
 
     assert "15" in age_groups, "We need 15 years old as an age break for compatibility with BCG effect and mixing matrix"
 
@@ -256,9 +259,15 @@ def stratify_model_by_age(
     )
 
     # Age-mixing matrix
-    build_mixing_matrix = gen_mixing_matrix_func(age_groups)  # create a function for a given set of age breakpoints
-    age_mixing_matrix = Function(build_mixing_matrix, [Parameter("child_socialising"), Parameter("elderly_socialising")]) # the function generating the matrix
+    # build_mixing_matrix = gen_mixing_matrix_func(age_groups)  # create a function for a given set of age breakpoints
+    # age_mixing_matrix = Function(build_mixing_matrix, [Parameter("child_socialising"), Parameter("elderly_socialising")]) # the function generating the matrix
+    # age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
+
+    # Age-mixing matrix
+    build_mixing_matrix = gen_age_mixing_matrix_func(iso3, age_groups)
+    age_mixing_matrix = Function(build_mixing_matrix, [Parameter("mixing_a_spread"), Parameter("mixing_pc_strength"), Time])
     age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
+
 
     # Adjust infection progression and containment by age
     for flow_name in ["progression_lowinf", "progression_inf", "containment"]:

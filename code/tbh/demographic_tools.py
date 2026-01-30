@@ -94,67 +94,161 @@ def get_death_rates_by_age(model_config):
 
     return death_rate_funcs
 
-
-def gen_mixing_matrix_func(age_groups):
+"""
+    Functions below are used to generate age mixing matrices using demographic data
+"""
+def get_normalised_fertility_data(iso3_code):
     """
-    Returns a JAX-compatible function to build a symmetric age-structured mixing matrix
-    for a given set of age group lower bounds, with configurable socialising parameters.
-
-    Parameters
-    ----------
-    age_groups : list of int
-        List of lower bounds of age intervals, e.g. [0, 5, 15, 50].
-
-    Returns
-    -------
-    function
-        A function that takes child_socialising and elderly_socialising parameters and returns
-        an (n_groups x n_groups) mixing matrix as a JAX array.
+    Load and normalise fertility data for a given country ISO3 code.    
+    
+    param iso3_code: str
+        The ISO3 code of the country to load fertility data for.
     """
-    age_groups = np.array(age_groups, dtype=int)
+    fertility_data = pd.read_csv(DATA_FOLDER / f'un_fertility_rates_{iso3_code}.csv', index_col=0)
+    normalised_fertility_data = fertility_data.div(fertility_data.sum(axis=1), axis=0)
+    return normalised_fertility_data
 
-    # Determine socialising parameter for each group
-    def build_mixing_matrix(child_socialising, elderly_socialising):
-        """
-        Constructs a symmetric mixing matrix where each age group has a socialising parameter.
-        Socialising parameter model:
-        Each age group is assigned a socialising parameter that reflects their relative level of social contacts. 
-        - Children (<15 years) use `child_socialising`.
-        - Middle-aged adults (15–64 years) have baseline socialising = 1.0.
-        - Elderly (≥65 years) use `elderly_socialising`.
 
-        The mixing matrix is constructed such that:
-        - Diagonal elements (within-group contacts) equal the group's socialising parameter.
-        - Off-diagonal elements (between-group contacts) equal the product of the socialising parameters of the two groups.
+def get_agegap_prob(normalised_fertility_data, age_gap, birth_year):
+    """
+    Retrieve the probability of a given parent-child age gap for a specific birth year.
 
-        This assumes that contact intensity between two groups is proportional to the product of their social activity levels.
+    Parameters:
+        normalised_fertility_data (pd.DataFrame): Fertility probabilities indexed by birth year, columns are mothers' ages.
+        age_gap (int): Age difference between parent and child.
+        birth_year (int): Year of birth of the child.
 
-        Parameters
-        ----------
-        child_socialising : float
-            Socialising factor for children (age < 15)
-        elderly_socialising : float
-            Socialising factor for elderly (age >= 65)
+    Returns:
+        float: Probability corresponding to the age gap and birth year, or 0.0 if out of range.
+    """
 
-        Returns
-        -------
-        matrix : jax.Array (n_groups x n_groups)
-        """
-        # Assign socialising parameters per age group
-        socialising = jnp.array([
-            child_socialising if age < 15 else
-            elderly_socialising if age >= 65 else
-            1.0
-            for age in age_groups
-        ])
+    # Ensure birth_year is within the data range, if not, clamp it to the nearest available year
+    earliest_year, latest_year = normalised_fertility_data.index.min(), normalised_fertility_data.index.max()
+    birth_year = jnp.clip(birth_year, earliest_year, latest_year)
 
-        # Construct the mixing matrix: outer product
-        M = jnp.outer(socialising, socialising)
-        # Compute spectral radius (largest absolute eigenvalue)
-        rho = jnp.max(jnp.abs(eigvals(M)))
+    # Return 0.0 if age_gap is less than youngest age in the data or greater than oldest age
+    youngest_age, oldest_age = normalised_fertility_data.columns.astype(int).min(), normalised_fertility_data.columns.astype(int).max()
+    if age_gap < youngest_age or age_gap > oldest_age:
+        return 0.0
+    else:
+        return normalised_fertility_data[str(age_gap)].loc[birth_year]
 
-        # Rescale so spectral radius = 1
-        M = M / rho
-        return M
 
-    return build_mixing_matrix
+def get_single_age_population(iso_3, max_age=120):
+    pop_data = pd.read_csv(DATA_FOLDER / "un_population.csv")
+    pop_data = pop_data[pop_data["ISO3_code"] == iso_3][["Time", "AgeGrp", "PopTotal"]]
+
+    rows = []
+    for _, r in pop_data.iterrows():
+        year = r["Time"]
+        pop = r["PopTotal"]
+        agegrp = r["AgeGrp"]
+
+        if agegrp.endswith("+"):   # normally "100+"
+            a0 = int(agegrp[:-1]) 
+            a1 = max_age
+            assert a1 >= a0
+        else:
+            a0, a1 = map(int, agegrp.split("-"))
+            
+        n = a1 - a0 + 1
+        for age in range(a0, a1 + 1):
+            rows.append({
+                "Time": year,
+                "Age": age,
+                "Pop": pop / n
+            })
+
+    return pd.DataFrame(rows)
+
+
+def get_relative_age_weight(age, lower_bound, upper_bound, single_age_pop_df, year):
+    earliest_year, latest_year = single_age_pop_df['Time'].min(), single_age_pop_df['Time'].max()
+    year = jnp.clip(year, earliest_year, latest_year)
+
+    # subset_df = single_age_pop_df[(single_age_pop_df["Time"] == year) & (single_age_pop_df["Age"] >= lower_bound) & (single_age_pop_df["Age"] <= upper_bound)] 
+    
+    time = jnp.array(single_age_pop_df["Time"])
+    age_array = jnp.array(single_age_pop_df["Age"])
+    pop = jnp.array(single_age_pop_df["Pop"])  # population column
+
+    mask = (time == year) & (age_array >= lower_bound) & (age_array <= upper_bound)
+    
+    # Apply mask: use jnp.where for JIT-compatibility
+    subset_pop = pop * mask   # zeros out entries not in the subset
+    # Total population in subset
+    total_pop = jnp.sum(subset_pop)
+
+    # Population for a specific age
+    age_mask = (age_array == age) & mask
+    age_pop = jnp.sum(pop * age_mask)  # sums over exactly one entry
+    
+    # age_pop = subset_df[subset_df["Age"] == age]["Pop"].iloc[0]
+    # total_pop = subset_df["Pop"].sum()  
+
+    return age_pop / total_pop
+
+
+# def gen_mixing_matrix_func(age_groups):
+#     """
+#     Returns a JAX-compatible function to build a symmetric age-structured mixing matrix
+#     for a given set of age group lower bounds, with configurable socialising parameters.
+
+#     Parameters
+#     ----------
+#     age_groups : list of int
+#         List of lower bounds of age intervals, e.g. [0, 5, 15, 50].
+
+#     Returns
+#     -------
+#     function
+#         A function that takes child_socialising and elderly_socialising parameters and returns
+#         an (n_groups x n_groups) mixing matrix as a JAX array.
+#     """
+#     age_groups = np.array(age_groups, dtype=int)
+
+#     # Determine socialising parameter for each group
+#     def build_mixing_matrix(child_socialising, elderly_socialising):
+#         """
+#         Constructs a symmetric mixing matrix where each age group has a socialising parameter.
+#         Socialising parameter model:
+#         Each age group is assigned a socialising parameter that reflects their relative level of social contacts. 
+#         - Children (<15 years) use `child_socialising`.
+#         - Middle-aged adults (15–64 years) have baseline socialising = 1.0.
+#         - Elderly (≥65 years) use `elderly_socialising`.
+
+#         The mixing matrix is constructed such that:
+#         - Diagonal elements (within-group contacts) equal the group's socialising parameter.
+#         - Off-diagonal elements (between-group contacts) equal the product of the socialising parameters of the two groups.
+
+#         This assumes that contact intensity between two groups is proportional to the product of their social activity levels.
+
+#         Parameters
+#         ----------
+#         child_socialising : float
+#             Socialising factor for children (age < 15)
+#         elderly_socialising : float
+#             Socialising factor for elderly (age >= 65)
+
+#         Returns
+#         -------
+#         matrix : jax.Array (n_groups x n_groups)
+#         """
+#         # Assign socialising parameters per age group
+#         socialising = jnp.array([
+#             child_socialising if age < 15 else
+#             elderly_socialising if age >= 65 else
+#             1.0
+#             for age in age_groups
+#         ])
+
+#         # Construct the mixing matrix: outer product
+#         M = jnp.outer(socialising, socialising)
+#         # Compute spectral radius (largest absolute eigenvalue)
+#         rho = jnp.max(jnp.abs(eigvals(M)))
+
+#         # Rescale so spectral radius = 1
+#         M = M / rho
+#         return M
+
+#     return build_mixing_matrix
