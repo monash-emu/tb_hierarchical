@@ -8,17 +8,62 @@ import numpy as np
 from tbh.paths import DATA_FOLDER
 
 
-def get_pop_size(model_config):
+def get_population_over_time(iso3, age_groups, max_age=120, scaling_factor=1.):
+    """
+    Return two DataFrames of population size over time. First DataFrame has single-age rows, second DataFrame has age-groups as columns.
 
+    Parameters:
+        iso3 (str): ISO3 country code.
+        age_groups (list[str|int]): list of age-group lower bounds, e.g. ["0","10","20"].
+        max_age (int): upper bound for the final open-ended group.
+
+    Returns:
+        sap (pd.DataFrame): DataFrame with columns ["Time", "Age", "Pop"] for single-age population.
+        group_popsize (pd.DataFrame): DataFrame with Time as index and age-groups as columns.    
+    """
+    # load raw population data for iso3 and expand grouped AgeGrp into single-age rows
     pop_data = pd.read_csv(DATA_FOLDER / "un_population.csv")
-    # filter for country and truncate historical pre-analysis years
-    pop_data = pop_data[(pop_data["ISO3_code"] == model_config['iso3']) & (pop_data["Time"] >= model_config['start_time'])]
+    pop_data = pop_data[pop_data["ISO3_code"] == iso3][["Time", "AgeGrp", "PopTotal"]]
 
-    # Aggregate accross agegroups for each year
-    agg_pop_data = model_config['pop_scaling'] * 1000. * pop_data.groupby('Time')['PopTotal'].sum().sort_index().cummax()  # cummax to avoid transcient population decline
+    # Build single-age population DataFrame
+    single_rows = []
+    for _, r in pop_data.iterrows():
+        pop = r["PopTotal"] * 1000. * scaling_factor # convert from thousands, and apply scaling factor if requested (e.g. subnational model)
+        agegrp = r["AgeGrp"]
 
-    return agg_pop_data
+        if isinstance(agegrp, str) and agegrp.endswith("+"):
+            a0 = int(agegrp[:-1])
+            a1 = max_age
+        else:
+            a0, a1 = map(int, str(agegrp).split("-"))
 
+        n = a1 - a0 + 1
+        for age in range(a0, a1 + 1):
+            single_rows.append({"Time": r["Time"], "Age": age, "Pop": pop / n})
+
+    sap = pd.DataFrame(single_rows)
+
+
+    # build group definitions (lb, ub, label)
+    lbs = sorted(int(x) for x in age_groups)
+    groups = []
+    for i, lb in enumerate(lbs):
+        ub = (lbs[i + 1] - 1) if i < len(lbs) - 1 else max_age
+        label = age_groups[i]
+        groups.append((lb, ub, label))
+
+    # aggregate by year
+    years = sorted(sap["Time"].unique())
+    rows = []
+    for year in years:
+        sub = sap[sap["Time"] == year]
+        row = {"Time": year}
+        for lb, ub, label in groups:
+            row[label] = sub.loc[(sub["Age"] >= lb) & (sub["Age"] <= ub), "Pop"].sum()
+        rows.append(row)
+
+    group_popsize = pd.DataFrame(rows).set_index("Time").sort_index()
+    return sap, group_popsize
 
 def get_death_rates_by_age(model_config):
     age_bins = [int(a) for a in model_config['age_groups']]
