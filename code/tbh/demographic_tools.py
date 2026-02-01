@@ -23,6 +23,7 @@ def get_population_over_time(iso3, age_groups, max_age=120, scaling_factor=1.):
     """
     # load raw population data for iso3 and expand grouped AgeGrp into single-age rows
     pop_data = pd.read_csv(DATA_FOLDER / "un_population.csv")
+    # filter to iso3 and relevant columns
     pop_data = pop_data[pop_data["ISO3_code"] == iso3][["Time", "AgeGrp", "PopTotal"]]
 
     # Build single-age population DataFrame
@@ -37,12 +38,11 @@ def get_population_over_time(iso3, age_groups, max_age=120, scaling_factor=1.):
         else:
             a0, a1 = map(int, str(agegrp).split("-"))
 
-        n = a1 - a0 + 1
+        n_ages = a1 - a0 + 1
         for age in range(a0, a1 + 1):
-            single_rows.append({"Time": r["Time"], "Age": age, "Pop": pop / n})
+            single_rows.append({"Time": r["Time"], "Age": age, "Pop": pop / n_ages})
 
     sap = pd.DataFrame(single_rows)
-
 
     # build group definitions (lb, ub, label)
     lbs = sorted(int(x) for x in age_groups)
@@ -82,15 +82,14 @@ def get_death_rates_by_age(model_config, group_popsize):
     age_bins = [int(a) for a in model_config['age_groups']]
     last_bin_start = age_bins[-1]
 
-    mort_data = pd.read_csv(DATA_FOLDER / "un_mortality.csv")
-    
+    mort_data = pd.read_csv(DATA_FOLDER / "un_mortality.csv") 
     # Filter and clean the mortality data
     mort_data = mort_data[(mort_data["ISO3_code"] == model_config["iso3"]) & 
                           (mort_data["Time"] >= model_config["start_time"])]
     mort_data = mort_data[["Time", "AgeGrp", "DeathTotal"]] # only keep relevant columns
     mort_data["DeathTotal"] *= 1000. # convert from thousands
 
-    # --- Step 3: assign to model bins ---
+    # Helper function to assign age to model bins
     def assign_bin(age):
         if age == "100+":
             return last_bin_start
@@ -104,6 +103,8 @@ def get_death_rates_by_age(model_config, group_popsize):
         return None
 
     mort_data["age_group"] = mort_data["AgeGrp"].apply(assign_bin)
+
+    
     mort_data = mort_data.groupby(["Time", "age_group"], as_index=False).agg({"DeathTotal": "sum"})
     mort_data = mort_data.pivot(index="Time", columns="age_group", values="DeathTotal")
     mort_data.reset_index()
