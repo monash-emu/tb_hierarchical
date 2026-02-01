@@ -40,7 +40,7 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     # Preparing population, mortality, treatment outcome and screening processes 
     single_age_pop_df, grouped_pop_df = get_population_over_time(model_config['iso3'], age_groups=model_config["age_groups"], scaling_factor=model_config["pop_scaling"])    
     agg_pop_data = grouped_pop_df.sum(axis=1)  # total population over time
-    bckd_death_funcs = get_death_rates_by_age(model_config)
+    bckd_death_funcs = get_death_rates_by_age(model_config, grouped_pop_df)
     time_variant_tsr = stf.get_linear_interpolation_function(tv_params['tx_success_pct'].index.to_list(), (tv_params['tx_success_pct'] / 100.).to_list())
     neg_tx_outcome_funcs = get_neg_tx_outcome_funcs(bckd_death_funcs, time_variant_tsr)
 

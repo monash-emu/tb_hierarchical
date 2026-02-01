@@ -65,47 +65,30 @@ def get_population_over_time(iso3, age_groups, max_age=120, scaling_factor=1.):
     group_popsize = pd.DataFrame(rows).set_index("Time").sort_index()
     return sap, group_popsize
 
-def get_death_rates_by_age(model_config):
+
+def get_death_rates_by_age(model_config, group_popsize):
+    """
+    Generate age-specific death rate functions based on UN mortality and popsize by age data and model configuration.
+    Parameters
+    ----------
+    model_config : dict
+        Model configuration dictionary containing 'age_groups', 'iso3', and 'start_time'.
+    group_popsize : pd.DataFrame
+        DataFrame with Time as index and age-groups as columns representing population sizes.   
+    Returns -------
+    death_rate_funcs : dict
+        Dictionary mapping age group lower bounds to JAX-compatible sigmoidal interpolation functions of death rates over time.
+    """
     age_bins = [int(a) for a in model_config['age_groups']]
     last_bin_start = age_bins[-1]
 
-    pop_data = pd.read_csv(DATA_FOLDER / "un_population.csv")
     mort_data = pd.read_csv(DATA_FOLDER / "un_mortality.csv")
-
-    # Filter
-    pop_data = pop_data[(pop_data["ISO3_code"] == model_config["iso3"]) & 
-                        (pop_data["Time"] >= model_config["start_time"])]
+    
+    # Filter and clean the mortality data
     mort_data = mort_data[(mort_data["ISO3_code"] == model_config["iso3"]) & 
                           (mort_data["Time"] >= model_config["start_time"])]
-
-    # --- Step 1: expand population using one-year age-groups, except 100+ ---
-    expanded_pop = []
-    for _, row in pop_data.iterrows():
-        start_age = row["AgeGrpStart"]
-        if start_age == 100:
-            expanded_pop.append({
-                "Time": row["Time"],
-                "Age": "100+",
-                "PopTotal": row["PopTotal"]
-            })
-        else:
-            end_age = start_age + 5
-            for age in range(start_age, end_age):
-                expanded_pop.append({
-                    "Time": row["Time"],
-                    "Age": str(age),
-                    "PopTotal": row["PopTotal"] / 5.  # assumed population uniformly distributed within 5-year age group 
-                })              
-    expanded_pop = pd.DataFrame(expanded_pop)
-
-    # --- Step 2: merge ---
-    mort_data["Age"] = mort_data["AgeGrp"]
-    merged = pd.merge(
-        expanded_pop,
-        mort_data,
-        on=["Time", "Age"],
-        how="left"
-    ).fillna({"DeathTotal": 0})
+    mort_data = mort_data[["Time", "AgeGrp", "DeathTotal"]] # only keep relevant columns
+    mort_data["DeathTotal"] *= 1000. # convert from thousands
 
     # --- Step 3: assign to model bins ---
     def assign_bin(age):
@@ -120,21 +103,16 @@ def get_death_rates_by_age(model_config):
                     return age_bins[i]
         return None
 
-    merged["age_group"] = merged["Age"].apply(assign_bin)
-    merged = merged.dropna(subset=["age_group"]).astype({"age_group": int})
+    mort_data["age_group"] = mort_data["AgeGrp"].apply(assign_bin)
+    mort_data = mort_data.groupby(["Time", "age_group"], as_index=False).agg({"DeathTotal": "sum"})
+    mort_data = mort_data.pivot(index="Time", columns="age_group", values="DeathTotal")
+    mort_data.reset_index()
+    mort_data.columns = mort_data.columns.astype(str)
 
-    # --- Step 4: aggregate ---
-    agg = merged.groupby(["Time", "age_group"])[["PopTotal", "DeathTotal"]].sum().reset_index()
-    agg["death_rate"] = agg["DeathTotal"] / agg["PopTotal"]
-
-    # --- Step 6: wrap ---
-    death_rate_series = {
-        str(age_group): group.set_index("Time")["death_rate"]
-        for age_group, group in agg.groupby("age_group")
-    }
+    death_rates = mort_data.div(group_popsize, axis=0).dropna()
     death_rate_funcs = {
-        age_group: stf.get_sigmoidal_interpolation_function(series.index, series)
-        for age_group, series in death_rate_series.items()
+        age_group: stf.get_sigmoidal_interpolation_function(death_rates.index, death_rates[age_group].values)
+        for age_group in model_config['age_groups']
     }
 
     return death_rate_funcs
