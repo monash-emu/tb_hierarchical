@@ -1,7 +1,7 @@
 import pandas as pd
 from jax import numpy as jnp
 from jax.numpy.linalg import eigvals
-from jax import lax
+
 from summer2.functions import time as stf
 import numpy as np
 
@@ -117,6 +117,85 @@ def get_death_rates_by_age(model_config, group_popsize):
     }
 
     return death_rate_funcs
+
+
+"""
+    Functions below are used to compute age-mixing matrices based on age-gap distributions.
+"""
+def build_agegap_lookup(normalised_fertility_data):
+    """
+    Build JAX-friendly lookup structures.
+
+    Returns:
+        probs: jnp.ndarray [n_years, n_ages]
+        year0: int (first year available in fertility data)
+        age0: int (youngest age available in fertility data)
+    """
+    # Ensure numeric column names
+    fert = normalised_fertility_data.copy()
+    fert.columns = fert.columns.astype(int)
+
+    year0 = fert.index.min()
+    age0 = fert.columns.astype(int).min()
+    probs = jnp.asarray(fert.to_numpy())  # shape (n_years, n_ages)
+
+    return probs, year0, age0
+
+
+def get_agegap_prob_jax(
+    probs,        # Array with shape (n_years, n_ages)
+    year0,     
+    age0,       
+    birth_year,   
+    age_gap      
+):
+    """
+    Retrieve the probability of a parent-child age gap for a given birth year using precomputed data,
+    in a JAX-compatible, vectorized way.
+
+    Years outside the available range are clamped to the nearest year, while age gaps outside the
+    supported range return 0.0. Fully compatible with JAX JIT compilation and vectorization.
+
+    Parameters
+    ----------
+    probs : jax.Array
+        Precomputed 2D array of probabilities, shape (n_years, n_ages),
+        where rows correspond to consecutive years starting from `year0`
+        and columns correspond to consecutive ages starting from `age0`.
+    year0 : int
+        The earliest year in the `probs` array (row index 0).
+    age0 : int
+        The youngest age in the `probs` array (column index 0).
+    birth_year : int or jax.Array
+        Year(s) of birth of the child. Can be a scalar or an array of years.
+    age_gap : int or jax.Array
+        Parent-child age gap(s). Can be a scalar or an array of ages.
+
+    Returns
+    -------
+    jax.Array
+        Probability value(s) corresponding to the requested `birth_year` and `age_gap`.
+    """
+    n_years, n_ages = probs.shape
+
+    # Convert to indices
+    year_idx = birth_year - year0
+    age_idx = age_gap - age0
+
+    # Clamp years to nearest available year
+    year_idx = jnp.clip(year_idx, 0, n_years - 1)
+
+    # Mask invalid age gaps
+    valid_age = (age_idx >= 0) & (age_idx < n_ages)
+
+    # Safe indexing
+    age_idx_safe = jnp.clip(age_idx, 0, n_ages - 1)
+
+    prob = probs[year_idx, age_idx_safe]
+
+    return jnp.where(valid_age, prob, 0.0)
+
+
 
 
 def gen_mixing_matrix_func(age_groups):
