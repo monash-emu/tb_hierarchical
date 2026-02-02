@@ -196,6 +196,94 @@ def get_agegap_prob_jax(
     return jnp.where(valid_age, prob, 0.0)
 
 
+def build_age_weight_lookup(age_groups: list[str], single_age_pop_df: pd.DataFrame) -> jnp.ndarray:
+    """
+    Build a JAX-compatible lookup of relative population weights by age and year.
+
+    Parameters
+    ----------
+    age_groups : list[str]
+        Lower bounds of age groups (e.g., ["0", "15", "65"]).
+
+    single_age_pop_df : pd.DataFrame
+        Columns: ["Time", "Age", "Pop"], single-age population data.
+
+    Returns
+    -------
+    jax.numpy.ndarray
+        Array of shape (n_years, n_ages) giving the relative population weight of
+        each age within its age group, per year. Years are indexed based on those in single_age_pop_df.
+    """
+    # Convert age_groups to int lower bounds
+    age_bins = sorted(int(a) for a in age_groups)
+    age_max = single_age_pop_df['Age'].max() + 1
+    age_bins.append(age_max)  # upper bound for last group
+
+    # Assign each age to an age group
+    age_group_map = pd.cut(single_age_pop_df['Age'], bins=age_bins, right=False, labels=False)
+    single_age_pop_df = single_age_pop_df.copy()
+    single_age_pop_df['AgeGroup'] = age_group_map
+
+    # Pivot to (Time x Age)
+    pivot = single_age_pop_df.pivot(index='Time', columns='Age', values='Pop').fillna(0.0)
+
+    # Compute relative weights within each age group
+    # result will be same shape as pivot (Time x Age)
+    age_weights = pivot.copy()
+    for group in range(len(age_bins) - 1):
+        ages_in_group = [age for age in pivot.columns if age_bins[group] <= age < age_bins[group + 1]]
+        # sum population in this group for each year
+        pop_sum = pivot[ages_in_group].sum(axis=1)
+        # divide each age by total in the group (avoid division by zero)
+        age_weights[ages_in_group] = pivot[ages_in_group].div(pop_sum.replace(0, 1), axis=0)
+
+    # Convert to JAX array
+    age_weights_jax = jnp.asarray(age_weights.values)
+    year0 = pivot.index.min()
+
+    return age_weights_jax, year0
+
+
+def get_age_weight_jax(age, time, age_weight_lookup, year0):
+    """
+    Retrieve the relative population weight for a given age and year from a precomputed JAX lookup.
+
+    Years outside the available range are clamped to the nearest row in the lookup.
+    Ages outside the available range are clamped to the nearest column (should never happen in practice).
+
+    Parameters
+    ----------
+    age : int or jax.Array
+        Age(s) to retrieve weights for.
+
+    time : int or jax.Array
+        Year(s) corresponding to the rows in the lookup.
+
+    age_weight_lookup : jax.Array
+        Precomputed 2D array of shape (n_years, n_ages) from build_age_weight_lookup.
+
+    year0 : int
+        First year in the lookup array (row 0).
+
+    Returns
+    -------
+    jax.Array
+        Relative population weight(s) corresponding to the given age(s) and time(s).
+    """
+    n_years, n_ages = age_weight_lookup.shape
+
+    # Compute indices
+    year_idx = jnp.asarray(time) - year0
+    age_idx = jnp.asarray(age)
+
+    # Clamp indices to valid range
+    year_idx = jnp.clip(year_idx, 0, n_years - 1)
+    age_idx = jnp.clip(age_idx, 0, n_ages - 1)
+
+    # Retrieve weights
+    weight = age_weight_lookup[year_idx, age_idx]
+
+    return weight
 
 
 def gen_mixing_matrix_func(age_groups):
