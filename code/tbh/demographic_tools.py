@@ -16,6 +16,7 @@ def get_population_over_time(iso3, age_groups, max_age=120, scaling_factor=1.):
         iso3 (str): ISO3 country code.
         age_groups (list[str|int]): list of age-group lower bounds, e.g. ["0","10","20"].
         max_age (int): upper bound for the final open-ended group.
+        scaling_factor (float): factor to scale population sizes by (e.g. for subnational models).
 
     Returns:
         sap (pd.DataFrame): DataFrame with columns ["Time", "Age", "Pop"] for single-age population.
@@ -124,8 +125,11 @@ def get_death_rates_by_age(model_config, group_popsize):
 """
 def build_agegap_lookup(normalised_fertility_data):
     """
-    Build JAX-friendly lookup structures.
+    Build JAX-friendly lookup structure for parent-child age gap probabilities from normalised fertility data.
 
+    Parameters:
+        normalised_fertility_data (pd.DataFrame): DataFrame with years as index and ages as columns, containing normalised fertility rates.
+    
     Returns:
         probs: jnp.ndarray [n_years, n_ages]
         year0: int (first year available in fertility data)

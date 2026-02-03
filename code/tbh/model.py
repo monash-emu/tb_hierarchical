@@ -1,16 +1,14 @@
 from jax import numpy as jnp
-import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from summer2 import CompartmentalModel, AgeStratification, Multiply
+from summer2 import CompartmentalModel, AgeStratification
 from summer2.parameters import Parameter, Function, Time
 from summer2.functions import time as stf
 
-from tbh.demographic_tools import get_population_over_time, get_death_rates_by_age, build_agegap_lookup, build_age_weight_lookup
-from tbh.age_mixing import gen_mixing_matrix_func
+from tbh.demographic_tools import get_population_over_time, get_death_rates_by_age
+from tbh.age_mixing import get_model_ready_age_mixing_matrix
 from tbh.outputs import request_model_outputs
-from tbh.paths import DATA_FOLDER
 
 HOME_PATH = Path(__file__).parent.parent.parent
 
@@ -39,17 +37,18 @@ INFECTIOUS_COMPARTMENTS = ACTIVE_COMPS
 
 def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
 
-    # Preparing population, mortality, treatment outcome and screening processes 
+    # Preparing population, mortality, age-mixing, treatment outcome, screening processes 
     single_age_pop_df, grouped_pop_df = get_population_over_time(model_config['iso3'], age_groups=model_config["age_groups"], scaling_factor=model_config["pop_scaling"])    
     agg_pop_data = grouped_pop_df.sum(axis=1)  # total population over time
     bckd_death_funcs = get_death_rates_by_age(model_config, grouped_pop_df)
     time_variant_tsr = stf.get_linear_interpolation_function(tv_params['tx_success_pct'].index.to_list(), (tv_params['tx_success_pct'] / 100.).to_list())
     neg_tx_outcome_funcs = get_neg_tx_outcome_funcs(bckd_death_funcs, time_variant_tsr)
+    age_mixing_matrix = get_model_ready_age_mixing_matrix(model_config['iso3'], model_config["age_groups"], grouped_pop_df, single_age_pop_df)
 
     # Model building
     model = get_natural_tb_model(model_config, agg_pop_data)
     screening_flows = add_detection_and_treatment(model, time_variant_tsr, screening_programs)
-    stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs, single_age_pop_df, grouped_pop_df, model_config['iso3'])
+    stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs, age_mixing_matrix)
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, LATENT_COMPS, nat_death_flows, tb_death_flows, screening_flows)
@@ -233,7 +232,7 @@ def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, scr
 
 
 def stratify_model_by_age(
-        model: CompartmentalModel, age_groups: list, neg_tx_outcome_funcs: dict, screening_programs: list, single_age_pop_df, grouped_pop_df, iso3
+        model: CompartmentalModel, age_groups: list, neg_tx_outcome_funcs: dict, screening_programs: list, age_mixing_matrix: Function
     ):
     """
         Applies age stratification to the model with specified age groups.
@@ -258,14 +257,7 @@ def stratify_model_by_age(
         compartments=COMPARTMENTS
     )
 
-    # Age-mixing matrix
-    fertility_data = pd.read_csv(DATA_FOLDER / f"un_fertility_rates_{iso3}.csv",index_col=0)
-    normalised_fertility_data = fertility_data.div(fertility_data.sum(axis=1), axis=0)
-    fert_probs, fert_year0, fert_age0 = build_agegap_lookup(normalised_fertility_data)
-    age_weights_lookup, ageweights_year0 = build_age_weight_lookup(age_groups, single_age_pop_df)
-
-    build_mixing_matrix = gen_mixing_matrix_func(grouped_pop_df, fert_probs, fert_year0, fert_age0, age_weights_lookup, ageweights_year0, age_groups)
-    age_mixing_matrix = Function(build_mixing_matrix, [Parameter("bg_mixing"), Parameter("a_spread"), Parameter("pc_strength"), Time]) # the function generating the matrix
+    # Set age-mixing matrix
     age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
 
     # Adjust infection progression and containment by age
@@ -302,13 +294,6 @@ def stratify_model_by_age(
         if compartment.startswith("subclin_"):
             inf_adjuster *= Parameter("rel_infectiousness_subclin")
         age_strat.add_infectiousness_adjustments(compartment, {age: 0. if int(age)<15 else inf_adjuster for age in age_groups})
-
-    # # Prevent children from progressing towards the infectious forms of TB
-    # for clinical_status in ["clin", "subclin"]:
-    #     age_strat.set_flow_adjustments(
-    #         f"infectiousnnes_gain_{clinical_status}", 
-    #         {age: (0. if int(age) < 15 else 1.) for age in age_groups}
-    #     )
 
     # Adjust screening interventions by age
     for scr_prog in screening_programs:
