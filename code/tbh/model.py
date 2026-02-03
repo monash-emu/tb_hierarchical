@@ -7,8 +7,10 @@ from summer2 import CompartmentalModel, AgeStratification, Multiply
 from summer2.parameters import Parameter, Function, Time
 from summer2.functions import time as stf
 
-from tbh.demographic_tools import get_population_over_time, get_death_rates_by_age, gen_mixing_matrix_func
+from tbh.demographic_tools import get_population_over_time, get_death_rates_by_age, build_agegap_lookup, build_age_weight_lookup
+from tbh.age_mixing import gen_mixing_matrix_func
 from tbh.outputs import request_model_outputs
+from tbh.paths import DATA_FOLDER
 
 HOME_PATH = Path(__file__).parent.parent.parent
 
@@ -47,7 +49,7 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     # Model building
     model = get_natural_tb_model(model_config, agg_pop_data)
     screening_flows = add_detection_and_treatment(model, time_variant_tsr, screening_programs)
-    stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs)
+    stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs, single_age_pop_df, grouped_pop_df, model_config['iso3'])
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, LATENT_COMPS, nat_death_flows, tb_death_flows, screening_flows)
@@ -231,7 +233,7 @@ def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, scr
 
 
 def stratify_model_by_age(
-        model: CompartmentalModel, age_groups: list, neg_tx_outcome_funcs: dict, screening_programs: list
+        model: CompartmentalModel, age_groups: list, neg_tx_outcome_funcs: dict, screening_programs: list, single_age_pop_df, grouped_pop_df, iso3
     ):
     """
         Applies age stratification to the model with specified age groups.
@@ -257,8 +259,13 @@ def stratify_model_by_age(
     )
 
     # Age-mixing matrix
-    build_mixing_matrix = gen_mixing_matrix_func(age_groups)  # create a function for a given set of age breakpoints
-    age_mixing_matrix = Function(build_mixing_matrix, [Parameter("child_socialising"), Parameter("elderly_socialising")]) # the function generating the matrix
+    fertility_data = pd.read_csv(DATA_FOLDER / f"un_fertility_rates_{iso3}.csv",index_col=0)
+    normalised_fertility_data = fertility_data.div(fertility_data.sum(axis=1), axis=0)
+    fert_probs, fert_year0, fert_age0 = build_agegap_lookup(normalised_fertility_data)
+    age_weights_lookup, ageweights_year0 = build_age_weight_lookup(age_groups, single_age_pop_df)
+
+    build_mixing_matrix = gen_mixing_matrix_func(grouped_pop_df, fert_probs, fert_year0, fert_age0, age_weights_lookup, ageweights_year0, age_groups)
+    age_mixing_matrix = Function(build_mixing_matrix, [Parameter("bg_mixing"), Parameter("a_spread"), Parameter("pc_strength"), Time]) # the function generating the matrix
     age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
 
     # Adjust infection progression and containment by age

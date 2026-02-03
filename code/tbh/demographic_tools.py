@@ -179,7 +179,7 @@ def get_agegap_prob_jax(
     n_years, n_ages = probs.shape
 
     # Convert to indices
-    year_idx = birth_year - year0
+    year_idx = birth_year.astype(jnp.int32) - year0
     age_idx = age_gap - age0
 
     # Clamp years to nearest available year
@@ -273,7 +273,7 @@ def get_age_weight_jax(age, time, age_weight_lookup, year0):
     n_years, n_ages = age_weight_lookup.shape
 
     # Compute indices
-    year_idx = jnp.asarray(time) - year0
+    year_idx = jnp.asarray(time.astype(jnp.int32)) - year0
     age_idx = jnp.asarray(age)
 
     # Clamp indices to valid range
@@ -284,68 +284,3 @@ def get_age_weight_jax(age, time, age_weight_lookup, year0):
     weight = age_weight_lookup[year_idx, age_idx]
 
     return weight
-
-
-def gen_mixing_matrix_func(age_groups):
-    """
-    Returns a JAX-compatible function to build a symmetric age-structured mixing matrix
-    for a given set of age group lower bounds, with configurable socialising parameters.
-
-    Parameters
-    ----------
-    age_groups : list of int
-        List of lower bounds of age intervals, e.g. [0, 5, 15, 50].
-
-    Returns
-    -------
-    function
-        A function that takes child_socialising and elderly_socialising parameters and returns
-        an (n_groups x n_groups) mixing matrix as a JAX array.
-    """
-    age_groups = np.array(age_groups, dtype=int)
-
-    # Determine socialising parameter for each group
-    def build_mixing_matrix(child_socialising, elderly_socialising):
-        """
-        Constructs a symmetric mixing matrix where each age group has a socialising parameter.
-        Socialising parameter model:
-        Each age group is assigned a socialising parameter that reflects their relative level of social contacts. 
-        - Children (<15 years) use `child_socialising`.
-        - Middle-aged adults (15–64 years) have baseline socialising = 1.0.
-        - Elderly (≥65 years) use `elderly_socialising`.
-
-        The mixing matrix is constructed such that:
-        - Diagonal elements (within-group contacts) equal the group's socialising parameter.
-        - Off-diagonal elements (between-group contacts) equal the product of the socialising parameters of the two groups.
-
-        This assumes that contact intensity between two groups is proportional to the product of their social activity levels.
-
-        Parameters
-        ----------
-        child_socialising : float
-            Socialising factor for children (age < 15)
-        elderly_socialising : float
-            Socialising factor for elderly (age >= 65)
-
-        Returns
-        -------
-        matrix : jax.Array (n_groups x n_groups)
-        """
-        # Assign socialising parameters per age group
-        socialising = jnp.array([
-            child_socialising if age < 15 else
-            elderly_socialising if age >= 65 else
-            1.0
-            for age in age_groups
-        ])
-
-        # Construct the mixing matrix: outer product
-        M = jnp.outer(socialising, socialising)
-        # Compute spectral radius (largest absolute eigenvalue)
-        rho = jnp.max(jnp.abs(eigvals(M)))
-
-        # Rescale so spectral radius = 1
-        M = M / rho
-        return M
-
-    return build_mixing_matrix
