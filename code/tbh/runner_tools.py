@@ -81,8 +81,9 @@ targets = [
     get_normal_target('cxr_pos_per100k', pd.Series(data=[596.3], index=[2024])),
     get_normal_target('tst_posXage_3_9_perc', pd.Series(data=[3.4], index=[2024])),
     get_normal_target('tst_posXage_10_perc', pd.Series(data=[9.4], index=[2024])),
-    get_normal_target('tst_posXage_15_perc', pd.Series(data=[28.2], index=[2024])),
-    get_normal_target('tst_posXage_65_perc', pd.Series(data=[32.7], index=[2024])),
+    # get_normal_target('tst_posXage_15_perc', pd.Series(data=[28.2], index=[2024])),
+    # get_normal_target('tst_posXage_65_perc', pd.Series(data=[32.7], index=[2024])),
+    get_normal_target('tst_posXage_15+_perc', pd.Series(data=[28.23], index=[2024])),
 
     # Kerri's paper
     get_normal_target('tst_posXage_18+_perc', pd.Series(data=[38.0], index=[2011])),
