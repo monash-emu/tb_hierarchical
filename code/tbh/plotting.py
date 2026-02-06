@@ -538,8 +538,10 @@ def visualise_mle_params(priors, mle_params):
 
 
 def plot_age_spec_tbi_prev(unc_df, bcm):
-    agegroups = ["3_9", "10", "15", "65"]
-    
+    # agegroups = ["3_9", "10", "15", "65"]
+    agegroups = ["3_9", "10", "15+"]
+
+
     box_data = []
     targets = []
 
@@ -605,9 +607,11 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
     for i_age, age in enumerate(agegroups):
         if age == "3_9":
             x_tick_labels.append("3-9")
+        elif age == "15+":
+            x_tick_labels.append("15+")
         else:
             if i_age < (len(agegroups) - 1):
-                next_age = agegroups[i_age + 1]
+                next_age = agegroups[i_age + 1].replace("+", "")
                 x_tick_labels.append(f"{age}-{int(next_age) - 1}")
             else:
                 x_tick_labels.append(f"{age}+")        
@@ -626,72 +630,59 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
 
     return fig
 
-    agegroups = ["5", "10", "15", "65"]
-    
-    box_data = []
-    targets = []
 
-    # Collect quantile info per age group
-    for age in agegroups:
-        output_name = f"measured_tbi_prevalenceXage_{age}_perc"
+def plot_contact_matrix(M, age_groups, title, ax, cmap="viridis"):
+    """
+    Plot a contact matrix as a heatmap with ticks aligned to cell centres.
+    """
+    n = len(age_groups)
 
-        year = bcm.targets[output_name].data.index[0]
-        quantiles = unc_df[output_name].loc[year]
-        target = bcm.targets[output_name].data.iloc[0]
+    # fig, ax = plt.subplots(figsize=(7, 6))
 
-        # Store quantiles in order for boxplot
-        box_data.append([
-            quantiles['0.025'],
-            quantiles['0.25'],
-            quantiles['0.5'],
-            quantiles['0.75'],
-            quantiles['0.975']
-        ])
-        targets.append(target)
-
-    # --- Plot ---
-    fig, ax = plt.subplots(figsize=(8, 5))
-
-    # Custom boxplot (using pre-computed quantiles)
-    bp = ax.bxp(
-        [
-            {
-                'med': d[2],
-                'q1': d[1],
-                'q3': d[3],
-                'whislo': d[0],
-                'whishi': d[4],
-                'fliers': []
-            } for d in box_data
-        ],
-        positions=range(len(agegroups)),
-        showfliers=False,
-        patch_artist=True
+    im = ax.imshow(
+        M,
+        origin="upper",
+        cmap=cmap,
+        aspect="auto",
+        interpolation="none"
     )
 
-    # Style boxes
-    for box in bp['boxes']:
-        box.set(facecolor='lightblue', alpha=0.6, edgecolor='navy')
-    for whisker in bp['whiskers']:
-        whisker.set(color='navy', linewidth=1)
-    for cap in bp['caps']:
-        cap.set(color='navy', linewidth=1)
-    for median in bp['medians']:
-        median.set(color='darkblue', linewidth=2)
+    # Major ticks at cell centres
+    age_lb = [int(a) for a in age_groups]
+    labels = (
+        [f"{age_lb[i]}-{age_lb[i+1] - 1}" for i in range(len(age_lb) - 1)]
+        + [f"{age_lb[-1]}+"]
+    )
 
-    # Overlay target points
-    ax.scatter(range(len(agegroups)), targets, color='red', marker='x', s=80, label='Observations')
+    ax.set_xticks(np.arange(n))
+    ax.set_yticks(np.arange(n))
+    ax.set_xticklabels(labels)
+    ax.set_yticklabels(labels)
 
-    # Labels and formatting
-    ax.set_xticks(range(len(agegroups)))
-    ax.set_xticklabels(agegroups)
-    ax.set_xlabel("Age group")
-    ax.set_ylabel("TST positivity rate (%)")
-    ax.set_title("Observed vs modelled TST positivity fraction by age group")
-    ax.legend()
-    ax.grid(alpha=0.3)
+    # Move x-axis to the top
+    ax.xaxis.set_ticks_position("top")
+    ax.xaxis.set_label_position("top")
+    ax.tick_params(axis="x", top=True, bottom=False)
+
+    # Set axis limits to match matrix extent exactly
+    ax.set_xlim(-0.5, n - 0.5)
+    ax.set_ylim(n - 0.5, -0.5)
+
+    # Draw gridlines on cell boundaries
+    ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, n, 1), minor=True)
+    ax.grid(which="minor", color="white", linestyle="-", linewidth=0.)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+    ax.set_xlabel("Contacting individual age group (j)")
+    ax.set_ylabel("Contacted individual age group (i)")
+    ax.set_title(title)
+
+    plt.setp(ax.get_xticklabels(), rotation=20, ha="center")
+
+    # cbar = fig.colorbar(im, ax=ax)
+    # cbar.ax.set_ylabel("Contact rate", rotation=270, labelpad=15)
 
     plt.tight_layout()
-    plt.show()
-
-    return fig
+    # plt.show()
+   
