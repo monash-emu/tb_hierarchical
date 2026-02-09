@@ -203,3 +203,6 @@ cython_debug/
 # output files
 notebooks/test_outputs/
 remote_cluster/outputs/
+
+# GIF animation files
+*.gif
