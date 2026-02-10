@@ -1,6 +1,7 @@
 from jax import numpy as jnp
 from jax import vmap
 import pandas as pd
+import numpy as np
 
 from summer2.parameters import Parameter, Function, Time
 
@@ -128,3 +129,37 @@ def get_model_ready_age_mixing_matrix(iso3: str, age_groups: list[str], grouped_
     age_mixing_matrix = Function(build_mixing_matrix, [Parameter("bg_mixing"), Parameter("a_spread"), Parameter("pc_strength"), Time]) # the function generating the matrix
     
     return age_mixing_matrix
+
+
+def read_conmat_matrix(iso3, age_groups):
+    """
+    Reads the contact matrix from the R script output and formats it as a numpy array.
+    Parameters
+    ----------
+        iso3 : str
+            ISO3 country code for loading contact matrix data.
+        age_groups : list of str
+            List of age group labels.
+    
+    Returns
+    -------
+    matrix : np.array
+        Contact matrix with dimensions corresponding to the provided age groups.
+    """
+    conmat_data = pd.read_csv(DATA_FOLDER / "Rscript" / f"conmat_all_{iso3}.csv", index_col=0)
+    
+    conmat_agebreaks = [s[1:].split(",")[0] for s in conmat_data['age_group_from'].unique()]
+    
+    assert set(conmat_agebreaks) == set(age_groups), "conmat age bands not matching model age bands"
+
+    matrix = np.zeros((len(age_groups), len(age_groups)))
+    for _, row in conmat_data.iterrows():
+        age_from = row['age_group_from'][1:].split(",")[0]
+        age_to = row['age_group_to'][1:].split(",")[0]
+        matrix[age_groups.index(age_to), age_groups.index(age_from)] = row['contacts']
+
+    eigvals = np.linalg.eigvals(matrix)
+    spectral_radius = np.max(np.abs(eigvals))
+    norm_matrix = matrix / spectral_radius
+
+    return norm_matrix
