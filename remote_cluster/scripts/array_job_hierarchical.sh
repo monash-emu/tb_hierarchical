@@ -4,7 +4,7 @@
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=8G
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8
 #SBATCH --output=/home/rrag0004/sh30/users/rragonnet/tb_hierarchical/remote_cluster/logs/%A_%a.out 
 #SBATCH --mail-user=romain.ragonnet@monash.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
