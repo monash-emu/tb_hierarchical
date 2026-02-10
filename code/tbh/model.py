@@ -7,7 +7,7 @@ from summer2.parameters import Parameter, Function, Time
 from summer2.functions import time as stf
 
 from tbh.demographic_tools import get_population_over_time, get_death_rates_by_age
-from tbh.age_mixing import get_model_ready_age_mixing_matrix
+from tbh.age_mixing import get_model_ready_age_mixing_matrix, canberra_distance, read_conmat_matrix
 from tbh.outputs import request_model_outputs
 
 HOME_PATH = Path(__file__).parent.parent.parent
@@ -51,6 +51,11 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs, age_mixing_matrix)
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
+    # Model outputs
+    conmat_matrix = read_conmat_matrix(model_config['iso3'], model_config["age_groups"])
+    matrix_dist = Function(canberra_distance, [age_mixing_matrix, conmat_matrix])
+    model.add_computed_value_func("mixing_matrix_distance", matrix_dist)
+    
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, LATENT_COMPS, nat_death_flows, tb_death_flows, screening_flows)
 
     return model

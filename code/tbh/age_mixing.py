@@ -158,8 +158,30 @@ def read_conmat_matrix(iso3, age_groups):
         age_to = row['age_group_to'][1:].split(",")[0]
         matrix[age_groups.index(age_to), age_groups.index(age_from)] = row['contacts']
 
+    # Normalise so spectral radius = 1
     eigvals = np.linalg.eigvals(matrix)
     spectral_radius = np.max(np.abs(eigvals))
     norm_matrix = matrix / spectral_radius
 
     return norm_matrix
+
+
+def canberra_distance(M1, M2):
+    """
+    Computes the Canberra distance between two matrices M1 and M2.
+    The Canberra distance is defined as the sum of the absolute differences between corresponding elements of the matrices, 
+    divided by the sum of the absolute values of the corresponding elements, 
+    with a small constant added to the denominator to avoid division by zero.
+    
+    Parameters    
+    ----------
+    M1 : np.array     First matrix.         
+    M2 : np.array     Second matrix.
+    
+    Returns
+    -------
+    distance : float     The Canberra distance between M1 and M2.
+    """
+    x = M1.reshape(-1)
+    y = M2.reshape(-1)
+    return jnp.sum(jnp.abs(x - y) / (jnp.abs(x) + jnp.abs(y) + 1e-10))

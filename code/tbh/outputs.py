@@ -199,9 +199,8 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
 
     model.request_cumulative_output(name="cum_tb_mortality", source="tb_mortality", start_time=2026)
 
-
-    # Track computed values 
-    computed_values_to_save = ['passive_detection_rate_clin', 'passive_detection_rate_subclin']
+    # Track computed values for passive case detection and mixign matrix distance
+    computed_values_to_save = ['passive_detection_rate_clin', 'passive_detection_rate_subclin', 'mixing_matrix_distance']
     for comp_val in computed_values_to_save:
         model.request_computed_value_output(comp_val)
 
