@@ -79,7 +79,7 @@ def get_normal_target(name, data, tol_perc=20):
 targets = [
     get_normal_target('pearl_pos_per100k', pd.Series(data=[850.2], index=[2024])),
     get_normal_target('cxr_pos_per100k', pd.Series(data=[595.9], index=[2024])),
-    # get_normal_target('tst_posXage_3_9_perc', pd.Series(data=[3.3], index=[2024])),
+    get_normal_target('tst_posXage_3_9_perc', pd.Series(data=[3.3], index=[2024])),
     get_normal_target('tst_posXage_10_perc', pd.Series(data=[9.3], index=[2024])),
     get_normal_target('tst_posXage_15+_perc', pd.Series(data=[28.23], index=[2024])),
 
