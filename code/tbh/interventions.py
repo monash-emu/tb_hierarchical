@@ -43,15 +43,6 @@ class ScreeningTools:
         "success_prop": 1.  # probability of getting started on treatment if screened positive 
     }
 
-    # PEARL = { # Xpert MTB/RIF Ultra in addition to symptom screening and CXR (Xpert done for about 35%, other 65% get CXR only)
-    #     "sensitivities" : {
-    #         s: 0.35 * se_pearl[s] + 0.65 * se_cxr[s]
-    #         for s in TB_STATES
-    #     },
-    #     "dest_comp": "treatment",
-    #     "success_prop": 1.  # probability of getting started on treatment if screened positive 
-    # }
-
 # build PEARL *after* class exists
 ScreeningTools.PEARL = {
     "sensitivities": {
@@ -89,8 +80,6 @@ class ScreeningProgram:
         assert duration > 0, "End time must be after Start time"
                 
         scr_rate = - log(1 - self.total_coverage_perc / 100.) / duration
-
-        # FIXME: Not sure about the timeseries below
         self.raw_screening_func = stf.get_linear_interpolation_function(
             [self.start_time - 0.01, self.start_time, self.end_time - 0.01, self.end_time], 
             [0., scr_rate, scr_rate, 0.]

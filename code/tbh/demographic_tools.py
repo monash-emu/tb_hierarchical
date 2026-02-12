@@ -1,9 +1,6 @@
 import pandas as pd
 from jax import numpy as jnp
-from jax.numpy.linalg import eigvals
-
 from summer2.functions import time as stf
-import numpy as np
 
 from tbh.paths import DATA_FOLDER
 
