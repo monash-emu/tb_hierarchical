@@ -228,18 +228,18 @@ def plot_posterior_pairs(
     samples = burnt_idata.posterior.stack(draws=("chain", "draw"))[req_vars].to_dataframe()
     corr_matrix = samples.corr()
 
-    n = len(req_vars)
-    for i in range(n):
-        for j in range(i):  # Only lower triangle
-            ax = axes[i, j]  # safe, lower triangle only
-            corr = corr_matrix.iloc[i, j]
-            ax.text(
-                0.5, 0.9, f"r = {corr:.2f}",  # Place near top-centre
-                transform=ax.transAxes,
-                ha="center",
-                fontsize=16,
-                color="black"
-            )
+    # n = len(req_vars)
+    # for i in range(n):
+    #     for j in range(i):  # Only lower triangle
+    #         ax = axes[i, j]  # safe, lower triangle only
+    #         corr = corr_matrix.iloc[i, j]
+    #         ax.text(
+    #             0.5, 0.9, f"r = {corr:.2f}",  # Place near top-centre
+    #             transform=ax.transAxes,
+    #             ha="center",
+    #             fontsize=16,
+    #             color="black"
+    #         )
 
 
     for ax in np.ravel(axes):
