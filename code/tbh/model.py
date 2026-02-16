@@ -263,7 +263,7 @@ def stratify_model_by_age(
     )
 
     # Set age-mixing matrix
-    age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
+    # age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
 
     # Adjust infection progression and containment by age
     for flow_name in ["progression_lowinf", "progression_inf", "containment"]:
