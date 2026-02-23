@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=no_matrix
+#SBATCH --job-name=fixed_matrix
 #SBATCH --account=sh30
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
