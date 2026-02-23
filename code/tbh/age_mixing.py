@@ -50,7 +50,10 @@ def gen_mixing_matrix_func(grouped_pop_df, fert_probs, fert_year0, fert_age0, ag
     def get_group_popsize_jax(time):
         year_idx = time.astype(jnp.int32) - pop_df_year0
         year_idx = jnp.clip(year_idx, 0, n_years - 1)
-        return grouped_pop_df_jaxarray[year_idx, :][:, None]
+        # return grouped_pop_df_jaxarray[year_idx, :][:, None]
+        return grouped_pop_df_jaxarray[year_idx, :][None, :]
+
+
 
     def build_mixing_matrix(bg_mixing, a_spread, pc_strength, time):
         
@@ -89,7 +92,9 @@ def gen_mixing_matrix_func(grouped_pop_df, fert_probs, fert_year0, fert_age0, ag
                 S = S.at[j, i].set(value)
 
         # Scale by population size of each age group      
-        C = S * get_group_popsize_jax(time) # matrix is now asymmetric
+        # C = S * get_group_popsize_jax(time) # matrix is now asymmetric
+        C = get_group_popsize_jax(time) * S # matrix is now asymmetric
+
 
         # Normalize C by its spectral radius
         eigvals = jnp.linalg.eigvals(C)

@@ -539,14 +539,15 @@ def visualise_mle_params(priors, mle_params):
 
 def plot_age_spec_tbi_prev(unc_df, bcm):
     # agegroups = ["3_9", "10", "15", "65"]
-    agegroups = ["3_9", "10", "15+"]
+    agegroups = ["3_9", "10", "15+", "18+"]
 
 
     box_data = []
     targets = []
 
     # Collect quantile info per age group
-    for age in agegroups:
+    x_tick_labels = []
+    for i_age, age in enumerate(agegroups):
         output_name = f"tst_posXage_{age}_perc"
 
         year = bcm.targets[output_name].data.index[0]
@@ -562,6 +563,21 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
             quantiles['0.975']
         ])
         targets.append(target)
+
+        suffix = f"\n (year {year})"
+        if age == "3_9":
+            x_tick_labels.append("3-9" + suffix)
+        elif age == "15+":
+            x_tick_labels.append("15+" + suffix)
+        elif age == "18+":
+            x_tick_labels.append("18+" + suffix)
+        else:
+            if i_age < (len(agegroups) - 1):
+                next_age = agegroups[i_age + 1].replace("+", "")
+                x_tick_labels.append(f"{age}-{int(next_age) - 1}" + suffix)
+            else:
+                x_tick_labels.append(f"{age}+" + suffix) 
+
 
     # --- Plot ---
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -601,20 +617,7 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
     obs_marker = mlines.Line2D([], [], color='red', marker='x', linestyle='None', markersize=8, label='Observed')
 
     # Labels and formatting
-    ax.set_xticks(range(len(agegroups)))
-    
-    x_tick_labels = []
-    for i_age, age in enumerate(agegroups):
-        if age == "3_9":
-            x_tick_labels.append("3-9")
-        elif age == "15+":
-            x_tick_labels.append("15+")
-        else:
-            if i_age < (len(agegroups) - 1):
-                next_age = agegroups[i_age + 1].replace("+", "")
-                x_tick_labels.append(f"{age}-{int(next_age) - 1}")
-            else:
-                x_tick_labels.append(f"{age}+")        
+    ax.set_xticks(range(len(agegroups)))  
     ax.set_xticklabels(x_tick_labels)
 
     ax.set_xlabel("Age group (years)")
@@ -674,8 +677,8 @@ def plot_contact_matrix(M, age_groups, title, ax, cmap="viridis"):
     ax.grid(which="minor", color="white", linestyle="-", linewidth=0.)
     ax.tick_params(which="minor", bottom=False, left=False)
 
-    ax.set_xlabel("Contacting individual age group (j)")
-    ax.set_ylabel("Contacted individual age group (i)")
+    ax.set_ylabel("Contacting individual age group (i)")
+    ax.set_xlabel("Contacted individual age group (j)")
     ax.set_title(title)
 
     plt.setp(ax.get_xticklabels(), rotation=20, ha="center")
