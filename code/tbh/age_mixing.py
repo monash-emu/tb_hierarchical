@@ -161,7 +161,7 @@ def read_conmat_matrix(iso3, age_groups):
     for _, row in conmat_data.iterrows():
         age_from = row['age_group_from'][1:].split(",")[0]
         age_to = row['age_group_to'][1:].split(",")[0]
-        matrix[age_groups.index(age_to), age_groups.index(age_from)] = row['contacts']
+        matrix[age_groups.index(age_from), age_groups.index(age_to)] = row['contacts']
 
     # Normalise so spectral radius = 1
     eigvals = np.linalg.eigvals(matrix)
