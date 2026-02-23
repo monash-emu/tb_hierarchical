@@ -91,11 +91,11 @@ targets = [
     get_normal_target('notifications', read_notifications(), tol_perc=40.),
 
     # mixing
-    # est.NormalTarget(
-    #     name="mixing_matrix_distance", 
-    #     data=pd.Series(data=[0.], index=[2025]), 
-    #     stdev=esp.UniformPrior("mixing_dist_sd", (5, 20))
-    # )
+    est.NormalTarget(
+        name="mixing_matrix_distance", 
+        data=pd.Series(data=[0.], index=[2025]), 
+        stdev=esp.UniformPrior("mixing_dist_sd", (5, 20))
+    )
 ]
 
 
@@ -129,7 +129,7 @@ def get_parameters_and_priors(params_file_path=DATA_FOLDER / "parameters.xlsx"):
     # Prior distributions
     priors = []
     priors_df = df[df['distribution'].notnull()]
-    priors = [get_prior(row['parameter'], row['distribution'], row['distri_param1'], row['distri_param2']) for _, row in priors_df.iterrows() if row['parameter'] not in ["bg_mixing", "a_spread", "pc_strength"]]        
+    priors = [get_prior(row['parameter'], row['distribution'], row['distri_param1'], row['distri_param2']) for _, row in priors_df.iterrows()]        
 
     """
         Read time-variant parameters
