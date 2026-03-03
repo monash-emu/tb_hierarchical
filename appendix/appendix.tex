@@ -5,6 +5,11 @@
 \usepackage{xcolor}
 \usepackage{booktabs}
 \usepackage{geometry}
+\usepackage{booktabs,longtable,array}
+\usepackage{hyperref}
+
+
+
 \geometry{margin=1in}
 
 \title{Modelling mass TB and TBI screening in South Tarawa (Kiribati) --- Technical appendix}
@@ -59,11 +64,9 @@ The model is used in two stages: (i) to reconstruct the historical epidemic traj
 
 The model is implemented in Python using \texttt{summer2}, enabling symbolic specification and efficient numerical ODE generation. Computations are accelerated via \texttt{jax} just-in-time compilation, which lowers the ODE system to optimised machine code after first execution; subsequent simulations require \(\sim\)200\,ms each, enabling large-scale Bayesian calibration.
 
-All model code, calibration routines, analysis scripts, and interactive notebooks are available at:
+All model code, calibration routines, analysis scripts, and interactive notebooks are available at \url{https://github.com/monash-emu/tb_hierarchical}.
 
-\textcolor{red}{[PLACEHOLDER: GitHub repository link]}
-
-The project environment is managed using \texttt{pixi} for reproducible dependency management and straightforward installation.
+The repository includes instructions for installation and reproduction of results (\textcolor{red}{NEED TO WORK ON THIS}). The project environment is managed using \texttt{pixi} for reproducible dependency management and straightforward installation.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Demographics}
@@ -348,16 +351,9 @@ Let \(\eta^{\mathrm{pass}}_{k,i}(t)\) be passive detection (as above) and \(\eta
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Parameter Definitions, Values and Priors}
 
-\textcolor{red}{[PLACEHOLDER: Parameter table here. Include names consistent with code:
-\texttt{raw\_transmission\_rate}, \texttt{infection\_pop\_scale}, \texttt{rel\_infectiousness\_subclin}, \texttt{rel\_infectiousness\_lowinf}, 
-\texttt{rel\_sus\_children}, \texttt{rel\_sus\_contained}, \texttt{rel\_sus\_cleared}, 
-\texttt{containment\_rate\_age0/age5/age15}, \texttt{progression\_rate\_age0/age5/age15}, \texttt{progression\_prop\_infectious},
-\texttt{clearance\_rate}, \texttt{breakdown\_rate},
-\texttt{clinical\_progression\_rate}, \texttt{clinical\_regression\_rate}, \texttt{infectiousness\_gain\_rate}, \texttt{infectiousness\_loss\_rate}, \texttt{self\_recovery\_rate},
-\texttt{tb\_mortality\_rate\_lowinf}, \texttt{tb\_mortality\_rate\_inf},
-\texttt{recent\_detection\_rate}, \texttt{rel\_detection\_subclin}, \texttt{passive\_detection\_shape}, \texttt{passive\_detection\_inflection}, \texttt{passive\_detection\_past\_frac},
-\texttt{tx\_duration}, \texttt{pct\_neg\_tx\_death}, \texttt{TSR},
-\texttt{bg\_mixing}, \texttt{a\_spread}, \texttt{pc\_strength}, screening/TST sensitivities, and time-varying \texttt{tx\_success\_pct}.]}
+\input{tab-params.tex}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Model Calibration}

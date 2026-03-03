@@ -211,5 +211,8 @@ remote_cluster/outputs/
 appendix/*
 # But do not ignore these specific files
 !appendix/appendix.tex
+!appendix/Readme.md
+!appendix/scripts/
+!appendix/tab-params.tex
 !appendix/figures/
 !appendix/figures/tb_model.png
