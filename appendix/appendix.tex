@@ -1,0 +1,391 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Modelling mass TB and TBI screening in South Tarawa (Kiribati) --- Technical appendix}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Overview of the Model and Analysis}
+
+We developed a deterministic, age-structured compartmental model of \textit{Mycobacterium tuberculosis} (M.tb) transmission, infection, disease, detection, treatment, and prevention. The model uses discrete age groups and continuous time, and is formulated as a system of ordinary differential equations (ODEs).
+
+\paragraph{Compartment notation (per age group).}
+We denote the following compartments:
+\begin{itemize}
+    \item \(\mathbf{S}\): M.tb-\emph{na\"ive} (never infected) \texttt{(mtb\_naive)}.
+    \item \(\mathbf{E}\): Incipient infection (early post-infection) \texttt{(incipient)}.
+    \item \(\mathbf{C}\): Contained infection (immune control without sterilisation) \texttt{(contained)}.
+    \item \(\mathbf{X}\): Cleared infection (post-clearance; reinfection possible) \texttt{(cleared)}.
+    \item \(\mathbf{A_{SL}}\): Active TB, subclinical, less infectious \texttt{(subclin\_lowinf)}.
+    \item \(\mathbf{A_{CL}}\): Active TB, clinical, less infectious \texttt{(clin\_lowinf)}.
+    \item \(\mathbf{A_{SM}}\): Active TB, subclinical, more infectious \texttt{(subclin\_inf)}.
+    \item \(\mathbf{A_{CM}}\): Active TB, clinical, more infectious \texttt{(clin\_inf)}.
+    \item \(\mathbf{T}\): On TB treatment \texttt{(treatment)}.
+    \item \(\mathbf{R}\): Recovered (post self-recovery or treatment) \texttt{(recovered)}.
+\end{itemize}
+
+\noindent We use ``M.tb na\"ive'' rather than ``susceptible'' because several non-na\"ive compartments remain susceptible to reinfection.
+
+\paragraph{Model overview.}
+Early infection comprises incipient (\(E\)) and contained (\(C\)) stages; containment can clear infection to \(X\) or break down back to \(E\). Progression from \(E\) results in subclinical active disease that may gain/lose infectiousness and progress/regress between clinical and subclinical states. Age-specific demography and mixing are implemented explicitly (Sections~\ref{sec:demog}--\ref{sec:mixing-matrix}). Passive detection acts on all active disease states (with a subclinical penalty), and screening programmes add time-limited detection or TPT flows (Section~\ref{sec:screening}).
+
+\paragraph{Model structure.}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/tb_model.png} 
+\caption{Schematic of model compartments and transitions.}  
+\label{fig:model-structure}
+\end{figure}
+
+\paragraph{Parameter treatment in calibration.}
+Parameters with specified priors are estimated in the Bayesian calibration; those without priors are fixed. Estimated classes include core transmission (baseline transmission rate and population-scaling exponent), social mixing (\texttt{bg\_mixing}, \texttt{a\_spread}, \texttt{pc\_strength}), selected early-infection and disease-transition hazards (e.g., \texttt{clearance\_rate}, \texttt{breakdown\_rate}, \texttt{clinical\_progression\_rate}, \texttt{infectiousness\_gain\_rate}), the passive-detection scale-up profile, and a subset of diagnostic sensitivities (e.g., CXR in subclinical states, TST sensitivity in the cleared state). Parameters such as age-specific progression and containment from incipient infection, infectiousness multipliers, self-recovery, treatment duration, and several diagnostic sensitivities are fixed at specified values.%
+% Provenance: estimated vs fixed, lists and examples taken from parameters.xlsx (constant + time_variant). [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+\paragraph{Use in analysis.}
+The model is used in two stages: (i) to reconstruct the historical epidemic trajectory by calibrating uncertain parameters to epidemiological and intervention data; and (ii) to project forward under alternative intervention scenarios (screening and preventive treatment). Parameter estimation is performed in a Bayesian framework with Metropolis MCMC; posterior samples are propagated to quantify uncertainty in projected outcomes.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Software and Code}
+
+The model is implemented in Python using \texttt{summer2}, enabling symbolic specification and efficient numerical ODE generation. Computations are accelerated via \texttt{jax} just-in-time compilation, which lowers the ODE system to optimised machine code after first execution; subsequent simulations require \(\sim\)200\,ms each, enabling large-scale Bayesian calibration.
+
+All model code, calibration routines, analysis scripts, and interactive notebooks are available at:
+
+\textcolor{red}{[PLACEHOLDER: GitHub repository link]}
+
+The project environment is managed using \texttt{pixi} for reproducible dependency management and straightforward installation.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Demographics}
+\label{sec:demog}
+
+Age-specific all-cause mortality rates are from UN WPP data; TB-specific mortality is applied additionally to clinical disease states. Operationally, \emph{all deaths (including TB deaths and deaths on treatment)} are implemented as transitions to the youngest na\"ive compartment (\(S\) at the youngest age), preserving total headcount accounting across strata.
+
+To match observed population trajectories with minimal structural complexity, we inject additional births as a time-varying importation into the youngest na\"ive compartment. The net inflow is computed from year-to-year changes in the observed population series (linearly interpolated between years), then smoothed with a sigmoidal interpolation, reproducing the observed population size while preserving the age structure dynamics.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Natural History of Infection and Disease}
+
+We represent early infection dynamics through incipient (\(E\)) and contained (\(C\)) states. From \(E\), individuals either progress to subclinical active TB or move to \(C\) by containment; contained infection can clear to \(X\) or break down to \(E\). Active TB is split by clinical status (subclinical/clinical) and infectiousness (less/more): \((A_{SL}, A_{CL}, A_{SM}, A_{CM})\). Subclinical disease may become clinical, and vice versa; “less infectious’’ may become “more infectious’’, and vice versa. Self-recovery occurs only from subclinical states, moving to \(R\).
+
+\paragraph{Early infection.}
+Progression from \(E\) is age-specific (three categories: $<$5, 5--14, 15+) and governed by \texttt{progression\_rate\_age0/age5/age15}. Conditional on progression, the probability of entering the “more infectious” subclinical pathway is fixed by \texttt{progression\_prop\_infectious}. Containment rates are also age-specific via \texttt{containment\_rate\_age0/age5/age15}. Clearance (\texttt{clearance\_rate}) and immune breakdown (\texttt{breakdown\_rate}) are age-invariant and estimated.%
+% Fixed: progression_rate_* and containment_rate_*; fixed progression_prop_infectious; estimated: clearance_rate, breakdown_rate. [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+\paragraph{Clinical and infectiousness transitions.}
+Movements between subclinical and clinical (\texttt{clinical\_progression\_rate}, \texttt{clinical\_regression\_rate}) and between less and more infectious (\texttt{infectiousness\_gain\_rate}, \texttt{infectiousness\_loss\_rate}) govern within-disease dynamics. In this analysis, \texttt{clinical\_progression\_rate} and \texttt{infectiousness\_gain\_rate} are estimated, whereas \texttt{clinical\_regression\_rate} and \texttt{infectiousness\_loss\_rate} are fixed at their specified values.%
+% Provenance: which of these four rates have priors (gain and clinical progression) vs fixed (loss and clinical regression). [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+\paragraph{Infectiousness weighting.}
+Relative infectiousness modifiers are fixed: \texttt{rel\_infectiousness\_subclin} (subclinical vs clinical) and \texttt{rel\_infectiousness\_lowinf} (less vs more infectious). Children under 15 years contribute zero infectiousness via age-specific adjustments.%
+% Provenance: fixed multipliers, zero infectiousness under 15 implemented via infectiousness adjustments. [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Generalised Transmission and Infectiousness Weights}
+
+We interpolate between frequency- and density-dependent transmission using the exponent \(\kappa\in[0,1]\) applied to the contacted population size. Let \(N_{\mathrm{ref}}\) denote the total population in year 2020 (used internally to stabilise scaling). The force of infection for age group \(i\) is
+\[
+\lambda_i(t)
+=
+\beta_0\, N_{\mathrm{ref}}^{\,\kappa}
+\sum_{j}
+\tilde{C}_{ij}(t)\;
+\frac{I^{\mathrm{eff}}_j(t)}{N_j(t)^{\kappa}},
+\]
+where \(\tilde{C}(t)\) is the normalised age-mixing matrix (Section~\ref{sec:mixing-matrix}). The effective infectious pool in age group \(j\) is
+\[
+I^{\mathrm{eff}}_j(t) =
+w_{SL}\,A_{SL,j} + w_{CL}\,A_{CL,j} + w_{SM}\,A_{SM,j} + w_{CM}\,A_{CM,j},
+\]
+with multiplicative relative infectiousness parameters
+\[
+w_{CM}=1,\quad
+w_{CL}=\texttt{rel\_infectiousness\_lowinf},\quad
+w_{SM}=\texttt{rel\_infectiousness\_subclin},\quad
+w_{SL}=\texttt{rel\_infectiousness\_lowinf}\times \texttt{rel\_infectiousness\_subclin}.
+\]
+The raw transmission rate \(\beta_0=\texttt{raw\_transmission\_rate}\) and the population-scaling exponent \(\kappa=\texttt{infection\_pop\_scale}\) are estimated with uniform priors.%
+% Provenance: priors present for raw_transmission_rate and infection_pop_scale. [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+Individuals $<15$\,y contribute zero infectiousness.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Reinfection Pathways}
+
+Reinfection is permitted from \(C\), \(X\), and \(R\) with relative susceptibilities
+\[
+\rho_C=\texttt{rel\_sus\_contained},\qquad
+\rho_X=\rho_R=\texttt{rel\_sus\_cleared},
+\]
+and a child susceptibility modifier when infection arises from \(S\), \(\sigma^{\text{child}}=\texttt{rel\_sus\_children}\). These three susceptibility parameters are estimated with uniform priors.%
+% Provenance: priors on rel_sus_contained, rel_sus_cleared, rel_sus_children. [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Age Stratification and Mixing}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ageing and Age-Specific Adjustments}
+
+Ageing is implemented as first-order transitions between adjacent age groups. Early infection rates are age-specific using three categories: $<$5\,y, 5–14\,y, and 15+. A child susceptibility reduction applies for infection from \(S\) in $<$15\,y groups. Infectiousness is set to zero for $<$15\,y.%
+% Provenance: age-specific adjustments and child susceptibility parameter; zero infectiousness for <15y. [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Age-Mixing Matrix}
+\label{sec:mixing-matrix}
+
+\paragraph{Age groups, notation and data source.}
+The population is stratified into \(G = 8\) age groups with lower bounds
+\[
+\mathcal{A} = \{0, 3, 5, 10, 15, 18, 40, 65\}.
+\]
+The final group is open-ended (65+). Ages are capped at 120 for mixing computations. Let \(i,j \in \{1,\dots,G\}\) index age groups and \([a_i,b_i]\) denote the single ages in group \(i\). Calendar time is \(t\) (years). We use UN WPP data to inform age-specific population sizes (1950–2100) and age-specific fertility rates (1950–2023). For years outside data ranges, quantities are clamped to the nearest available year.
+
+\paragraph{Overview.}
+At time \(t\), we construct an age-specific contact matrix
+\[
+\mathbf{C}(t) = \big(C_{ij}(t)\big)_{i,j=1}^G,
+\]
+where \(C_{ij}(t)\) is the per-capita rate at which age group \(i\) contacts age group \(j\). Construction proceeds by:
+(1) building a symmetric per-pair intensity matrix \(\mathbf{S}(t)\);
+(2) scaling columns by the contacted group size;
+(3) normalising by the spectral radius.
+We combine three components: uniform background mixing, assortative age mixing, and parent–child mixing. Three parameters (\texttt{bg\_mixing}, \texttt{a\_spread}, \texttt{pc\_strength}) have uniform priors and are estimated.%
+% Provenance: priors on bg_mixing, a_spread, pc_strength. [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+\paragraph{Population weights within age groups.}
+To allow non-uniform single-age distributions within groups, let \(N(a,t)\) be the population at age \(a\) and time \(t\). For group \(i\),
+\[
+w_i(a,t) = \frac{N(a,t)}{\sum_{a' \in [a_i,b_i]} N(a',t)},\qquad
+\sum_{a \in [a_i,b_i]} w_i(a,t)=1.
+\]
+
+\paragraph{Symmetric per-pair intensity.}
+For each \(i,j\),
+\[
+S_{ij}(t) = \texttt{bg\_mixing} + S^{\mathrm{assort}}_{ij}(t) + \texttt{pc\_strength}\; S^{\mathrm{pc}}_{ij}(t),
+\quad S_{ij}(t)=S_{ji}(t).
+\]
+
+\emph{Assortative age mixing.}
+\[
+S^{\mathrm{assort}}_{ij}(t)
+=
+\sum_{a \in [a_i,b_i]}
+\sum_{c \in [a_j,b_j]}
+w_i(a,t)\, w_j(c,t)\,
+\frac{1}{\texttt{a\_spread}}
+\exp\!\left(-\frac{|a-c|}{\texttt{a\_spread}}\right).
+\]
+
+\emph{Parent–child mixing.}
+Let \(p_{\mathrm{pc}}(\Delta, y)\) be the probability of a parent–child age gap \(\Delta\) for a child born in year \(y\), computed by normalising age-specific fertility rates so they sum to one by year. With \(a_{\mathrm{child}}=\min(a,c)\) and birth year \(t-a_{\mathrm{child}}\),
+\[
+S^{\mathrm{pc}}_{ij}(t)
+=
+\sum_{a \in [a_i,b_i]}
+\sum_{c \in [a_j,b_j]}
+w_i(a,t)\, w_j(c,t)\,
+p_{\mathrm{pc}}\!\left(|a-c|,\; t - a_{\mathrm{child}}\right).
+\]
+
+\paragraph{Population scaling and asymmetry.}
+The per-pair matrix becomes an asymmetric WAIFW matrix by column scaling with the contacted group size:
+\[
+C_{ij}(t) = S_{ij}(t)\, N_j(t).
+\]
+
+\paragraph{Normalisation.}
+Let \(\rho(t)\) be the spectral radius of \(\mathbf{C}(t)\). We use the normalised matrix
+\[
+\tilde{\mathbf{C}}(t) = \frac{\mathbf{C}(t)}{\rho(t)}.
+\]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{TB Detection, Treatment and Screening}
+\label{sec:screening}
+
+\paragraph{Passive detection.}
+Passive detection applies to all active disease states, with a multiplicative penalty for subclinical disease:
+\[
+\eta_{k,i}^{\mathrm{pass}}(t) =
+\begin{cases}
+\texttt{rel\_detection\_subclin}\;\delta_i(t), & k \in \{SL, SM\},\\
+\delta_i(t), & k \in \{CL, CM\},
+\end{cases}
+\]
+where the scale-up profile is
+\[
+\delta_i(t)=\texttt{recent\_detection\_rate}\times
+\left[
+\frac{\tanh\!\big(\texttt{passive\_detection\_shape}\,(t-\texttt{passive\_detection\_inflection})\big)}{2}
++\frac{1}{2}
+\right],
+\]
+and the pre-scale-up fraction is governed by \texttt{passive\_detection\_past\_frac}. In this analysis, the scale-up parameters (\texttt{recent\_detection\_rate}, \texttt{passive\_detection\_shape}, \texttt{passive\_detection\_inflection}, \texttt{passive\_detection\_past\_frac}) are estimated, whereas \texttt{rel\_detection\_subclin} is fixed at its specified value (here, zero).%
+% Provenance: priors for recent_detection_rate and tanh profile parameters; rel_detection_subclin fixed at 0. [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+\paragraph{Screening programmes.}
+Screening programmes add time-limited transition hazards based on tool-specific sensitivities by source compartment, a per-program success probability, and a constant per-time screening rate chosen to achieve the requested coverage: \(\text{rate} = -\ln(1-\text{coverage})/\text{duration}\). Disease-screening tools route to \(T\); TST with TPT routes from \(E\) and \(C\) to \(X\) weighted by the TPT completion probability.
+
+\paragraph{Diagnostics.}
+PEARL (Xpert) sensitivities are fixed at 1 for all active states; symptom screening sensitivities are fixed (1 for clinical, 0 for subclinical). CXR sensitivities for subclinical states are estimated with uniform priors, while clinical states are fixed at 1. PLTS sensitivities are fixed. TST sensitivities are fixed for incipient and contained, while \texttt{prev\_se\_cleared} is estimated.%
+% Provenance: which diagnostic sensitivities have priors (CXR subclinical; TST cleared) vs fixed (PEARL=1; SSX fixed; PLTS fixed; other TST fixed). [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+\paragraph{Treatment outcomes.}
+Treatment duration is fixed at \texttt{tx\_duration}=0.5 years. The proportion of negative outcomes resulting in death is fixed (\texttt{pct\_neg\_tx\_death}). Age-specific relapse and treatment-death hazards are derived internally from time-varying treatment success (\texttt{tx\_success\_pct}), background mortality, and \texttt{pct\_neg\_tx\_death}.%
+% Provenance: fixed tx_duration and pct_neg_tx_death; tx_success_pct time series provided. [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Modelling TPT}
+
+Preventive treatment (TPT) moves individuals from \(E\) or \(C\) to \(X\) (cleared), multiplied by the TPT completion proportion (\texttt{tpt\_completion\_perc}). Coverage \(c\) over duration \(T\) corresponds to hazard \(r = -\ln(1-c)/T\). Individuals in \(X\) remain susceptible to reinfection with relative risk \(\rho_X\).%
+% Provenance: fixed tpt_completion_perc; reinfection risk parameters as above. [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Ordinary Differential Equations}
+\label{sec:odes}
+
+We present the ODEs for a generic age group \(i\). Let \(\alpha_i(t)\) be the ageing rate from group \(i\) to \(i{+}1\) (\(\alpha_G=0\)), and \(\mu_i(t)\) the all-cause mortality rate. Define
+\[
+\mathcal{A}[X_i] \equiv -\alpha_i X_i + \alpha_{i-1} X_{i-1},\quad \alpha_0=0.
+\]
+Let \(N_i(t)\) be the total population of age group \(i\). The births/net inflow into the youngest na\"ive group is \(\mathcal{B}(t)\). Force of infection \(\lambda_i(t)\) is given above.
+
+\paragraph{Early infection parameters (age-specific).}
+Let \(\gamma_i\) be the containment hazard from \(E\) (\texttt{containment\_rate\_age*}), \(\nu_i\) the total progression hazard from \(E\) (\texttt{progression\_rate\_age*}), and \(p\) the proportion progressing initially to “more infectious” subclinical (\texttt{progression\_prop\_infectious}). Then progression hazards are \(\nu_i(1-p)\) to \(A_{SL}\) and \(\nu_i p\) to \(A_{SM}\). From \(C\), let \(\xi\) be the clearance hazard (\texttt{clearance\_rate}) and \(\omega\) the breakdown hazard (\texttt{breakdown\_rate}). For reinfection, use \(\rho_C\) and \(\rho_X\) as above, and \(\sigma^{\text{child}}_i\) for child susceptibility.
+
+\paragraph{Clinical/infectiousness transitions and recovery.}
+Let \(\chi^+ = \texttt{clinical\_progression\_rate}\) (subclinical\(\to\)clinical) and \(\chi^- = \texttt{clinical\_regression\_rate}\) (clinical\(\to\)subclinical). Let \(\sigma^+ = \texttt{infectiousness\_gain\_rate}\) (low\(\to\)more infectious) and \(\sigma^- = \texttt{infectiousness\_loss\_rate}\) (more\(\to\)low). Self-recovery from subclinical states occurs at rate \(\rho_{SC}=\texttt{self\_recovery\_rate}\).
+
+\paragraph{Detection, screening and treatment.}
+Let \(\eta^{\mathrm{pass}}_{k,i}(t)\) be passive detection (as above) and \(\eta^{\mathrm{scr}}_{k,i}(t)\) the sum of screening detection hazards applied to \(A_k\). Denote \(\kappa_T = 1/\texttt{tx\_duration}\), age-specific relapse hazard \(r^{\mathrm{rel}}_i(t)\), and age-specific treatment-death hazard \(d^{\mathrm{Tx}}_i(t)\). Let \(u^{\mathrm{TPT}}_i(t)\) be the TPT initiation hazard acting on \(E\) and \(C\), already multiplied by completion probability and tool sensitivity.
+
+\paragraph{System.}
+\begin{align}
+\frac{dS_i}{dt} &= \mathbf{1}_{\{i=1\}}\,\mathcal{B}(t)
+- \sigma^{\text{child}}_i\,\lambda_i S_i
+- \mu_i S_i
++ \mathcal{A}[S_i],
+\\[4pt]
+\frac{dE_i}{dt} &=
+\sigma^{\text{child}}_i\,\lambda_i S_i
++ \rho_C \lambda_i C_i
++ \rho_X \lambda_i (X_i + R_i)
++ \omega\, C_i
+- \left(\gamma_i + \nu_i + \mu_i + u^{\mathrm{TPT}}_i\right) E_i
++ \mathcal{A}[E_i],
+\\[4pt]
+\frac{dC_i}{dt} &=
+\gamma_i E_i
+- \left(\omega + \xi + \mu_i + u^{\mathrm{TPT}}_i\right) C_i
++ \mathcal{A}[C_i],
+\\[4pt]
+\frac{dX_i}{dt} &=
+\xi\, C_i
++ u^{\mathrm{TPT}}_i\,(E_i + C_i)
+- \rho_X \lambda_i X_i
+- \mu_i X_i
++ \mathcal{A}[X_i],
+\\[4pt]
+\frac{dA_{SL,i}}{dt} &=
+\nu_i(1-p)\,E_i
++ \sigma^- A_{SM,i} - \sigma^+ A_{SL,i}
++ \chi^- A_{CL,i} - \chi^+ A_{SL,i}
+- \left(\eta^{\mathrm{pass}}_{SL,i} + \eta^{\mathrm{scr}}_{SL,i}\right) A_{SL,i}
+- \rho_{SC} A_{SL,i}
+- \mu_i A_{SL,i}
++ \mathcal{A}[A_{SL,i}],
+\\[4pt]
+\frac{dA_{SM,i}}{dt} &=
+\nu_i p\,E_i
++ \sigma^+ A_{SL,i} - \sigma^- A_{SM,i}
++ \chi^- A_{CM,i} - \chi^+ A_{SM,i}
+- \left(\eta^{\mathrm{pass}}_{SM,i} + \eta^{\mathrm{scr}}_{SM,i}\right) A_{SM,i}
+- \rho_{SC} A_{SM,i}
+- \mu_i A_{SM,i}
++ \mathcal{A}[A_{SM,i}],
+\\[4pt]
+\frac{dA_{CL,i}}{dt} &=
+\chi^+ A_{SL,i} - \chi^- A_{CL,i}
++ \sigma^- A_{CM,i} - \sigma^+ A_{CL,i}
+- \left(\eta^{\mathrm{pass}}_{CL,i} + \eta^{\mathrm{scr}}_{CL,i}\right) A_{CL,i}
+- \big(\mu_i + \mu^{TB}_{CL,i}\big) A_{CL,i}
++ \mathcal{A}[A_{CL,i}],
+\\[4pt]
+\frac{dA_{CM,i}}{dt} &=
+\chi^+ A_{SM,i} - \chi^- A_{CM,i}
++ \sigma^+ A_{CL,i} - \sigma^- A_{CM,i}
+- \left(\eta^{\mathrm{pass}}_{CM,i} + \eta^{\mathrm{scr}}_{CM,i}\right) A_{CM,i}
+- \big(\mu_i + \mu^{TB}_{CM,i}\big) A_{CM,i}
++ \mathcal{A}[A_{CM,i}],
+\\[4pt]
+\frac{dT_i}{dt} &=
+\sum_{k \in \{SL,SM,CL,CM\}} \left(\eta^{\mathrm{pass}}_{k,i} + \eta^{\mathrm{scr}}_{k,i}\right) A_{k,i}
+- \left(\kappa_T\,\texttt{TSR} + r^{\mathrm{rel}}_i + d^{\mathrm{Tx}}_i + \mu_i\right) T_i
++ \mathcal{A}[T_i],
+\\[4pt]
+\frac{dR_i}{dt} &=
+\rho_{SC}\left(A_{SL,i}+A_{SM,i}\right)
++ \kappa_T\,\texttt{TSR}\,T_i
+- \rho_X \lambda_i R_i
+- \mu_i R_i
++ \mathcal{A}[R_i].
+\end{align}
+
+\noindent\textit{Notes.} 
+(i) In implementation, deaths (including \(\mu_i\), \(\mu^{TB}\), and \(d^{\mathrm{Tx}}_i\)) are routed as transitions to the youngest \(S\) compartment to preserve total accounting and reproduce population size when combined with births/inflow. 
+(ii) The relapse flow from treatment is sent to \(A_{SL}\) by default.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Parameter Definitions, Values and Priors}
+
+\textcolor{red}{[PLACEHOLDER: Parameter table here. Include names consistent with code:
+\texttt{raw\_transmission\_rate}, \texttt{infection\_pop\_scale}, \texttt{rel\_infectiousness\_subclin}, \texttt{rel\_infectiousness\_lowinf}, 
+\texttt{rel\_sus\_children}, \texttt{rel\_sus\_contained}, \texttt{rel\_sus\_cleared}, 
+\texttt{containment\_rate\_age0/age5/age15}, \texttt{progression\_rate\_age0/age5/age15}, \texttt{progression\_prop\_infectious},
+\texttt{clearance\_rate}, \texttt{breakdown\_rate},
+\texttt{clinical\_progression\_rate}, \texttt{clinical\_regression\_rate}, \texttt{infectiousness\_gain\_rate}, \texttt{infectiousness\_loss\_rate}, \texttt{self\_recovery\_rate},
+\texttt{tb\_mortality\_rate\_lowinf}, \texttt{tb\_mortality\_rate\_inf},
+\texttt{recent\_detection\_rate}, \texttt{rel\_detection\_subclin}, \texttt{passive\_detection\_shape}, \texttt{passive\_detection\_inflection}, \texttt{passive\_detection\_past\_frac},
+\texttt{tx\_duration}, \texttt{pct\_neg\_tx\_death}, \texttt{TSR},
+\texttt{bg\_mixing}, \texttt{a\_spread}, \texttt{pc\_strength}, screening/TST sensitivities, and time-varying \texttt{tx\_success\_pct}.]}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Model Calibration}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Calibration Targets and Likelihood}
+
+Calibration targets include TB notifications, TST positivity by age, prevalence by disease form, fraction subclinical, fraction more infectious, and a penalty on the distance between the modelled mixing matrix and an external matrix. For prevalence targets, model outputs incorporate test sensitivity parameters. Each target uses a normal likelihood:
+\[
+y_k \sim \mathcal{N}\big(m_k(\theta), \sigma_k^2\big),
+\]
+with \(\sigma_k\) chosen so that the 95\% interval width is \(\pm 20\%\) of the observed value (\(\pm 40\%\) for notifications). The total log-likelihood is
+\[
+\log L(\theta)
+=
+\sum_k
+-\frac{(y_k - m_k(\theta))^2}{2\sigma_k^2}
+-
+\frac{1}{2}\log(2\pi\sigma_k^2).
+\]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Metropolis Algorithm}
+
+Parameters with specified priors (all uniform) are estimated during calibration; all remaining parameters are fixed. Estimated sets include transmission and mixing parameters, \texttt{clearance\_rate} and \texttt{breakdown\_rate}, \texttt{clinical\_progression\_rate} and \texttt{infectiousness\_gain\_rate}, passive detection scale-up parameters, and selected diagnostic and reinfection-susceptibility parameters.%
+% Provenance: summary of which parameter families have priors vs fixed as per parameters.xlsx. [1](https://monashuni-my.sharepoint.com/personal/romain_ragonnet_monash_edu/_layouts/15/Doc.aspx?sourcedoc=%7B73211939-8E9F-44A4-A7BF-E7B90727DF35%7D&file=parameters.xlsx&action=default&mobileredirect=true)
+We use Metropolis MCMC with multiple chains, burn-in, and convergence diagnostics; posterior samples are propagated forward for each intervention scenario. Total runtime for calibration and projections is approximately six hours.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

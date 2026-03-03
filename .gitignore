@@ -206,3 +206,10 @@ remote_cluster/outputs/
 
 # GIF animation files
 *.gif
+
+# Ignore everything in appendix/
+appendix/*
+# But do not ignore these specific files
+!appendix/appendix.tex
+!appendix/figures/
+!appendix/figures/tb_model.png
