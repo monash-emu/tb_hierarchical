@@ -202,7 +202,7 @@ cython_debug/
 
 # output files
 notebooks/test_outputs/
-remote_cluster/outputs/
+remote_cluster/outputs/*
 
 # GIF animation files
 *.gif
@@ -217,3 +217,11 @@ appendix/*
 !appendix/tab-params.tex
 !appendix/figures/
 !appendix/figures/tb_model.png
+
+# But allow this specific folder
+
+!remote_cluster/outputs/51291601_dynamic_mixing/
+
+# And allow everything inside it
+
+!remote_cluster/outputs/51291601_dynamic_mixing/**

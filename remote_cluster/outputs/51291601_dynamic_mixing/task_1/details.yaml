@@ -1,0 +1,52 @@
+full_runs_time: 3042 sec (i.e. 51 min) --> 1183 runs per hour
+mcmc_time: 19527 sec (i.e. 325 min) --> 2765 runs per hour
+---
+age_groups:
+- '0'
+- '3'
+- '5'
+- '10'
+- '15'
+- '18'
+- '40'
+- '65'
+end_time: 2035
+iso3: KIR
+pop_scaling: 0.3389457291649224
+seed: 100
+start_time: 1850
+---
+burn_in: 5000
+chains: 8
+cores: 8
+draws: 10000
+full_runs_samples: 1000
+scenarios:
+- scenario_1
+- scenario_2
+- scenario_3
+- scenario_4
+- scenario_5
+- scenario_6
+- scenario_7
+- scenario_8
+- scenario_9
+- scenario_10
+- scenario_11
+- scenario_12
+- scenario_13
+- scenario_14
+- scenario_15
+- scenario_16
+- scenario_17
+- scenario_18
+- scenario_19
+- scenario_20
+- scenario_21
+- scenario_22
+- scenario_23
+- scenario_24
+- scenario_25
+tune: 5000
+---
+commit: b83b33bffabbb1ed7985ba7b8b8eb7cec08d98f9
