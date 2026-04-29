@@ -34,8 +34,8 @@ title_lookup = {
 
     "viable_tbi_prevalence_perc": "Viable TBI prevalence (%)",
     "tst_pos_perc": "TST positivity (%)",
-    "pearl_pos_per100k": "PEARL TB prevalence (/100k)",
-    "cxr_pos_per100k": "CXR TB prevalence (/100k)",
+    "pearl_pos_per100k": "PEARL TB preval. (/100k)",
+    "cxr_pos_per100k": "CXR TB preval. (/100k)",
 
     "passive_detection_rate_clin": "Passive detec. rate (/y), clinical TB",
 
