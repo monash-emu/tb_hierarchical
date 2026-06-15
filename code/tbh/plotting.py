@@ -264,7 +264,7 @@ def plot_posterior_pairs(
     return fig
 
 
-def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, include_legend=True, x_lim=None, ylab_fontsize=12):
+def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, x_lim=None, colour="#B22222"):
 
     # update_rcparams() 
    
@@ -274,42 +274,37 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, incl
 
     if output_name in bcm.targets:
         t = copy(bcm.targets[output_name].data)
-        axis.scatter(list(t.index), t, marker=".", color='black', label='observations', zorder=11, s=30.)
-
-    colour = (0.2, 0.2, 0.8)   
+        axis.scatter(list(t.index), t, marker=".", color='black', label='Observed', zorder=11, s=25.)
 
     time = df.index
-    axis.plot(time, df['0.5'], color=colour, zorder=10, label="model (median)")
+    axis.plot(time, df['0.5'], color=colour, zorder=10, label="Model (median)")
 
     axis.fill_between(
         time, 
         df['0.25'], df['0.75'], 
         color=colour, 
-        alpha=0.5, 
+        alpha=0.35,  # 0.5, 
         edgecolor=None,
-        label="model (IQR)"
+        label="Model (IQR)"
     )
     axis.fill_between(
         time, 
         df['0.025'], df['0.975'],
         color=colour, 
-        alpha=0.3,
+        alpha=0.20, # 0.3,
         edgecolor=None,
-        label="model (95% CI)",
+        label="Model (95% CI)",
     )
 
     # axis.tick_params(axis="x", labelrotation=45)
     title = output_name if output_name not in title_lookup else title_lookup[output_name]
 
-    axis.set_ylabel(title, fontsize=ylab_fontsize)
+    axis.set_ylabel(title)
     # plt.tight_layout()
 
     # Get existing y-limits
     ymin, ymax = axis.get_ylim()
     axis.set_ylim(0., 1.2 * ymax)
-
-    if include_legend:
-        plt.legend(markerscale=2.)
 
 
 def plot_all_model_fits(uncertainty_df, bcm, n_col=3, excluded_outputs=[]):

@@ -62,7 +62,8 @@ for sc_num, coverage_key in enumerate(cov_list, start=1):
             sc_id=f"scenario_{sc_num}",
             sc_name=f"{sc_num}. PEARL / {coverage_key.capitalize()}",
             scr_prgs=scr_prgs,
-            desc=desc
+            sc_name_2=f"PEARL | {int(100*coverage)}%",
+            desc=desc,
         )
     )
 
@@ -95,6 +96,7 @@ for sc_num, coverage_key in enumerate(cov_list, start=6):
             sc_id=f"scenario_{sc_num}",
             sc_name=f"{sc_num}. CXR-TST / {coverage_key.capitalize()}",
             scr_prgs=scr_prgs,
+            sc_name_2=f"Drop Xpert | {int(100*coverage)}%",
             desc=desc
         )
     )
@@ -121,6 +123,7 @@ for sc_num, coverage_key in enumerate(cov_list, start=11):
         Scenario(
             sc_id=f"scenario_{sc_num}",
             sc_name=f"{sc_num}. CXR-TST 10+yrs / {coverage_key.capitalize()}",
+            sc_name_2=f"Drop Xpert 10+ | {int(100*coverage)}%",
             scr_prgs=scr_prgs,
             desc=desc
         )
@@ -142,6 +145,7 @@ for sc_num, coverage_key in enumerate(cov_list, start=16):
         Scenario(
             sc_id=f"scenario_{sc_num}",
             sc_name=f"{sc_num}. CXR 10+yrs / {coverage_key.capitalize()}",
+            sc_name_2=f"Drop Xpert & TST | {int(100*coverage)}%",
             scr_prgs=scr_prgs,
             desc=desc
         )
@@ -175,6 +179,7 @@ for sc_num, coverage_key in enumerate(cov_list, start=21):
         Scenario(
             sc_id=f"scenario_{sc_num}",
             sc_name=f"{sc_num}. CXR-PLTS-TST / {coverage_key.capitalize()}",
+            sc_name_2=f"CXR-PLTS-TST | {int(100*coverage)}%",
             scr_prgs=scr_prgs,
             desc=desc
         )
