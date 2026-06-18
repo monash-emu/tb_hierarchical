@@ -348,7 +348,7 @@ We present the ODEs for a generic age group \(i\). Let \(\alpha_i(t)\) be the ag
 Let \(N_i(t)\) be the total population of age group \(i\). The births/net inflow into the youngest na\"ive group is \(\mathcal{B}(t)\). The force of infection \(\lambda_i(t)\) is given above.
 
 \paragraph{Early infection parameters (age-specific).}
-For each age group \(i\), let \(\gamma_i\) be the containment rate from \(E\) to \(C\), \(\nu_i\) the total progression rate from \(E\) to subclinical disease. The proportion progressing initially to ``high infectiousness subclinical'' rather than ``low infectiousness subclinical'' is denoted by \(p\). Then progression risks are \(\nu_i(1-p)\) to \(D_{SL}\) and \(\nu_i p\) to \(D_{SH}\). From \(C\), let \(\xi\) be the clearance rate and \(\omega\) the breakdown rate.
+For each age group \(i\), let \(\gamma_i\) be the containment rate from \(E\) to \(C\), \(\epsilon_i\) the total progression rate from \(E\) to subclinical disease. The proportion progressing initially to ``high infectiousness subclinical'' rather than ``low infectiousness subclinical'' is denoted by \(p\). Then progression risks are \(\epsilon_i(1-p)\) to \(D_{SL}\) and \(\epsilon_i p\) to \(D_{SH}\). From \(C\), let \(\xi\) be the clearance rate and \(\omega\) the breakdown rate.
 
 \paragraph{Clinical/infectiousness transitions and recovery.}
 Let \(\chi^+\) (subclinical\(\to\)clinical) and \(\chi^-\) (clinical\(\to\)subclinical) be clinical transitions; \(\sigma^+\) (low\(\to\)high) and \(\sigma^-\) (high\(\to\)low) be infectiousness transitions. 
@@ -394,8 +394,8 @@ Age-specific progression seeding from \(E_i\) into active disease:
 \[
 b_{k,i} =
 \begin{cases}
-\nu_i(1-p), & k=SL,\\
-\nu_i p, & k=SH,\\
+\epsilon_i(1-p), & k=SL,\\
+\epsilon_i p, & k=SH,\\
 0, & k\in\{CL,CH\}.
 \end{cases}
 \]
@@ -421,7 +421,7 @@ b_{k,i} =
 + \rho_C \lambda_i C_i
 + \rho_X \lambda_i (X_i + R_i)
 + \omega\, C_i
-- \left(\gamma_i + \nu_i + \mu_i + u^{\mathrm{TPT}}_i\right) E_i
+- \left(\gamma_i + \epsilon_i + \mu_i + u^{\mathrm{TPT}}_i\right) E_i
 + \mathcal{A}_i[E],
 \\[3pt]
 \frac{dC_i}{dt} &=
@@ -495,6 +495,9 @@ Convergence is assessed by inspecting trace plots, posterior distribution smooth
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Parameter Definitions, Values and Priors}
+
+
+\input{parameterisation.tex}
 
 % Code-like names appear only in the parameter table included below.
 \small
