@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=emma_fd
+#SBATCH --job-name=emma_dd
 #SBATCH --account=sh30
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
