@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=fixed_matrix
+#SBATCH --job-name=emma_fd
 #SBATCH --account=sh30
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
@@ -19,6 +19,11 @@ log "Starting job"
 export PYTENSOR_FLAGS=compiledir=$HOME/.pytensor/$SLURM_JOB_ID
 
 cd /projects/sh30/users/rragonnet/tb_hierarchical
+
+git fetch origin
+git checkout emma
+git pull origin emma
+
 
 log "Running Python script"
 
