@@ -33,8 +33,14 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         name="populationXage_18+", sources=[f"populationXage_{age}" for age in age_strata if int(age) >= 18]
     )
 
-    model.request_output_for_flow("births", "births")
-
+    
+    reachability_strata = model.stratifications['reachability'].strata
+    for reach in reachability_strata:
+        model.request_output_for_flow(f"births_{reach}", f"births_{reach}")
+    model.request_aggregate_output(
+        name="births", sources=[f"births_{reach}" for reach in reachability_strata]
+    )
+    
     # TB incidence (and cumulative)
     for inf_cat in ["lowinf", "inf"]:
         model.request_output_for_flow(

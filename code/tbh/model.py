@@ -2,7 +2,7 @@ from jax import numpy as jnp
 import pandas as pd
 from pathlib import Path
 
-from summer2 import CompartmentalModel, AgeStratification
+from summer2 import CompartmentalModel, AgeStratification, Stratification
 from summer2.parameters import Parameter, Function, Time
 from summer2.functions import time as stf
 
@@ -49,6 +49,7 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     model = get_natural_tb_model(model_config, agg_pop_data)
     screening_flows = add_detection_and_treatment(model, time_variant_tsr, screening_programs)
     stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs, age_mixing_matrix)
+    stratify_model_by_reachability(model)
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
     # Model outputs
@@ -317,6 +318,31 @@ def stratify_model_by_age(
     model.stratify_with(age_strat)
 
 
+def stratify_model_by_reachability(model: CompartmentalModel):
+    """
+        Stratifies the model by reachability, with two strata: reachable and unreachable.
+        The unreachable stratum is assumed to have no access screening interventions, 
+        increased transmission risk, and decreased access to passive case finding.
+    """
+
+    # Create a stratification object
+    reach_strat = Stratification(
+        name="reachability",
+        strata=["reachable", "unreachable"],
+        compartments=COMPARTMENTS
+    )
+
+    # Set the population split between reachable and unreachable strata based on a parameter
+    reach_strat.set_population_split(
+        proportions={"reachable": Parameter("reachable_pop_frac"), "unreachable": 1. - Parameter("reachable_pop_frac")}
+    )
+
+    # Apply stratification
+    model.stratify_with(reach_strat)
+
+
+
+
 def add_births_and_deaths(model, agg_pop_data, bckd_death_rates_funcs, neg_tx_outcome_funcs, age_groups):
 
     """
@@ -381,8 +407,12 @@ def add_births_and_deaths(model, agg_pop_data, bckd_death_rates_funcs, neg_tx_ou
         [0.] + pop_entry.to_list()
     )
 
-    model.add_importation_flow( # Add births as additional entry rate, (split imports in case the susceptible compartments are further stratified later)
-        "births", entry_rate, dest="mtb_naive", split_imports=True, dest_strata={"age": "0"}
+    # Add births as additional entry rate
+    model.add_importation_flow( # (split imports in case the susceptible compartments are further stratified later)
+        "births_reachable", entry_rate * Parameter("reachable_pop_frac"), dest="mtb_naive", split_imports=False, dest_strata={"age": "0", "reachability": "reachable"}
+    )
+    model.add_importation_flow(
+        "births_unreachable", entry_rate * (1. - Parameter("reachable_pop_frac")), dest="mtb_naive", split_imports=False, dest_strata={"age": "0", "reachability": "unreachable"}
     )
 
     return nat_death_flows, tb_death_flows
