@@ -77,17 +77,17 @@ def get_normal_target(name, data, tol_perc=20):
     )
 
 targets = [
-    get_normal_target('pearl_pos_per100k', pd.Series(data=[850.2], index=[2024])),
-    get_normal_target('cxr_pos_per100k', pd.Series(data=[595.9], index=[2024])),
-    get_normal_target('tst_posXage_3_9_perc', pd.Series(data=[3.3], index=[2024])),
-    get_normal_target('tst_posXage_10_perc', pd.Series(data=[9.3], index=[2024])),
-    get_normal_target('tst_posXage_15+_perc', pd.Series(data=[28.23], index=[2024])),
+    get_normal_target('pearl_posXreach_reachable_per100k', pd.Series(data=[850.2], index=[2024])),
+    get_normal_target('cxr_posXreach_reachable_per100k', pd.Series(data=[595.9], index=[2024])),
+    get_normal_target('tst_posXage_3_9Xreach_reachable_perc', pd.Series(data=[3.3], index=[2024])),
+    get_normal_target('tst_posXage_10Xreach_reachable_perc', pd.Series(data=[9.3], index=[2024])),
+    get_normal_target('tst_posXage_15+Xreach_reachable_perc', pd.Series(data=[28.23], index=[2024])),
 
     # Kerri's paper
-    get_normal_target('tst_posXage_18+_perc', pd.Series(data=[38.0], index=[2011])),
+    get_normal_target('tst_posXage_18+Xreach_reachable_perc', pd.Series(data=[38.0], index=[2011])),
 
-    get_normal_target('perc_prev_subclinical', pd.Series(data=[81.6], index=[2024])),  # 115 out of 115+26
-    get_normal_target('perc_prev_infectious', pd.Series(data=[69.9], index=[2024])),  # 100 out of 143
+    get_normal_target('perc_prev_subclinicalXreach_reachable', pd.Series(data=[81.6], index=[2024])),  # 115 out of 115+26
+    get_normal_target('perc_prev_infectiousXreach_reachable', pd.Series(data=[69.9], index=[2024])),  # 100 out of 143
     get_normal_target('notifications', read_notifications(), tol_perc=40.),
 
     # mixing

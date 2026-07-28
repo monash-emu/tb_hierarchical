@@ -179,7 +179,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         save_results=False,
     )
     model.request_function_output(
-        name="perc_prev_subclinical", 
+        name="perc_prev_subclinicalXreach_reachable", 
         func= 100. * DerivedOutput(f"subclin_tb_prevalenceXreach_{reachable_stratum}") / DerivedOutput(f"tb_prevalenceXreach_{reachable_stratum}")
     )
 
@@ -191,7 +191,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         save_results=False
     )
     model.request_function_output(
-        name="perc_prev_infectious", 
+        name="perc_prev_infectiousXreach_reachable", 
         func= 100. * DerivedOutput(f"infectious_tb_prevalenceXreach_{reachable_stratum}") / DerivedOutput(f"tb_prevalenceXreach_{reachable_stratum}")
     )
 

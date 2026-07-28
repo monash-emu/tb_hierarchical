@@ -27,24 +27,22 @@ title_lookup = {
 
     "tb_prevalence_per100k": "TB prevalence (/100k)",
     "tbi_prevalence_perc": "TBI prevalence (%)",
-    "perc_prev_subclinical": "% TB subclinical",
-    "perc_prev_infectious": "% TB more infectious",
+    "perc_prev_subclinicalXreach_reachable": "% TB subclinical",
+    "perc_prev_infectiousXreach_reachable": "% TB more infectious",
     "notifications": "TB notifications (n)",
     "perc_notifications_clin": "Clinical notifications (%)",
 
     "viable_tbi_prevalence_perc": "Viable TBI prevalence (%)",
-    "tst_pos_perc": "TST positivity (%)",
-    "pearl_pos_per100k": "PEARL TB prevalence (/100k)",
-    "cxr_pos_per100k": "CXR TB prevalence (/100k)",
+    "tst_posXreach_reachable_perc": "TST positivity (%)",
+    "pearl_posXreach_reachable_per100k": "PEARL TB prevalence (/100k)",
+    "cxr_posXreach_reachable_per100k": "CXR TB prevalence (/100k)",
 
     "passive_detection_rate_clin": "Passive detec. rate (/y), clinical TB",
 
-    "tst_posXage_3_9_perc": "TST positivity 3-9yrs old (%)",
-    "tst_posXage_10_perc": "TST positivity 10-14yrs old (%)",
-    "tst_posXage_15_perc": "TST positivity 15-64yrs old (%)",
-    "tst_posXage_65_perc": "TST positivity 65+yrs old (%)",
-
-    "tst_posXage_18+_perc": "TST positivity 18+yrs old (%)",
+    "tst_posXage_3_9Xreach_reachable_perc": "TST positivity 3-9yrs old (%)",
+    "tst_posXage_10Xreach_reachable_perc": "TST positivity 10-14yrs old (%)",
+    "tst_posXage_15+Xreach_reachable_perc": "TST positivity 15+yrs old (%)",
+    "tst_posXage_18+Xreach_reachable_perc": "TST positivity 18+yrs old (%)",
 
 }
 
@@ -543,7 +541,7 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
     # Collect quantile info per age group
     x_tick_labels = []
     for i_age, age in enumerate(agegroups):
-        output_name = f"tst_posXage_{age}_perc"
+        output_name = f"tst_posXage_{age}Xreach_reachable_perc"
 
         year = bcm.targets[output_name].data.index[0]
         quantiles = unc_df[output_name].loc[year]
@@ -616,7 +614,7 @@ def plot_age_spec_tbi_prev(unc_df, bcm):
     ax.set_xticklabels(x_tick_labels)
 
     ax.set_xlabel("Age group (years)")
-    ax.set_ylabel(title_lookup["tst_pos_perc"])
+    ax.set_ylabel(title_lookup["tst_posXreach_reachable_perc"])
     ax.set_title(f"Observed vs modelled TST positivity fraction by age group in {year}")
     ax.legend(handles=[model_patch, obs_marker], loc='best')
     ax.grid(alpha=0.3)
