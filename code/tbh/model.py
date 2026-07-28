@@ -352,6 +352,15 @@ def stratify_model_by_reachability(model: CompartmentalModel, infection_flows: l
             adjustments={"reachable": 1., "unreachable": Parameter("rel_sus_unreachable")}
         )
 
+
+    # Adjust all passive case finding flows to account for reduced access in the unreachable stratum
+    for flow in [f"tb_detection_{comp}" for comp in ACTIVE_COMPS]:
+        reach_strat.set_flow_adjustments(
+            flow_name=flow,
+            adjustments={"reachable": 1., "unreachable": Parameter("rel_detection_unreachable")}
+        )
+
+
     # Adjust all screening interventions to only apply to the reachable stratum
     for flow in screening_flows:
         reach_strat.set_flow_adjustments(
