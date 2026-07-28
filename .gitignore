@@ -217,3 +217,4 @@ appendix/*
 !appendix/tab-params.tex
 !appendix/figures/
 !appendix/figures/tb_model.png
+notebooks/dummy_outputs.csv
