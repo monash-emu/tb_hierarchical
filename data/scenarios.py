@@ -1,11 +1,9 @@
 from tbh.interventions import Scenario, ScreeningProgram, ScreeningTools
 
 COVERAGE = {
-    "low": 0.55,
     "med": 0.65,
     "high": 0.75,
     "vhigh": 0.85,
-    "max": 0.95,
 }
 cov_list = list(COVERAGE.keys())
 
