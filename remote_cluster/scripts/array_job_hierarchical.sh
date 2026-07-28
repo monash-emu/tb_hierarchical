@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=fixed_matrix
+#SBATCH --job-name=unreachable_test
 #SBATCH --account=sh30
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
