@@ -15,6 +15,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     """
     age_strata = model.stratifications['age'].strata
     reach_strata = model.stratifications['reachability'].strata
+    reachable_stratum = "reachable"
 
     # Population size (incl. age- and subgroup-specific)
     model.request_output_for_compartments(
@@ -24,14 +25,35 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         model.request_output_for_compartments(
             name=f"populationXage_{age}", compartments=compartments, strata={"age": age}
         )
+        model.request_output_for_compartments(
+            name=f"populationXage_{age}Xreach_{reachable_stratum}",
+            compartments=compartments,
+            strata={"age": age, "reachability": reachable_stratum},
+            save_results=False,
+        )
     model.request_aggregate_output(
         name="populationXage_3_9", sources=[f"populationXage_{age}" for age in ['3', '5']]
+    )
+    model.request_aggregate_output(
+        name=f"populationXage_3_9Xreach_{reachable_stratum}",
+        sources=[f"populationXage_{age}Xreach_{reachable_stratum}" for age in ['3', '5']],
+        save_results=False,
     )
     model.request_aggregate_output(
         name="populationXage_15+", sources=[f"populationXage_{age}" for age in age_strata if int(age) >= 15]
     )
     model.request_aggregate_output(
+        name=f"populationXage_15+Xreach_{reachable_stratum}",
+        sources=[f"populationXage_{age}Xreach_{reachable_stratum}" for age in age_strata if int(age) >= 15],
+        save_results=False,
+    )
+    model.request_aggregate_output(
         name="populationXage_18+", sources=[f"populationXage_{age}" for age in age_strata if int(age) >= 18]
+    )
+    model.request_aggregate_output(
+        name=f"populationXage_18+Xreach_{reachable_stratum}",
+        sources=[f"populationXage_{age}Xreach_{reachable_stratum}" for age in age_strata if int(age) >= 18],
+        save_results=False,
     )
     for reach in reach_strata:
         model.request_output_for_compartments(
@@ -66,8 +88,19 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         for age in age_strata:
             model.request_output_for_compartments(
                 name=f"prev_{comp}Xage_{age}", compartments=comp, strata={"age": age}, save_results=False
-            )           
+            )
+            model.request_output_for_compartments(
+                name=f"prev_{comp}Xage_{age}Xreach_{reachable_stratum}",
+                compartments=comp,
+                strata={"age": age, "reachability": reachable_stratum},
+                save_results=False,
+            )
         model.request_aggregate_output(name=f"prev_{comp}", sources=[f"prev_{comp}Xage_{age}" for age in age_strata], save_results=False)
+        model.request_aggregate_output(
+            name=f"prev_{comp}Xreach_{reachable_stratum}",
+            sources=[f"prev_{comp}Xage_{age}Xreach_{reachable_stratum}" for age in age_strata],
+            save_results=False,
+        )
     # True per-capita prevalence for TB and TBI
     for state, comp_list, per in zip(["tbi", "tb"], [latent_compartments, active_compartments], [100., 100000.]):
         model.request_aggregate_output(
@@ -77,33 +110,33 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
 
 
     # Measured n TST positive (accounting for compartment-specific sensitivity for TST) 
-    for comp in latent_compartments:
+    for comp in latent_compartments: #FIXME
         for age in age_strata:
             model.request_function_output(
-                name=f"tst_pos_{comp}Xage_{age}", func=DerivedOutput(f"prev_{comp}Xage_{age}") * Parameter(f"prev_se_{comp}"), save_results=False
+                name=f"tst_pos_{comp}Xage_{age}Xreach_{reachable_stratum}", func=DerivedOutput(f"prev_{comp}Xage_{age}Xreach_{reachable_stratum}") * Parameter(f"prev_se_{comp}"), save_results=False
             )
         # manually add '3-9', '15+' and '18+' age group
         model.request_aggregate_output(
-            name=f"tst_pos_{comp}Xage_3_9", sources=[f"tst_pos_{comp}Xage_{age}" for age in ['3', '5']]
+            name=f"tst_pos_{comp}Xage_3_9Xreach_{reachable_stratum}", sources=[f"tst_pos_{comp}Xage_{age}Xreach_{reachable_stratum}" for age in ['3', '5']]
         )
         model.request_aggregate_output(
-            name=f"tst_pos_{comp}Xage_15+", sources=[f"tst_pos_{comp}Xage_{age}" for age in age_strata if int(age) >= 15]
+            name=f"tst_pos_{comp}Xage_15+Xreach_{reachable_stratum}", sources=[f"tst_pos_{comp}Xage_{age}Xreach_{reachable_stratum}" for age in age_strata if int(age) >= 15]
         )
         model.request_aggregate_output(
-            name=f"tst_pos_{comp}Xage_18+", sources=[f"tst_pos_{comp}Xage_{age}" for age in age_strata if int(age) >= 18]
+            name=f"tst_pos_{comp}Xage_18+Xreach_{reachable_stratum}", sources=[f"tst_pos_{comp}Xage_{age}Xreach_{reachable_stratum}" for age in age_strata if int(age) >= 18]
         )
 
     # Per-capita TST positivity for each age-group and aggregated
     for age in age_strata + ['3_9', '15+', '18+']:
         model.request_aggregate_output(
-            name=f"tst_posXage_{age}", sources=[f"tst_pos_{comp}Xage_{age}" for comp in latent_compartments]
+            name=f"tst_posXage_{age}Xreach_{reachable_stratum}", sources=[f"tst_pos_{comp}Xage_{age}Xreach_{reachable_stratum}" for comp in latent_compartments]
         )
-        request_per_capita_output(model, f"tst_posXage_{age}", per=100, denominator_output=f"populationXage_{age}")           
+        request_per_capita_output(model, f"tst_posXage_{age}Xreach_{reachable_stratum}", per=100, denominator_output=f"populationXage_{age}Xreach_{reachable_stratum}")
     
     model.request_aggregate_output(
-        name="tst_pos", sources=[f"tst_posXage_{age}" for age in age_strata]
+        name=f"tst_posXreach_{reachable_stratum}", sources=[f"tst_posXage_{age}Xreach_{reachable_stratum}" for age in age_strata]
     )
-    request_per_capita_output(model, "tst_pos", per=100)
+    request_per_capita_output(model, f"tst_posXreach_{reachable_stratum}", per=100, denominator_output=f"populationXreach_{reachable_stratum}")
 
 
     # Measured PEARL (i.e. Xpert) and CXR positivity (accounting for compartment-specific sensitivity for different tests) 
@@ -111,20 +144,20 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         for age in age_strata:
             for test in ['pearl', 'cxr']:
                 model.request_function_output(
-                    name=f"{test}_prev_{comp}Xage_{age}", func=DerivedOutput(f"prev_{comp}Xage_{age}") * Parameter(f"prev_se_{comp}_{test}"), save_results=False
+                    name=f"{test}_prev_{comp}Xage_{age}Xreach_{reachable_stratum}", func=DerivedOutput(f"prev_{comp}Xage_{age}Xreach_{reachable_stratum}") * Parameter(f"prev_se_{comp}_{test}"), save_results=False
                 )
 
     # Per-capita PEARL and CXR positivity for each age-group and aggregated
     for test in ['pearl', 'cxr']:
         for age in age_strata:
             model.request_aggregate_output(
-                name=f"{test}_posXage_{age}", sources=[f"{test}_prev_{comp}Xage_{age}" for comp in active_compartments]
+                name=f"{test}_posXage_{age}Xreach_{reachable_stratum}", sources=[f"{test}_prev_{comp}Xage_{age}Xreach_{reachable_stratum}" for comp in active_compartments]
             )
-            request_per_capita_output(model, f"{test}_posXage_{age}", per=100000., denominator_output=f"populationXage_{age}")           
+            request_per_capita_output(model, f"{test}_posXage_{age}Xreach_{reachable_stratum}", per=100000., denominator_output=f"populationXage_{age}Xreach_{reachable_stratum}")
         model.request_aggregate_output(
-            name=f"{test}_pos", sources=[f"{test}_posXage_{age}" for age in age_strata]
+            name=f"{test}_posXreach_{reachable_stratum}", sources=[f"{test}_posXage_{age}Xreach_{reachable_stratum}" for age in age_strata]
         )
-        request_per_capita_output(model, f"{test}_pos", per=100000.)
+        request_per_capita_output(model, f"{test}_posXreach_{reachable_stratum}", per=100000., denominator_output=f"populationXreach_{reachable_stratum}")
 
 
     # Prevalence of viable TB infection ('incipient' and 'contained')
@@ -135,24 +168,31 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
 
     # Percentage subclinical (compare with Frascella et al. CID 2020 doi: 10.1093/cid/ciaa1402)
     model.request_output_for_compartments(
-        name="subclin_tb_prevalence",
+        name=f"subclin_tb_prevalenceXreach_{reachable_stratum}",  #FIXME
         compartments=[c for c in active_compartments if c.startswith('subclin_')],
+        strata={"reachability": reachable_stratum},
         save_results=False
+    )
+    model.request_aggregate_output(
+        name=f"tb_prevalenceXreach_{reachable_stratum}",
+        sources=[f"prev_{comp}Xreach_{reachable_stratum}" for comp in active_compartments],
+        save_results=False,
     )
     model.request_function_output(
         name="perc_prev_subclinical", 
-        func= 100. * DerivedOutput("subclin_tb_prevalence") / DerivedOutput("tb_prevalence")
+        func= 100. * DerivedOutput(f"subclin_tb_prevalenceXreach_{reachable_stratum}") / DerivedOutput(f"tb_prevalenceXreach_{reachable_stratum}")
     )
 
     # Percentage infectious prevalence
     model.request_output_for_compartments(
-        name="infectious_tb_prevalence",
+        name=f"infectious_tb_prevalenceXreach_{reachable_stratum}",
         compartments=[c for c in active_compartments if c.endswith('_inf')],
+        strata={"reachability": reachable_stratum},
         save_results=False
     )
     model.request_function_output(
         name="perc_prev_infectious", 
-        func= 100. * DerivedOutput("infectious_tb_prevalence") / DerivedOutput("tb_prevalence")
+        func= 100. * DerivedOutput(f"infectious_tb_prevalenceXreach_{reachable_stratum}") / DerivedOutput(f"tb_prevalenceXreach_{reachable_stratum}")
     )
 
     # TB notifications
