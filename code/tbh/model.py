@@ -49,7 +49,7 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     model = get_natural_tb_model(model_config, agg_pop_data)
     screening_flows = add_detection_and_treatment(model, time_variant_tsr, screening_programs)
     stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs, age_mixing_matrix)
-    stratify_model_by_reachability(model)
+    stratify_model_by_reachability(model, screening_flows)
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
     # Model outputs
@@ -318,11 +318,16 @@ def stratify_model_by_age(
     model.stratify_with(age_strat)
 
 
-def stratify_model_by_reachability(model: CompartmentalModel):
+def stratify_model_by_reachability(model: CompartmentalModel, screening_flows: list):
     """
         Stratifies the model by reachability, with two strata: reachable and unreachable.
-        The unreachable stratum is assumed to have no access screening interventions, 
+        The unreachable stratum is assumed to have no access to screening interventions, 
         increased transmission risk, and decreased access to passive case finding.
+        The proportion of the population in each stratum is determined by the parameter "reachable_pop_frac".
+        Note that the distribution of the population between reachable and unreachable strata is assumed to be constant over time,
+        which is enforced by splitting additional births according to the same parameter "reachable_pop_frac", and deaths are 
+        reintroduced into the same stratum they originate from.
+        We assume homogeneous mixing between reachable and unreachable strata.
     """
 
     # Create a stratification object
@@ -337,10 +342,15 @@ def stratify_model_by_reachability(model: CompartmentalModel):
         proportions={"reachable": Parameter("reachable_pop_frac"), "unreachable": 1. - Parameter("reachable_pop_frac")}
     )
 
+    # Adjust all screening interventions to only apply to the reachable stratum
+    for flow in screening_flows:
+        reach_strat.set_flow_adjustments(
+            flow_name=flow,
+            adjustments={"reachable": 1., "unreachable": 0.}
+        )
+
     # Apply stratification
     model.stratify_with(reach_strat)
-
-
 
 
 def add_births_and_deaths(model, agg_pop_data, bckd_death_rates_funcs, neg_tx_outcome_funcs, age_groups):
@@ -348,6 +358,7 @@ def add_births_and_deaths(model, agg_pop_data, bckd_death_rates_funcs, neg_tx_ou
     """
         All deaths are modelled as transitions back to mtb_naive compartment, stratum age_0
         If used alone, this approach would maintain constant population size, but extra births will be injected next.
+        Note that TB deaths transition back to the same non-age-related stratum (e.g. reachable), while natural deaths transition back to the youngest age stratum (age_0).
     """
     # All cause (non-TB) mortality
     nat_death_flows = []
