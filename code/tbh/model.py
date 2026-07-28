@@ -46,10 +46,10 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     age_mixing_matrix = get_model_ready_age_mixing_matrix(model_config['iso3'], model_config["age_groups"], grouped_pop_df, single_age_pop_df)
 
     # Model building
-    model = get_natural_tb_model(model_config, agg_pop_data)
+    model, infection_flows = get_natural_tb_model(model_config, agg_pop_data)
     screening_flows = add_detection_and_treatment(model, time_variant_tsr, screening_programs)
     stratify_model_by_age(model, model_config["age_groups"], neg_tx_outcome_funcs, screening_programs, age_mixing_matrix)
-    stratify_model_by_reachability(model, screening_flows)
+    stratify_model_by_reachability(model, infection_flows, screening_flows)
     nat_death_flows, tb_death_flows = add_births_and_deaths(model, agg_pop_data, bckd_death_funcs, neg_tx_outcome_funcs, model_config["age_groups"])
 
     # Model outputs
@@ -84,19 +84,22 @@ def get_natural_tb_model(model_config, pop_size):
     rescaled_transmission_rate = Parameter("raw_transmission_rate") * pop_2020 ** infection_pop_scale
 
     # Transmission flows (including reinfection)
+    infection_flows = []
     for susceptible_comp in ["mtb_naive", "contained", "cleared", "recovered"]:
         if susceptible_comp == "recovered": # usinf commong parameter for rel_susceptibility after clearance and recovery
             rel_susceptibility = Parameter("rel_sus_cleared")
         else:
             rel_susceptibility = 1. if susceptible_comp == "mtb_naive" else Parameter(f"rel_sus_{susceptible_comp}")
-        
+
+        flowname = f"infection_from_{susceptible_comp}"
         model.add_infection_generalised_flow(
-            name=f"infection_from_{susceptible_comp}", 
+            name=flowname, 
             gen_infection_exp=infection_pop_scale,
             contact_rate=rescaled_transmission_rate * rel_susceptibility,
             source=susceptible_comp,
             dest="incipient",
         )
+        infection_flows.append(flowname)
         
     """
          Early TB infection dynamics
@@ -176,7 +179,7 @@ def get_natural_tb_model(model_config, pop_size):
             dest="recovered"
         )
 
-    return model
+    return model, infection_flows
 
 
 def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, screening_programs):
@@ -318,7 +321,7 @@ def stratify_model_by_age(
     model.stratify_with(age_strat)
 
 
-def stratify_model_by_reachability(model: CompartmentalModel, screening_flows: list):
+def stratify_model_by_reachability(model: CompartmentalModel, infection_flows: list, screening_flows: list):
     """
         Stratifies the model by reachability, with two strata: reachable and unreachable.
         The unreachable stratum is assumed to have no access to screening interventions, 
@@ -341,6 +344,13 @@ def stratify_model_by_reachability(model: CompartmentalModel, screening_flows: l
     reach_strat.set_population_split(
         proportions={"reachable": Parameter("reachable_pop_frac"), "unreachable": 1. - Parameter("reachable_pop_frac")}
     )
+
+    # Adjust all infection flows to account for modified susceptibility in the unreachable stratum
+    for flow in infection_flows:
+        reach_strat.set_flow_adjustments(
+            flow_name=flow,
+            adjustments={"reachable": 1., "unreachable": Parameter("rel_sus_unreachable")}
+        )
 
     # Adjust all screening interventions to only apply to the reachable stratum
     for flow in screening_flows:
