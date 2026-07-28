@@ -14,8 +14,9 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         tb_death_flows: list of flow names for TB mortality
     """
     age_strata = model.stratifications['age'].strata
+    reach_strata = model.stratifications['reachability'].strata
 
-    # Population size (incl. age-specific)
+    # Population size (incl. age- and subgroup-specific)
     model.request_output_for_compartments(
         name=f"population", compartments=compartments
     )
@@ -32,13 +33,16 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     model.request_aggregate_output(
         name="populationXage_18+", sources=[f"populationXage_{age}" for age in age_strata if int(age) >= 18]
     )
+    for reach in reach_strata:
+        model.request_output_for_compartments(
+            name=f"populationXreach_{reach}", compartments=compartments, strata={"reachability": reach}
+        )
 
-    
-    reachability_strata = model.stratifications['reachability'].strata
-    for reach in reachability_strata:
+    # Track births (only those incrementally added to the population, i.e. not those that die and get reintroduced back into the population)
+    for reach in reach_strata:
         model.request_output_for_flow(f"births_{reach}", f"births_{reach}")
     model.request_aggregate_output(
-        name="births", sources=[f"births_{reach}" for reach in reachability_strata]
+        name="births", sources=[f"births_{reach}" for reach in reach_strata]
     )
     
     # TB incidence (and cumulative)
