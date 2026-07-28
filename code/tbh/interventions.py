@@ -1,6 +1,7 @@
-from numpy import log
+import jax.numpy as jnp
+
 from summer2.functions import time as stf
-from summer2.parameters import Parameter
+from summer2.parameters import Parameter, Function
 
 TB_STATES = [
     "subclin_lowinf", "clin_lowinf",
@@ -59,7 +60,7 @@ class ScreeningProgram:
         self.name = name
         self.start_time = start_time
         self.end_time = end_time
-        self.total_coverage_perc = total_coverage_perc
+        self.total_coverage_perc_among_reachable = total_coverage_perc / Parameter("reachable_pop_frac")  # Adjust coverage to be among reachable population    
         self.strata_coverage_multipliers = strata_coverage_multipliers
         self.scr_tool = scr_tool
 
@@ -77,13 +78,23 @@ class ScreeningProgram:
             The estimated per-time-unit screening rate.
         """
         duration = self.end_time - self.start_time
-        assert duration > 0, "End time must be after Start time"
-                
-        scr_rate = - log(1 - self.total_coverage_perc / 100.) / duration
+        assert duration > 0, "End time must be after Start time" 
+        scr_rate = Function(scr_rate_func,
+                [
+                    self.total_coverage_perc_among_reachable,
+                    duration
+                ],
+            )
         self.raw_screening_func = stf.get_linear_interpolation_function(
             [self.start_time - 0.01, self.start_time, self.end_time - 0.01, self.end_time], 
             [0., scr_rate, scr_rate, 0.]
         )
+
+
+def scr_rate_func(total_coverage_perc_among_reachable, duration):
+    #FIXME! Need to check that total_coverage_perc_among_reachable is less than 100% to avoid log(0) or negative values
+    return - jnp.log(1. - total_coverage_perc_among_reachable / 100.) / duration
+
 
 
 class Scenario:
