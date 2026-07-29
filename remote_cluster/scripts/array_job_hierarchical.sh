@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=unreachable_test
+#SBATCH --job-name=unreachable_15
 #SBATCH --account=sh30
-#SBATCH --time=12:00:00
+#SBATCH --time=15:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem-per-cpu=8G
 #SBATCH --cpus-per-task=8
