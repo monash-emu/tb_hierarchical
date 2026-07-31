@@ -241,7 +241,13 @@ def convert_jax_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT_ANALYSIS_CONFIG, output_folder=None, idata_path=None):
+def run_full_analysis(
+    model_config=DEFAULT_MODEL_CONFIG,
+    analysis_config=DEFAULT_ANALYSIS_CONFIG,
+    output_folder=None,
+    idata_path=None,
+    param_overrides=None,
+):
     """
     Run full analysis including Metropolis-sampling-based calibration, full runs, quantiles computation and plotting.
 
@@ -250,6 +256,8 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
         model_config (_type_, optional): _description_. Defaults to DEFAULT_MODEL_CONFIG.
         analysis_config (_type_, optional): _description_. Defaults to DEFAULT_ANALYSIS_CONFIG.
         output_folder (_type_, optional): _description_. Defaults to None.
+        param_overrides (dict | None, optional): Fixed parameter overrides applied
+            before model construction. Defaults to None.
 
     """
     a_c = analysis_config
@@ -260,6 +268,8 @@ def run_full_analysis(model_config=DEFAULT_MODEL_CONFIG, analysis_config=DEFAULT
 
     output_folder.mkdir(parents=True, exist_ok=True) 
     params, priors, tv_params = get_parameters_and_priors()
+    if param_overrides:
+        params = params | param_overrides
 
     model = get_tb_model(model_config, tv_params)
     bcm = BayesianCompartmentalModel(model, params, priors, targets)

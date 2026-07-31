@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=unreachable_15
+#SBATCH --job-name=array_job
 #SBATCH --account=sh30
 #SBATCH --time=15:00:00
 #SBATCH --ntasks=1
@@ -9,7 +9,7 @@
 #SBATCH --mail-user=romain.ragonnet@monash.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
 
-#SBATCH --array=1
+#SBATCH --array=1-16
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $@"
