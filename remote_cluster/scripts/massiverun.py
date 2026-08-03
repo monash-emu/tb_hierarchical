@@ -23,7 +23,7 @@ def build_param_grid() -> list[dict]:
     return [
         {
             "clinical_regression_rate": regression_rate,
-            "clinical_progression_rate": regression_rate,
+            "infectiousness_loss_rate": regression_rate,
             "rel_sus_unreachable": rel_sus,
         }
         for regression_rate, rel_sus in product(REGRESSION_RATE_VALUES, REL_SUS_UNREACHABLE_VALUES)
