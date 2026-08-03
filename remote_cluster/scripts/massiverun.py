@@ -7,7 +7,7 @@ from time import time
 import yaml
 from tbh.paths import OUTPUT_PARENT_FOLDER
 
-ANALYSIS_NAME = "array_job"
+ANALYSIS_NAME = "array_job_2"
 
 # idata_path = OUTPUT_PARENT_FOLDER / "47337364_full_analysis_1scenario" / "task_1"
 idata_path = None
