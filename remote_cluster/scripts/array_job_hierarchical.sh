@@ -9,7 +9,7 @@
 #SBATCH --mail-user=romain.ragonnet@monash.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
 
-#SBATCH --array=1-16
+#SBATCH --array=3
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $@"
