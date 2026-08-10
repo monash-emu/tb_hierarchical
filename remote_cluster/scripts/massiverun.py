@@ -7,7 +7,7 @@ from time import time
 import yaml
 from tbh.paths import OUTPUT_PARENT_FOLDER
 
-ANALYSIS_NAME = "array_job_2"
+ANALYSIS_NAME = "array_job_3"
 
 # idata_path = OUTPUT_PARENT_FOLDER / "47337364_full_analysis_1scenario" / "task_1"
 idata_path = None
@@ -64,7 +64,8 @@ if __name__ == "__main__":
     array_job_id, task_id = int(sys.argv[1]), int(sys.argv[2])
     task_grid = build_param_grid()
     task_config = get_task_config(task_id, task_grid)
-    dump_task_map(array_job_id, task_grid)
+    if task_id == 1:
+        dump_task_map(array_job_id, task_grid)
 
     mp.set_start_method("spawn")  # previously "forkserver"
     print(f"Create output directory")

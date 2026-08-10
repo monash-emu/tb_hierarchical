@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=array_job_2
+#SBATCH --job-name=array_job_3
 #SBATCH --account=sh30
 #SBATCH --time=24:00:00
 #SBATCH --ntasks=1
@@ -9,18 +9,20 @@
 #SBATCH --mail-user=romain.ragonnet@monash.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
 
-#SBATCH --array=3
+#SBATCH --array=1-16
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $@"
 }
 log "Starting job"
 
-export PYTENSOR_FLAGS=compiledir=$HOME/.pytensor/$SLURM_JOB_ID
+export PYTENSOR_FLAGS="compiledir=$HOME/.pytensor/${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 
 cd /projects/sh30/users/rragonnet/tb_hierarchical
 
 log "Running Python script"
+
+sleep $((SLURM_ARRAY_TASK_ID * 30))
 
 pixi run python remote_cluster/scripts/massiverun.py $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
 
