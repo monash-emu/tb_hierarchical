@@ -18,8 +18,8 @@ class ScreeningTools:
     # TB Infection screening and TPT
     TST = {
         "sensitivities": {
-            "incipient": Parameter('prev_se_incipient'),
-            "contained": Parameter('prev_se_contained'),
+            "incipient": Parameter('prev_se_incipient_tst'),
+            "contained": Parameter('prev_se_contained_tst'),
         },
         "dest_comp": "cleared",
         "success_prop": Parameter('tpt_completion_perc') / 100.      # probability of completing TPT if screened positive 
