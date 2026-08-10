@@ -271,6 +271,11 @@ def run_full_analysis(
     if param_overrides:
         params = params | param_overrides
 
+    # Helper hack to speed up calibration, narrowing prior to exclude implausible values
+    if params['infectiousness_loss_rate'] > 3.:
+        priors = [p for p in priors if p.name != 'infectiousness_gain_rate']
+        priors.append(esp.UniformPrior('infectiousness_gain_rate', [2., 10.]))  # originally [0.5, 10.] but early explorations showed no posterior below 2.5
+
     model = get_tb_model(model_config, tv_params)
     bcm = BayesianCompartmentalModel(model, params, priors, targets)
 
