@@ -16,6 +16,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     age_strata = model.stratifications['age'].strata
     reach_strata = model.stratifications['reachability'].strata
     reachable_stratum = "reachable"
+    unreachable_stratum = "unreachable"
 
     # Population size (incl. age- and subgroup-specific)
     model.request_output_for_compartments(
@@ -73,11 +74,27 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
             name=f"tb_incidence_{inf_cat}",
             flow_name=f"progression_{inf_cat}",
         )
+        for reach in reach_strata:
+            model.request_output_for_flow(
+                name=f"tb_incidence_{inf_cat}Xreach_{reach}",
+                flow_name=f"progression_{inf_cat}",
+                source_strata={"reachability": reach},
+                save_results=False,
+            )
+    for reach in reach_strata:
+        model.request_aggregate_output(
+            name=f"tb_incidenceXreach_{reach}",
+            sources=[f"tb_incidence_{inf_cat}Xreach_{reach}" for inf_cat in ["lowinf", "inf"]],
+        )
     model.request_aggregate_output(
         name=f"tb_incidence",
-        sources=[f"tb_incidence_{inf_cat}" for inf_cat in ["lowinf", "inf"]]
+        sources=[f"tb_incidenceXreach_{reach}" for reach in reach_strata]
     )    
     request_per_capita_output(model, "tb_incidence", per=100000.)
+    model.request_function_output(
+        name=f"prop_tb_incidenceXreach_{unreachable_stratum}",
+        func=DerivedOutput(f"tb_incidenceXreach_{unreachable_stratum}") / DerivedOutput("tb_incidence"),
+    )
     model.request_cumulative_output(name="cum_tb_incidence", source="tb_incidence", start_time=2026)
 
     """ 
@@ -89,18 +106,20 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
             model.request_output_for_compartments(
                 name=f"prev_{comp}Xage_{age}", compartments=comp, strata={"age": age}, save_results=False
             )
-            model.request_output_for_compartments(
-                name=f"prev_{comp}Xage_{age}Xreach_{reachable_stratum}",
-                compartments=comp,
-                strata={"age": age, "reachability": reachable_stratum},
+            for reach in reach_strata:
+                model.request_output_for_compartments(
+                    name=f"prev_{comp}Xage_{age}Xreach_{reach}",
+                    compartments=comp,
+                    strata={"age": age, "reachability": reach},
+                    save_results=False,
+                )
+        model.request_aggregate_output(name=f"prev_{comp}", sources=[f"prev_{comp}Xage_{age}" for age in age_strata], save_results=False)
+        for reach in reach_strata:
+            model.request_aggregate_output(
+                name=f"prev_{comp}Xreach_{reach}",
+                sources=[f"prev_{comp}Xage_{age}Xreach_{reach}" for age in age_strata],
                 save_results=False,
             )
-        model.request_aggregate_output(name=f"prev_{comp}", sources=[f"prev_{comp}Xage_{age}" for age in age_strata], save_results=False)
-        model.request_aggregate_output(
-            name=f"prev_{comp}Xreach_{reachable_stratum}",
-            sources=[f"prev_{comp}Xage_{age}Xreach_{reachable_stratum}" for age in age_strata],
-            save_results=False,
-        )
     # True per-capita prevalence for TB and TBI
     for state, comp_list, per in zip(["tbi", "tb"], [latent_compartments, active_compartments], [100., 100000.]):
         model.request_aggregate_output(
@@ -173,11 +192,17 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         strata={"reachability": reachable_stratum},
         save_results=False
     )
-    model.request_aggregate_output(
-        name=f"tb_prevalenceXreach_{reachable_stratum}",
-        sources=[f"prev_{comp}Xreach_{reachable_stratum}" for comp in active_compartments],
-        save_results=False,
-    )
+    for reach in reach_strata:
+        model.request_aggregate_output(
+            name=f"tb_prevalenceXreach_{reach}",
+            sources=[f"prev_{comp}Xreach_{reach}" for comp in active_compartments],
+        )
+        request_per_capita_output(
+            model,
+            f"tb_prevalenceXreach_{reach}",
+            per=100000.,
+            denominator_output=f"populationXreach_{reach}",
+        )
     model.request_function_output(
         name="perc_prev_subclinicalXreach_reachable", 
         func= 100. * DerivedOutput(f"subclin_tb_prevalenceXreach_{reachable_stratum}") / DerivedOutput(f"tb_prevalenceXreach_{reachable_stratum}")
