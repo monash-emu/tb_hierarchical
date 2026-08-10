@@ -7,10 +7,16 @@ from time import time
 import yaml
 from tbh.paths import OUTPUT_PARENT_FOLDER
 
-ANALYSIS_NAME = "array_job_3"
+ANALYSIS_NAME = "array_job_4"
 
 # idata_path = OUTPUT_PARENT_FOLDER / "47337364_full_analysis_1scenario" / "task_1"
 idata_path = None
+
+task_id = int(sys.argv[2])
+if task_id < 13:
+    idata_path = OUTPUT_PARENT_FOLDER / "58930733_array_job_3" / f"task_{task_id}"
+else:
+    idata_path = None
 
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".

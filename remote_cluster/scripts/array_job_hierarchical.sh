@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=array_job_3
+#SBATCH --job-name=array_job_4
 #SBATCH --account=sh30
 #SBATCH --time=24:00:00
 #SBATCH --ntasks=1
