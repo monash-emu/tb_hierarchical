@@ -101,7 +101,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
         Prevalence outputs (TB and TBI)
     """
     # True absolute prevalence (i.e. compartment sizes) for TB and TBI
-    for comp in latent_compartments + active_compartments:
+    for comp in compartments:
         for age in age_strata:
             model.request_output_for_compartments(
                 name=f"prev_{comp}Xage_{age}", compartments=comp, strata={"age": age}, save_results=False
@@ -129,10 +129,19 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
 
 
     # Measured n TST positive (accounting for compartment-specific sensitivity for TST) 
-    for comp in latent_compartments: #FIXME
+    for comp in compartments:
+        if comp in latent_compartments:
+            tst_sensitivity = Parameter(f"prev_se_{comp}_tst")
+        elif comp in active_compartments or comp == "treatment":
+            tst_sensitivity = 1.
+        elif comp == "recovered":
+            tst_sensitivity = Parameter(f"prev_se_cleared_tst")
+        else: # susceptible
+            tst_sensitivity = 0.
+
         for age in age_strata:
             model.request_function_output(
-                name=f"tst_pos_{comp}Xage_{age}Xreach_{reachable_stratum}", func=DerivedOutput(f"prev_{comp}Xage_{age}Xreach_{reachable_stratum}") * Parameter(f"prev_se_{comp}"), save_results=False
+                name=f"tst_pos_{comp}Xage_{age}Xreach_{reachable_stratum}", func=DerivedOutput(f"prev_{comp}Xage_{age}Xreach_{reachable_stratum}") * tst_sensitivity, save_results=False
             )
         # manually add '3-9', '15+' and '18+' age group
         model.request_aggregate_output(
@@ -148,7 +157,7 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     # Per-capita TST positivity for each age-group and aggregated
     for age in age_strata + ['3_9', '15+', '18+']:
         model.request_aggregate_output(
-            name=f"tst_posXage_{age}Xreach_{reachable_stratum}", sources=[f"tst_pos_{comp}Xage_{age}Xreach_{reachable_stratum}" for comp in latent_compartments]
+            name=f"tst_posXage_{age}Xreach_{reachable_stratum}", sources=[f"tst_pos_{comp}Xage_{age}Xreach_{reachable_stratum}" for comp in compartments]
         )
         request_per_capita_output(model, f"tst_posXage_{age}Xreach_{reachable_stratum}", per=100, denominator_output=f"populationXage_{age}Xreach_{reachable_stratum}")
     
