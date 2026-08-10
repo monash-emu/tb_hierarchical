@@ -100,32 +100,32 @@ for sc_num, coverage_key in enumerate(cov_list, start=6):
     )
 
 # Scenario 11-15 consider dropping Xpert and stopping screening children <10yrs with varying coverage
-desc = "Dropping Xpert and stop screening <10yrs: CXR, SSx and TST for 10+yr olds only"
-for sc_num, coverage_key in enumerate(cov_list, start=11):
-    coverage = COVERAGE[coverage_key]
-    scr_prgs = [
-        make_scr_program(
-            scr_tool=ScreeningTools.CXR,
-            name="cxr_10+",
-            coverage=coverage,
-            ages_excluded=["0", "3", "5"]
-        ),
-        make_scr_program(
-            scr_tool=ScreeningTools.TST, 
-            name="tst_10+",
-            coverage=coverage,
-            ages_excluded=["0", "3", "5"]
-        ),
-    ]
-    SCENARIOS.append(
-        Scenario(
-            sc_id=f"scenario_{sc_num}",
-            sc_name=f"{sc_num}. CXR-TST 10+yrs / {coverage_key.capitalize()}",
-            sc_name_2=f"Drop Xpert 10+ | {int(100*coverage)}%",
-            scr_prgs=scr_prgs,
-            desc=desc
-        )
-    )     
+# desc = "Dropping Xpert and stop screening <10yrs: CXR, SSx and TST for 10+yr olds only"
+# for sc_num, coverage_key in enumerate(cov_list, start=11):
+#     coverage = COVERAGE[coverage_key]
+#     scr_prgs = [
+#         make_scr_program(
+#             scr_tool=ScreeningTools.CXR,
+#             name="cxr_10+",
+#             coverage=coverage,
+#             ages_excluded=["0", "3", "5"]
+#         ),
+#         make_scr_program(
+#             scr_tool=ScreeningTools.TST, 
+#             name="tst_10+",
+#             coverage=coverage,
+#             ages_excluded=["0", "3", "5"]
+#         ),
+#     ]
+#     SCENARIOS.append(
+#         Scenario(
+#             sc_id=f"scenario_{sc_num}",
+#             sc_name=f"{sc_num}. CXR-TST 10+yrs / {coverage_key.capitalize()}",
+#             sc_name_2=f"Drop Xpert 10+ | {int(100*coverage)}%",
+#             scr_prgs=scr_prgs,
+#             desc=desc
+#         )
+#     )     
 
 # Scenario 16-20 consider dropping Xpert and TST and stopping screening children <10yrs with varying coverage
 desc = "Dropping Xpert and TST, stop screening <10yrs: CXR and SSx for 10+yr olds only"
@@ -150,35 +150,35 @@ for sc_num, coverage_key in enumerate(cov_list, start=16):
     )   
 
 # Scenarios 21-25 consider CXR TST and PLTS with varying coverage
-desc = "Use Tongue Swabs (PLTS): CXR and PLTS for 10+yr olds, SSx and TST for 3+yr olds"
-for sc_num, coverage_key in enumerate(cov_list, start=21):
-    coverage = COVERAGE[coverage_key]
-    scr_prgs = [
-        make_scr_program(
-            scr_tool=ScreeningTools.PLTS,
-            name="plts_10+",
-            coverage=coverage,
-            ages_excluded=["0", "3", "5"]
-        ),
-        make_scr_program(
-            scr_tool=ScreeningTools.SSX, # symptom screen only for 3-9yr olds
-            name="ssx_3_9",
-            coverage=coverage, 
-            ages_excluded=["0", "10", "15", "18", "40", "65"]
-        ),
-        make_scr_program(
-            scr_tool=ScreeningTools.TST, # TST for 3+yr olds  
-            name="tst_3+",
-            coverage=coverage,
-            ages_excluded=["0"]
-        ),
-    ]
-    SCENARIOS.append(
-        Scenario(
-            sc_id=f"scenario_{sc_num}",
-            sc_name=f"{sc_num}. CXR-PLTS-TST / {coverage_key.capitalize()}",
-            sc_name_2=f"CXR-PLTS-TST | {int(100*coverage)}%",
-            scr_prgs=scr_prgs,
-            desc=desc
-        )
-    )
+# desc = "Use Tongue Swabs (PLTS): CXR and PLTS for 10+yr olds, SSx and TST for 3+yr olds"
+# for sc_num, coverage_key in enumerate(cov_list, start=21):
+#     coverage = COVERAGE[coverage_key]
+#     scr_prgs = [
+#         make_scr_program(
+#             scr_tool=ScreeningTools.PLTS,
+#             name="plts_10+",
+#             coverage=coverage,
+#             ages_excluded=["0", "3", "5"]
+#         ),
+#         make_scr_program(
+#             scr_tool=ScreeningTools.SSX, # symptom screen only for 3-9yr olds
+#             name="ssx_3_9",
+#             coverage=coverage, 
+#             ages_excluded=["0", "10", "15", "18", "40", "65"]
+#         ),
+#         make_scr_program(
+#             scr_tool=ScreeningTools.TST, # TST for 3+yr olds  
+#             name="tst_3+",
+#             coverage=coverage,
+#             ages_excluded=["0"]
+#         ),
+#     ]
+#     SCENARIOS.append(
+#         Scenario(
+#             sc_id=f"scenario_{sc_num}",
+#             sc_name=f"{sc_num}. CXR-PLTS-TST / {coverage_key.capitalize()}",
+#             sc_name_2=f"CXR-PLTS-TST | {int(100*coverage)}%",
+#             scr_prgs=scr_prgs,
+#             desc=desc
+#         )
+#     )
