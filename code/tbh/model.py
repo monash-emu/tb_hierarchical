@@ -1,6 +1,7 @@
 from jax import numpy as jnp
 import pandas as pd
 from pathlib import Path
+from typing import Optional
 
 from summer2 import CompartmentalModel, AgeStratification, Stratification
 from summer2.parameters import Parameter, Function, Time
@@ -43,7 +44,7 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
     bckd_death_funcs = get_death_rates_by_age(model_config, grouped_pop_df)
     time_variant_tsr = stf.get_linear_interpolation_function(tv_params['tx_success_pct'].index.to_list(), (tv_params['tx_success_pct'] / 100.).to_list())
     neg_tx_outcome_funcs = get_neg_tx_outcome_funcs(bckd_death_funcs, time_variant_tsr)
-    age_mixing_matrix = get_model_ready_age_mixing_matrix(model_config['iso3'], model_config["age_groups"], grouped_pop_df, single_age_pop_df)
+    age_mixing_matrix = None  # get_model_ready_age_mixing_matrix(model_config['iso3'], model_config["age_groups"], grouped_pop_df, single_age_pop_df)
 
     # Model building
     model, infection_flows = get_natural_tb_model(model_config, agg_pop_data)
@@ -54,8 +55,8 @@ def get_tb_model(model_config: dict, tv_params: dict, screening_programs=[]):
 
     # Model outputs
     conmat_matrix = read_conmat_matrix(model_config['iso3'], model_config["age_groups"])
-    matrix_dist = Function(canberra_distance, [age_mixing_matrix, conmat_matrix])
-    model.add_computed_value_func("mixing_matrix_distance", matrix_dist)
+    # matrix_dist = Function(canberra_distance, [age_mixing_matrix, conmat_matrix])
+    # model.add_computed_value_func("mixing_matrix_distance", matrix_dist)
     
     request_model_outputs(model, COMPARTMENTS, ACTIVE_COMPS, LATENT_COMPS, nat_death_flows, tb_death_flows, screening_flows)
 
@@ -241,7 +242,7 @@ def add_detection_and_treatment(model: CompartmentalModel, time_variant_tsr, scr
 
 
 def stratify_model_by_age(
-        model: CompartmentalModel, age_groups: list, neg_tx_outcome_funcs: dict, screening_programs: list, age_mixing_matrix: Function
+    model: CompartmentalModel, age_groups: list, neg_tx_outcome_funcs: dict, screening_programs: list, age_mixing_matrix: Optional[Function]
     ):
     """
         Applies age stratification to the model with specified age groups.
@@ -267,7 +268,7 @@ def stratify_model_by_age(
     )
 
     # Set age-mixing matrix
-    age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
+    # age_strat.set_mixing_matrix(age_mixing_matrix)  # apply the mixing matrix to the stratification object
 
     # Adjust infection progression and containment by age
     for flow_name in ["progression_lowinf", "progression_inf", "containment"]:
