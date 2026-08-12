@@ -91,11 +91,11 @@ targets = [
     get_normal_target('notifications', read_notifications(), tol_perc=40.),
 
     # mixing
-    # est.NormalTarget(
-    #     name="mixing_matrix_distance", 
-    #     data=pd.Series(data=[0.], index=[2025]), 
-    #     stdev=esp.UniformPrior("mixing_dist_sd", (5, 20))
-    # )
+    est.NormalTarget(
+        name="mixing_matrix_distance", 
+        data=pd.Series(data=[0.], index=[2025]), 
+        stdev=esp.UniformPrior("mixing_dist_sd", (5, 20))
+    )
 ]
 
 
