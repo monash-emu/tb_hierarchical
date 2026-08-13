@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=array_job_nomatrix
+#SBATCH --job-name=new_priors
 #SBATCH --account=sh30
 #SBATCH --time=24:00:00
 #SBATCH --ntasks=1

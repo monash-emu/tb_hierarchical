@@ -7,7 +7,7 @@ from time import time
 import yaml
 from tbh.paths import OUTPUT_PARENT_FOLDER
 
-ANALYSIS_NAME = "array_job_nomatrix"
+ANALYSIS_NAME = "new_priors"
 
 # idata_path = OUTPUT_PARENT_FOLDER / "47337364_full_analysis_1scenario" / "task_1"
 idata_path = None
@@ -15,7 +15,7 @@ idata_path = None
 # This script is running an array job.
 # Here the term "array_job" refers to the higher-level array job, which is a group of individual "tasks".
 
-REGRESSION_RATE_VALUES = [0.5, 1.0, 2.0, 4.0]
+REGRESSION_RATE_VALUES = [0.5, 1.0, 2.0, 3.0]
 REL_SUS_UNREACHABLE_VALUES = [1.0, 1.5, 2.0, 3.0]
 
 
