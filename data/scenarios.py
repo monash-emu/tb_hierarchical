@@ -92,7 +92,7 @@ for sc_num, coverage_key in enumerate(cov_list, start=6):
     SCENARIOS.append(
         Scenario(
             sc_id=f"scenario_{sc_num}",
-            sc_name=f"{sc_num}. CXR-TST / {coverage_key.capitalize()}",
+            sc_name=f"{sc_num}. CXR-TST / {round(int(100 * coverage))}%",
             scr_prgs=scr_prgs,
             sc_name_2=f"Drop Xpert | {int(100*coverage)}%",
             desc=desc

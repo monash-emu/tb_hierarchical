@@ -47,12 +47,12 @@ title_lookup = {
 }
 
 from tbh.runner_tools import DEFAULT_ANALYSIS_CONFIG
-sc_names = {
+SC_NAMES = {
     "baseline": "No intervention", 
-} | {scenario.sc_id: scenario.sc_name for scenario in DEFAULT_ANALYSIS_CONFIG['scenarios']}
+} | {scenario.sc_id: scenario.sc_name for scenario in DEFAULT_ANALYSIS_CONFIG["scenarios"]}
 
 sc_colours = ["black", "crimson"]
-unc_sc_colours = ((0.2, 0.2, 0.8), (0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2), (0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2))
+UNC_SC_COLORS = ((0.2, 0.2, 0.8), (0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2), (0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2))
 
 
 def plot_traces(idata, burn_in, output_folder_path=None):
@@ -262,7 +262,7 @@ def plot_posterior_pairs(
     return fig
 
 
-def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, x_lim=None, colour="#B22222"):
+def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, x_lim=None, colour="#B22222",target_ms=15):
 
     # update_rcparams() 
    
@@ -272,7 +272,7 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, x_li
 
     if output_name in bcm.targets:
         t = copy(bcm.targets[output_name].data)
-        axis.scatter(list(t.index), t, marker=".", color='black', label='Observed', zorder=11, s=25.)
+        axis.scatter(list(t.index), t, marker=".", color='black', label='Observed', zorder=11, s=target_ms)
 
     time = df.index
     axis.plot(time, df['0.5'], color=colour, zorder=10, label="Model (median)")
@@ -298,6 +298,10 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, x_li
     title = output_name if output_name not in title_lookup else title_lookup[output_name]
 
     axis.set_ylabel(title)
+    
+    # Format x-axis to show years as integers
+    axis.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+    
     # plt.tight_layout()
 
     # Get existing y-limits
@@ -318,7 +322,7 @@ def plot_all_model_fits(uncertainty_df, bcm, n_col=3, excluded_outputs=[]):
     for i, output in enumerate(selected_outputs):
         ax = axes[i]
         out_name = output if output not in title_lookup else title_lookup[output]
-        x_min = 1990 if output == "notifications" else 2010
+        x_min = 1995 if output == "notifications" else 2010
         plot_model_fit_with_uncertainty(ax, uncertainty_df, output, bcm, x_lim=(x_min, 2025))
         ax.set_title(out_name)
         if i == 0:
@@ -333,10 +337,12 @@ def plot_all_model_fits(uncertainty_df, bcm, n_col=3, excluded_outputs=[]):
     return fig
 
 
-def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, include_unc=False, include_legend=True, ylab_fontsize=12):
+def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, include_unc=False, include_legend=True, ylab_fontsize=12, unc_sc_colours=UNC_SC_COLORS, sc_names=SC_NAMES):
     ymax = 0.
     for i_sc, scenario in enumerate(scenarios):
-        df = uncertainty_dfs[scenario][output_name].loc[xlim[0]:xlim[1]]
+        data_xmin = xlim[0] if scenario == "baseline" else 2026
+
+        df = uncertainty_dfs[scenario][output_name].loc[data_xmin:xlim[1]]
         median_df = df['0.5']
         time = df.index
         
@@ -352,7 +358,14 @@ def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, incl
                 edgecolor=None,
                 zorder=scenario_zorder
             )
-            ymax = max(ymax, df['0.75'].max())
+            axis.fill_between(
+                time, 
+                df['0.025'], df['0.975'], 
+                color=colour, alpha=0.4, 
+                edgecolor=None,
+                zorder=scenario_zorder
+            )
+            ymax = max(ymax, df['0.975'].max())
         else:
             ymax = median_df.max()
 
@@ -365,16 +378,19 @@ def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, incl
     axis.set_ylabel(title, fontsize=ylab_fontsize)
     axis.set_xlim(xlim)
     axis.set_ylim((0, plot_ymax))
+    
+    # Format x-axis to show years as integers
+    axis.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
 
     # years = range(xlim[0], xlim[1], 5)
     # axis.set_xticks(years)
     # axis.set_xticklabels([str(y) for y in years])
 
     if include_legend:
-        axis.legend(title="(median and IQR)")
+        axis.legend(title="(median, IQR, 95% CrI)")
 
 
-def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios, end_year=2035):
+def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios, end_year=2035, sc_names=SC_NAMES):
     box_width = .5
     color = 'black'
     box_color= 'lightcoral'
@@ -407,7 +423,7 @@ def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios, end_y
     axis.set_ylim((0, y_max * 1.2))
 
 
-def plot_diff_outputs(axis, diff_quantiles_dfs, output_name, scenarios):
+def plot_diff_outputs(axis, diff_quantiles_dfs, output_name, scenarios, sc_names=SC_NAMES):
 
     box_width = .2
     med_color = 'white'
@@ -681,4 +697,151 @@ def plot_contact_matrix(M, age_groups, title, ax, cmap="viridis"):
 
     plt.tight_layout()
     # plt.show()
+
+
+# ============================================================================
+# Manuscript-specific plotting functions
+# ============================================================================
+
+
+def plot_diff_outputs_horizontal(axis, diff_quantiles_dfs, output_name, scenarios, sc_names=SC_NAMES):
+    """
+    Plot diff outputs as horizontal bars instead of vertical.
+    
+    Parameters
+    ----------
+    axis : matplotlib.axes.Axes
+        The axis to plot on
+    diff_quantiles_dfs : dict
+        Dictionary of scenario -> diff_df DataFrames
+    output_name : str
+        Column name in diff DataFrames to plot (e.g., "TB_averted_relative")
+    scenarios : list
+        List of scenario IDs to plot
+    sc_names : dict
+        Dictionary mapping scenario IDs to display names
+    """
+    box_height = 0.5
+    med_color = 'white'
+    box_color = 'black'
+    x_max_abs = 0.
+    
+    for i, sc in enumerate(scenarios):
+        diff_output_df = diff_quantiles_dfs[sc]
+        data = diff_output_df[output_name]
+        
+        if output_name.endswith("_relative"):  # use %
+            data = data * 100.
+        
+        y = i  # y-position on axis
+        
+        # median
+        axis.vlines(x=data.loc[0.5], ymin=y - box_height / 2., ymax=y + box_height / 2., lw=2., color=med_color, zorder=3)
+        
+        # IQR
+        q_75 = data.loc[0.75]
+        q_25 = data.loc[0.25]
+        rect = mpatches.Rectangle(
+            xy=(q_25, y - box_height / 2.), 
+            width=q_75 - q_25, 
+            height=box_height, 
+            zorder=2, 
+            facecolor=box_color
+        )
+        axis.add_patch(rect)
+        
+        # 95% CI
+        q_025 = data.loc[0.025]
+        q_975 = data.loc[0.975]
+        axis.hlines(y=y, xmin=q_025, xmax=q_975, lw=1.5, color=box_color, zorder=1)
+        
+        x_max_abs = max(abs(q_975), x_max_abs)
+        x_max_abs = max(abs(q_025), x_max_abs)
+    
+    x_label = output_name if output_name not in title_lookup else title_lookup[output_name]
+    axis.set_xlabel(x_label)
+    
+    y_labels = [sc_names[sc] for sc in scenarios]
+    axis.set_yticks(ticks=range(len(scenarios)), labels=y_labels)
+    
+    axis.set_xlim(0., 1.05 * x_max_abs)
+    axis.set_ylim(-0.5, len(scenarios) - 0.5)
+
+
+def plot_sensitivity_horizontal_bars(axis, sensitivity_df, output_col, scenarios, group_by, 
+                                     colour_palette=None, group_label="Configuration"):
+    """
+    Plot sensitivity analysis as horizontal grouped bars.
+    
+    Parameters
+    ----------
+    axis : matplotlib.axes.Axes
+        The axis to plot on
+    sensitivity_df : pd.DataFrame
+        DataFrame with columns: group_by, scenarios, output_col, and uncertainty cols
+    output_col : str
+        Name of column containing values to plot
+    scenarios : list
+        List of scenario values to group by
+    group_by : str
+        Column name to group by (e.g., "rel_sus_unreachable")
+    colour_palette : dict, optional
+        Dictionary mapping scenario values to colors
+    group_label : str
+        Label for the grouping variable
+    """
+    if colour_palette is None:
+        colour_palette = {}
+    
+    groups = sorted(sensitivity_df[group_by].unique())
+    n_groups = len(groups)
+    bar_height = 0.15
+    
+    for i_scen, scenario in enumerate(scenarios):
+        sub = sensitivity_df[sensitivity_df["scenario"] == scenario]
+        
+        y_positions = np.arange(n_groups) + (i_scen - len(scenarios)/2 + 0.5) * bar_height
+        values = sub.set_index(group_by).reindex(groups)[output_col].values
+        
+        color = colour_palette.get(scenario, None)
+        
+        axis.barh(y_positions, values, bar_height, label=str(scenario), color=color, alpha=0.8)
+    
+    axis.set_yticks(np.arange(n_groups))
+    axis.set_yticklabels([str(g) for g in groups])
+    axis.set_ylabel(group_label)
+    axis.set_xlabel("% TB episodes averted")
+    axis.legend(title="Scenario", frameon=False)
+    axis.grid(axis="x", alpha=0.3)
+
+
+def save_figure_high_res(fig, output_path, dpi=300, formats=None):
+    """
+    Save a figure in multiple formats with high resolution.
+    
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        Figure to save
+    output_path : str or Path
+        Base path without extension (will add .png, .pdf, etc.)
+    dpi : int
+        Resolution for raster formats
+    formats : list, optional
+        List of formats to save (default: ['png', 'pdf'])
+    """
+    from pathlib import Path
+    
+    if formats is None:
+        formats = ['png', 'pdf']
+    
+    output_path = Path(output_path)
+    
+    for fmt in formats:
+        file_path = output_path.parent / f"{output_path.stem}.{fmt}"
+        if fmt == 'png':
+            fig.savefig(file_path, dpi=dpi, bbox_inches='tight', facecolor='white')
+        else:
+            fig.savefig(file_path, bbox_inches='tight')
+        print(f"Saved: {file_path}")
    
