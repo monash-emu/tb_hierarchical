@@ -387,7 +387,9 @@ def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, incl
     # axis.set_xticklabels([str(y) for y in years])
 
     if include_legend:
-        axis.legend(title="(median, IQR, 95% CrI)")
+        leg = axis.legend(title="(median, IQR, 95% CrI)")
+        for handle in leg.legend_handles:
+            handle.set_linewidth(2)
 
 
 def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios, end_year=2035, sc_names=SC_NAMES):
@@ -423,11 +425,11 @@ def plot_final_size_compare(axis, uncertainty_dfs, output_name, scenarios, end_y
     axis.set_ylim((0, y_max * 1.2))
 
 
-def plot_diff_outputs(axis, diff_quantiles_dfs, output_name, scenarios, sc_names=SC_NAMES):
+def plot_diff_outputs(axis, diff_quantiles_dfs, output_name, scenarios, sc_names=SC_NAMES, colour="#B22222"):
 
-    box_width = .2
+    box_width = .4
     med_color = 'white'
-    box_color= 'black'
+    box_color= colour
     y_max_abs = 0.
     for i, sc in enumerate(scenarios):
 
@@ -440,7 +442,10 @@ def plot_diff_outputs(axis, diff_quantiles_dfs, output_name, scenarios, sc_names
         # use %. And use "-" so positive nbs indicate positive effect of closures
         x = 1 + i
         # median
-        axis.hlines(y=data.loc[0.5], xmin=x - box_width / 2. , xmax= x + box_width / 2., lw=2., color=med_color, zorder=3)    
+        axis.hlines(y=data.loc[0.5], xmin=x - box_width / 2. , xmax= x + box_width / 2., lw=.7, color=med_color, zorder=3)    
+
+        # axis.scatter(x, data.loc[0.5], color='black', s=3, zorder=4)
+
         
         # IQR
         q_75 = data.loc[0.75]
@@ -451,7 +456,7 @@ def plot_diff_outputs(axis, diff_quantiles_dfs, output_name, scenarios, sc_names
         # 95% CI
         q_025 = data.loc[0.025]
         q_975 = data.loc[0.975]
-        axis.vlines(x=x, ymin=q_025 , ymax=q_975, lw=1.5, color=box_color, zorder=1)
+        axis.vlines(x=x, ymin=q_025 , ymax=q_975, lw=1, color=box_color, zorder=1)
 
         y_max_abs = max(abs(q_975), y_max_abs)
         y_max_abs = max(abs(q_025), y_max_abs)
