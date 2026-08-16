@@ -291,7 +291,7 @@ def plot_model_fit_with_uncertainty(axis, uncertainty_df, output_name, bcm, x_li
         color=colour, 
         alpha=0.20, # 0.3,
         edgecolor=None,
-        label="Model (95% CI)",
+        label="Model (95% CrI)",
     )
 
     # axis.tick_params(axis="x", labelrotation=45)

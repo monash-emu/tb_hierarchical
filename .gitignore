@@ -218,3 +218,4 @@ appendix/*
 !appendix/figures/
 !appendix/figures/tb_model.png
 notebooks/dummy_outputs.csv
+notebooks/manuscript_figs/results_text.txt
