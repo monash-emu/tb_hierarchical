@@ -16,8 +16,8 @@ from estival import priors as esp
 
 title_lookup = {
     "tb_incidence": "TB incidence",
-    "tb_incidence_per100k": "TB incidence (/100k)",
-    "tb_mortality_per100k": "TB mortality (/100k)",
+    "tb_incidence_per100k": "TB incidence (/100k/y)",
+    "tb_mortality_per100k": "TB mortality (/100k/y)",
     "cum_tb_incidence": "N TB episodes 2026-2035", 
     "cum_tb_mortality": "N TB deaths 2026-2035",
     "TB_averted": "N TB episodes averted (2026-2035)", 
@@ -32,7 +32,7 @@ title_lookup = {
     "notifications": "TB notifications (n)",
     "perc_notifications_clin": "Clinical notifications (%)",
 
-    "viable_tbi_prevalence_perc": "Viable TBI prevalence (%)",
+    "viable_tbi_prevalence_perc": "Viable infection prevalence (%)",
     "tst_posXreach_reachable_perc": "TST positivity (%)",
     "pearl_posXreach_reachable_per100k": "PEARL TB prevalence (/100k)",
     "cxr_posXreach_reachable_per100k": "CXR TB prevalence (/100k)",
