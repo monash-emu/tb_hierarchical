@@ -3,7 +3,7 @@ from summer2 import CompartmentalModel
 from summer2.parameters import Parameter, DerivedOutput
 
 
-def request_model_outputs(model: CompartmentalModel, compartments: list, active_compartments: list, latent_compartments: list, nat_death_flows: list, tb_death_flows: list, screening_flows: list):
+def request_model_outputs(model: CompartmentalModel, compartments: list, active_compartments: list, latent_compartments: list, nat_death_flows: list, tb_death_flows: list, screening_flows: list, model_config: dict):
     """
     Define model outputs that can later be requested from model.get_derived_outputs_df()
 
@@ -284,7 +284,9 @@ def request_model_outputs(model: CompartmentalModel, compartments: list, active_
     model.request_cumulative_output(name="cum_tb_mortality", source="tb_mortality", start_time=2026)
 
     # Track computed values for passive case detection and mixign matrix distance
-    computed_values_to_save = ['passive_detection_rate_clin', 'passive_detection_rate_subclin', 'mixing_matrix_distance']
+    computed_values_to_save = ['passive_detection_rate_clin', 'passive_detection_rate_subclin']
+    if model_config.get("heterogeneous_mixing", True):
+        computed_values_to_save.append('mixing_matrix_distance')
     for comp_val in computed_values_to_save:
         model.request_computed_value_output(comp_val)
 

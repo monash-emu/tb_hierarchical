@@ -34,6 +34,7 @@ DEFAULT_MODEL_CONFIG = {
     "iso3": "KIR",
     "age_groups": ["0", "3", "5", "10", "15", "18", "40", "65"],
     "pop_scaling": 40483. / 119438., # 40,483 people in South Tarawa in 2023, excluding Betio, Bairiki and Nanikai. Out of total Kiribati population of 119,438
+    "heterogeneous_mixing": True,
 }
 
 DEFAULT_ANALYSIS_CONFIG = {
@@ -51,10 +52,10 @@ DEFAULT_ANALYSIS_CONFIG = {
 
 TEST_ANALYSIS_CONFIG = {
     # Metropolis config
-    'chains': 4,
-    'cores': 4,
+    'chains': 2,
+    'cores': 2,
     'tune': 50,
-    'draws': 200,
+    'draws': 100,
 
     # Full runs config
     'burn_in': 50,
@@ -247,17 +248,18 @@ def run_full_analysis(
     output_folder=None,
     idata_path=None,
     param_overrides=None,
+    sensitivity_analysis=None
 ):
     """
     Run full analysis including Metropolis-sampling-based calibration, full runs, quantiles computation and plotting.
 
     Args:
-        params (_type_, optional): _description_.
-        model_config (_type_, optional): _description_. Defaults to DEFAULT_MODEL_CONFIG.
-        analysis_config (_type_, optional): _description_. Defaults to DEFAULT_ANALYSIS_CONFIG.
-        output_folder (_type_, optional): _description_. Defaults to None.
+        model_config (dict, optional): Model configuration dictionary. Defaults to DEFAULT_MODEL_CONFIG.
+        analysis_config (dict, optional): Analysis configuration dictionary. Defaults to DEFAULT_ANALYSIS_CONFIG.
+        output_folder (Path | None, optional): Output folder path. Defaults to None.
         param_overrides (dict | None, optional): Fixed parameter overrides applied
             before model construction. Defaults to None.
+        sensitivity_analysis (str | None, optional): Sensitivity analysis identifier. Defaults to None.
 
     """
     a_c = analysis_config
@@ -271,13 +273,31 @@ def run_full_analysis(
     if param_overrides:
         params = params | param_overrides
 
+    calibration_targets = targets.copy()  # make a copy to avoid modifying the global variable
+
+    if sensitivity_analysis:
+        print(f"Running sensitivity analysis: {sensitivity_analysis}")
+        if sensitivity_analysis == "tpt_60": # override TPT completion percentage to 60% (from base case 70%)
+            params['tpt_completion_perc'] = 60.
+        elif sensitivity_analysis == "subclinical_50":  # manually replace calibration target for subclinical prevalence
+            calibration_targets = [t for t in calibration_targets if t.name != "perc_prev_subclinicalXreach_reachable"]
+            calibration_targets.append(
+                get_normal_target('perc_prev_subclinicalXreach_reachable', pd.Series(data=[50.], index=[2024]))
+            )
+        elif sensitivity_analysis == "homogeneous_mixing": # enforce homogeneous mixing
+            priors = [p for p in priors if p.name not in ['bg_mixing', 'a_spread', 'pc_strength']]
+            calibration_targets = [t for t in calibration_targets if t.name != "mixing_matrix_distance"]
+            model_config['heterogeneous_mixing'] = False
+        else:
+            raise ValueError(f"Unknown sensitivity analysis: {sensitivity_analysis}")
+
     # Helper hack to speed up calibration, narrowing prior to exclude implausible values
     if params['infectiousness_loss_rate'] > 3.:
         priors = [p for p in priors if p.name != 'infectiousness_gain_rate']
         priors.append(esp.UniformPrior('infectiousness_gain_rate', [2., 10.]))  # originally [0.5, 10.] but early explorations showed no posterior below 2.5
 
     model = get_tb_model(model_config, tv_params)
-    bcm = BayesianCompartmentalModel(model, params, priors, targets)
+    bcm = BayesianCompartmentalModel(model, params, priors, calibration_targets)
 
     print(">>> Run Metropolis sampling")
     
@@ -305,7 +325,7 @@ def run_full_analysis(
         assert scenario.sc_name != "baseline", "Please use scenario name different from 'baseline'"
         sc_params = params | scenario.params_ow
         sc_model = get_tb_model(model_config, tv_params, screening_programs=scenario.scr_prgs)
-        sc_bcm = BayesianCompartmentalModel(sc_model, sc_params, priors, targets)
+        sc_bcm = BayesianCompartmentalModel(sc_model, sc_params, priors, calibration_targets)
         bcm_dict[scenario.sc_id] = sc_bcm
 
     full_runs, unc_dfs = run_full_runs(bcm_dict, idata, a_c['burn_in'], a_c['full_runs_samples'])
