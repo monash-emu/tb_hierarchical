@@ -7,7 +7,7 @@ from time import time
 import yaml
 from tbh.paths import OUTPUT_PARENT_FOLDER
 
-ANALYSIS_NAME = "new_priors"
+ANALYSIS_NAME = "longer_runs"
 
 # idata_path = OUTPUT_PARENT_FOLDER / "47337364_full_analysis_1scenario" / "task_1"
 idata_path = None
@@ -17,6 +17,19 @@ idata_path = None
 
 REGRESSION_RATE_VALUES = [0.5, 1.0, 2.0, 3.0]
 REL_SUS_UNREACHABLE_VALUES = [1.0, 1.5, 2.0, 3.0]
+
+
+# Doubled all run lengths to get more stable results.
+ANALYSIS_CONFIG_OVERRIDE= {
+    # Metropolis config
+    'tune': 10000,
+    'draws': 20000,
+
+    # Full runs config
+    'burn_in': 10000,
+    'full_runs_samples': 2000,
+}
+
 
 
 def build_param_grid() -> list[dict]:
@@ -72,7 +85,7 @@ if __name__ == "__main__":
     output_dir = rt.create_output_dir(array_job_id, task_id, ANALYSIS_NAME)
 
     # Specify and run analysis
-    analysis_config = rt.DEFAULT_ANALYSIS_CONFIG
+    analysis_config = {**rt.DEFAULT_ANALYSIS_CONFIG, **ANALYSIS_CONFIG_OVERRIDE}
     print(f"Start analysis for array_job {array_job_id}, task {task_id}, {ANALYSIS_NAME}")
     print(f"Task {task_id} parameter overrides: {task_config}", flush=True)
     rt.run_full_analysis(
