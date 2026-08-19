@@ -388,6 +388,7 @@ def plot_two_scenarios(axis, uncertainty_dfs, output_name, scenarios, xlim, incl
 
     if include_legend:
         leg = axis.legend(title="(median, IQR, 95% CrI)")
+        leg._legend_box.align = "left"
         for handle in leg.legend_handles:
             handle.set_linewidth(2)
 
