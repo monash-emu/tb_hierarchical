@@ -3,15 +3,23 @@ import arviz as az
 from math import ceil
 
 from copy import copy
+import yaml
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
+import matplotlib.gridspec as gridspec
 import matplotlib.ticker as mticker
 
 import numpy as np
 
 from estival import priors as esp
+
+try:
+    from pdf2image import convert_from_path
+except ImportError:
+    convert_from_path = None
 
 
 title_lookup = {
@@ -850,4 +858,332 @@ def save_figure_high_res(fig, output_path, dpi=300, formats=None):
         else:
             fig.savefig(file_path, bbox_inches='tight')
         print(f"Saved: {file_path}")
+
+
+def load_uncertainty_outputs_for_task(task_path, scenarios):
+    """Load uncertainty output tables for the requested scenarios from one task folder."""
+    task_path = Path(task_path)
+    uncertainty_dfs = {}
+    for scenario in scenarios:
+        file_path = task_path / f"uncertainty_df_{scenario}.parquet"
+        if not file_path.exists():
+            raise FileNotFoundError(f"Missing uncertainty file for scenario '{scenario}': {file_path}")
+        uncertainty_dfs[scenario] = pd.read_parquet(file_path)
+    return uncertainty_dfs
+
+
+def load_diff_outputs_for_task(task_path, scenarios):
+    """Load baseline-referenced diff quantile tables for the requested scenarios from one task folder."""
+    task_path = Path(task_path)
+    diff_dfs = {}
+    for scenario in scenarios:
+        file_path = task_path / f"diff_quantiles_df_ref_baseline_{scenario}.parquet"
+        if not file_path.exists():
+            raise FileNotFoundError(f"Missing diff quantiles file for scenario '{scenario}': {file_path}")
+        diff_dfs[scenario] = pd.read_parquet(file_path)
+    return diff_dfs
+
+
+def build_bcm_from_task_path(task_path):
+    """Recreate the calibrated BCM context from a task folder's model configuration."""
+    from estival.model import BayesianCompartmentalModel
+    import tbh.runner_tools as rt
+    from tbh.model import get_tb_model
+
+    task_path = Path(task_path)
+    details_path = task_path / "details.yaml"
+    if not details_path.exists():
+        raise FileNotFoundError(f"Missing task metadata file: {details_path}")
+
+    with open(details_path, "r") as f:
+        docs = list(yaml.safe_load_all(f))
+
+    model_config = docs[1] if len(docs) > 1 else {}
+    if not isinstance(model_config, dict):
+        model_config = {}
+
+    params, priors, tv_params = rt.get_parameters_and_priors()
+    model = get_tb_model(model_config, tv_params)
+
+    # Prevent crash if the mixing_matrix_distance not produced by the model (e.g., if not using age-structured mixing)
+    targets = [t for t in rt.targets if t.name != "mixing_matrix_distance"]
+
+    return BayesianCompartmentalModel(model, params, priors, targets)
+
+
+def make_figure_1_calibration_from_task(
+    task_path,
+    model_pdf_path=None,
+    include_model_panel=False,
+    colour="#B22222",
+    figsize=None,
+    selected_outputs=None,
+):
+    """Generate manuscript Figure 1 from a task folder path."""
+    if selected_outputs is None:
+        selected_outputs = [
+            "pearl_posXreach_reachable_per100k",
+            "cxr_posXreach_reachable_per100k",
+            "perc_prev_subclinicalXreach_reachable",
+            "perc_prev_infectiousXreach_reachable",
+            "notifications",
+        ]
+
+    unc_baseline = load_uncertainty_outputs_for_task(task_path, ["baseline"])["baseline"]
+    bcm = build_bcm_from_task_path(task_path)
+
+    use_model_panel = bool(include_model_panel and model_pdf_path)
+
+    n_col = 3
+    n_data_panels = len(selected_outputs) + 1
+    n_data_row = ceil(n_data_panels / n_col)
+
+    if figsize is None:
+        figsize = (10.8, 8.5) if use_model_panel else (10.8, 5.2)
+
+    fig = plt.figure(figsize=figsize)
+    if use_model_panel:
+        gs = gridspec.GridSpec(
+            n_data_row + 1,
+            n_col,
+            figure=fig,
+            height_ratios=[1.8] + [1] * n_data_row,
+            hspace=0.2,
+            wspace=0.3,
+        )
+
+        ax_pdf = fig.add_subplot(gs[0, :])
+        ax_pdf.axis("off")
+        if convert_from_path is not None:
+            try:
+                images = convert_from_path(model_pdf_path, dpi=300)
+                if images:
+                    ax_pdf.imshow(images[0])
+            except Exception as exc:
+                ax_pdf.text(0.5, 0.5, f"Error loading PDF: {exc}", ha="center", va="center")
+        else:
+            ax_pdf.text(
+                0.5,
+                0.5,
+                "pdf2image not installed; skipping PDF panel rendering.",
+                ha="center",
+                va="center",
+            )
+        row_offset = 1
+    else:
+        gs = gridspec.GridSpec(
+            n_data_row,
+            n_col,
+            figure=fig,
+            hspace=0.35,
+            wspace=0.3,
+        )
+        ax_pdf = None
+        row_offset = 0
+
+    axes = []
+    for i in range(n_data_panels):
+        row = row_offset + (i // n_col)
+        col = i % n_col
+        axes.append(fig.add_subplot(gs[row, col]))
+
+    for i, output in enumerate(selected_outputs):
+        ax = axes[i]
+        x_min = 1995 if output == "notifications" else 2010
+        plot_model_fit_with_uncertainty(
+            ax,
+            unc_baseline,
+            output,
+            bcm,
+            x_lim=(x_min, 2025),
+            colour=colour,
+            target_ms=15,
+        )
+        if i == 0:
+            ax.legend()
+
+    ax = axes[len(selected_outputs)]
+    agegroups = ["3_9", "10", "15+", "18+"]
+    model_median, model_low, model_high, observed, x_tick_labels = [], [], [], [], []
+    for age in agegroups:
+        output_name = f"tst_posXage_{age}Xreach_reachable_perc"
+        year = bcm.targets[output_name].data.index[0]
+        quantiles = unc_baseline[output_name].loc[year]
+        obs = bcm.targets[output_name].data.iloc[0]
+
+        model_median.append(quantiles["0.5"])
+        model_low.append(quantiles["0.025"])
+        model_high.append(quantiles["0.975"])
+        observed.append(obs)
+
+        suffix = f" y.o.\\n({year})"
+        if age == "3_9":
+            x_tick_labels.append("3-9" + suffix)
+        elif age == "15+":
+            x_tick_labels.append("15+" + suffix)
+        else:
+            x_tick_labels.append(f"{age}" + suffix)
+
+    x = range(len(agegroups))
+    ax.errorbar(
+        [i - 0.06 for i in x],
+        model_median,
+        yerr=[
+            [m - l for m, l in zip(model_median, model_low)],
+            [h - m for h, m in zip(model_high, model_median)],
+        ],
+        fmt="D",
+        color=colour,
+        ecolor=colour,
+        markersize=3,
+        elinewidth=2.0,
+        capsize=0,
+        label="Model (median, 95% CI)",
+    )
+    ax.scatter([i + 0.06 for i in x], observed, color="black", s=7, zorder=5, label="Observed")
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(x_tick_labels)
+    ax.set_ylabel(title_lookup["tst_posXreach_reachable_perc"])
+
+    model_handle = mlines.Line2D(
+        [], [], color=colour, marker="D", markersize=3, linestyle="-", label="Model (median, 95% CrI)"
+    )
+    obs_handle = mlines.Line2D([], [], color="black", marker="o", linestyle="None", markersize=3, label="Observed")
+    ax.legend(handles=[obs_handle, model_handle], frameon=False, loc="best")
+
+    letter_fontsize = 9
+    letter_start = 0
+    if use_model_panel:
+        ax_pdf.text(
+            -0.05,
+            0.98,
+            "a)",
+            transform=ax_pdf.transAxes,
+            fontsize=letter_fontsize,
+            fontweight="bold",
+            va="top",
+        )
+        letter_start = 1
+
+    for i, axis in enumerate(axes):
+        letter_idx = i + letter_start
+        axis.text(
+            -0.15,
+            1.1,
+            f"{chr(97 + letter_idx)})",
+            transform=axis.transAxes,
+            fontsize=letter_fontsize,
+            fontweight="bold",
+            va="top",
+        )
+
+    return fig
+
+
+def make_figure_2_trajectories_from_task(
+    task_path,
+    trajectory_outputs,
+    scenarios=("baseline", "scenario_3"),
+    xlim=(2020, 2035),
+    unc_sc_colours=("#B22222", "#54992c"),
+    sc_names=SC_NAMES,
+    figsize=(7, 4.65),
+):
+    """Generate manuscript Figure 2 from a task folder path."""
+    unc_dfs = load_uncertainty_outputs_for_task(task_path, scenarios)
+
+    fig, axes = plt.subplots(2, 2, figsize=figsize, sharex=False)
+    axes = axes.flatten()
+    for ax, output in zip(axes, trajectory_outputs):
+        plot_two_scenarios(
+            ax,
+            unc_dfs,
+            output,
+            scenarios=list(scenarios),
+            xlim=xlim,
+            include_unc=True,
+            ylab_fontsize=9,
+            unc_sc_colours=unc_sc_colours,
+            include_legend=ax == axes[0],
+            sc_names=sc_names,
+        )
+
+    panel_letters = [f"{chr(97 + i)})" for i in range(len(trajectory_outputs))]
+    for i, letter in enumerate(panel_letters):
+        axes[i].text(
+            -0.15,
+            1.05,
+            letter,
+            transform=axes[i].transAxes,
+            fontsize=9,
+            fontweight="bold",
+            va="top",
+        )
+
+    fig.tight_layout()
+    return fig
+
+
+def make_figure_4_algorithms_coverage_from_task(
+    task_path,
+    scenarios_to_compare=None,
+    colour="#B22222",
+    figsize=(5, 5),
+):
+    """Generate manuscript Figure 4 from a task folder path."""
+    if scenarios_to_compare is None:
+        scenarios_to_compare = [
+            "scenario_1",
+            "scenario_2",
+            "scenario_3",
+            "scenario_6",
+            "scenario_7",
+            "scenario_8",
+            "scenario_16",
+            "scenario_17",
+            "scenario_18",
+        ]
+
+    diff_dfs = load_diff_outputs_for_task(task_path, scenarios_to_compare)
+
+    fig, axes = plt.subplots(2, 1, figsize=figsize, sharex=False)
+
+    group_labels = ["PEARL (CXR-Xpert-TST)", "CXR-TST", "Disease screening only (CXR)"]
+    coverage_labels = ["65%", "75%", "85%"]
+    xtick_labels = coverage_labels * len(group_labels)
+
+    def _format_fig4_axis(ax):
+        ax.set_xticks(range(1, len(scenarios_to_compare) + 1), xtick_labels)
+        plt.setp(ax.get_xticklabels(), rotation=0, ha="center")
+
+        for boundary in (3.5, 6.5):
+            ax.axvline(boundary, color="0.5", linestyle="--", linewidth=0.9, alpha=0.9, zorder=0)
+
+        for center, label in zip([2, 5, 8], group_labels):
+            ax.text(
+                center,
+                0.98,
+                label,
+                ha="center",
+                va="bottom",
+                transform=ax.get_xaxis_transform(),
+                fontsize=7,
+            )
+        ax.set_xlabel("Screening coverage")
+        ax.set_ylim(0, 65)
+
+    ax = axes[0]
+    plot_diff_outputs(ax, diff_dfs, "TB_averted_relative", scenarios_to_compare, colour=colour)
+    _format_fig4_axis(ax)
+    ax.grid(axis="y", linestyle="-", linewidth=0.7, alpha=0.4)
+    ax.set_title("a)", loc="left")
+
+    ax = axes[1]
+    plot_diff_outputs(ax, diff_dfs, "deaths_averted_relative", scenarios_to_compare, colour=colour)
+    _format_fig4_axis(ax)
+    ax.grid(axis="y", linestyle="-", linewidth=0.7, alpha=0.4)
+    ax.set_title("b)", loc="left")
+
+    fig.tight_layout()
+    return fig
    
