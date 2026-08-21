@@ -63,19 +63,73 @@ sc_colours = ["black", "crimson"]
 UNC_SC_COLORS = ((0.2, 0.2, 0.8), (0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2), (0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2))
 
 
-def plot_traces(idata, burn_in, output_folder_path=None):
-    az.rcParams["plot.max_subplots"] = 60 # to make sure all parameters are included in trace plots
-    chain_length = idata.sample_stats.sizes['draw']
 
-    # burn data
-    burnt_idata = idata.sel(draw=range(burn_in, chain_length))  # Discard burn-in
+def plot_traces(idata, bcm, burn_in=0, n_col=3):
+    posterior = idata.posterior
+    if burn_in > 0 and "draw" in posterior.dims:
+        posterior = posterior.isel(draw=slice(burn_in, None))
 
-    # Traces (after burn-in)
-    az.plot_trace(burnt_idata, figsize=(16, 3.0 * len(idata.posterior)), compact=False);
-    plt.subplots_adjust(hspace=.7)
-    if output_folder_path:
-        plt.savefig(output_folder_path / "mc_traces.jpg", facecolor="white", bbox_inches='tight')
-        plt.close()
+    trace_params = [p for p in bcm.priors.keys() if p in posterior.data_vars]
+
+    n_row = ceil(len(trace_params) / n_col)
+    fig, axes = plt.subplots(n_row, n_col, figsize=(6.5 * n_col, 2.8 * n_row), sharex=False)
+
+    if hasattr(axes, "flatten"):
+        axes = axes.flatten()
+    else:
+        axes = [axes]
+
+    # Fix one color per chain across all parameter panels.
+    chain_ids = sorted(list(posterior[trace_params[0]]["chain"].values))
+    base_colors = list(plt.cm.tab10.colors) + list(plt.cm.Set2.colors)
+    if len(chain_ids) > len(base_colors):
+        repeats = ceil(len(chain_ids) / len(base_colors))
+        base_colors = (base_colors * repeats)[:len(chain_ids)]
+    chain_color_map = {chain_id: base_colors[i] for i, chain_id in enumerate(chain_ids)}
+
+    for i, param_name in enumerate(trace_params):
+        ax = axes[i]
+        da = posterior[param_name]
+
+        # For non-scalar parameters, average over extra dims to keep one trace per chain.
+        extra_dims = [d for d in da.dims if d not in ["chain", "draw"]]
+        if extra_dims:
+            da = da.mean(dim=extra_dims)
+
+        draw_values = da["draw"].values
+        for chain_value in chain_ids:
+            chain_series = da.sel(chain=chain_value).values
+            ax.plot(
+                draw_values,
+                chain_series,
+                linewidth=0.9,
+                alpha=0.85,
+                color=chain_color_map[chain_value],
+            )
+
+        title_suffix = " (mean over extra dims)" if extra_dims else ""
+        ax.set_title(f"{param_name}{title_suffix}", fontsize=10)
+        ax.set_xlabel("Draw")
+        ax.set_ylabel("Value")
+        ax.grid(alpha=0.3)
+
+    for j in range(len(trace_params), len(axes)):
+        fig.delaxes(axes[j])
+
+    legend_handles = [
+        mlines.Line2D([], [], color=chain_color_map[c], linewidth=1.8, label=f"chain {c}")
+        for c in chain_ids
+    ]
+    fig.legend(
+        handles=legend_handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.02), 
+        ncol=min(9, len(chain_ids)),
+        frameon=False,
+        fontsize=14
+    )
+
+    return fig
 
 
 def plot_post_prior_comparison(
